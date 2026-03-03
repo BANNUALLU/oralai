@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Screening Completed</title>
+    <style>
+        body {
+            background:#f5f7fb;
+            font-family:Arial;
+            display:flex;
+            justify-content:center;
+            align-items:center;
+            height:100vh;
+        }
+        .card {
+            background:white;
+            padding:40px;
+            width:420px;
+            border-radius:18px;
+            text-align:center;
+            box-shadow:0 20px 40px rgba(0,0,0,0.15);
+        }
+        button {
+            width:100%;
+            padding:14px;
+            margin-top:15px;
+            border:none;
+            border-radius:10px;
+            font-size:15px;
+            font-weight:600;
+            cursor:pointer;
+            background:#0a66c2;
+            color:white;
+        }
+        button:hover {
+            background:#084b9c;
+        }
+        #status {
+            margin-top:18px;
+            font-weight:600;
+        }
+    </style>
+</head>
+
+<body>
+<div class="card">
+
+{% if error %}
+    <h2 style="color:red">❌ {{ error }}</h2>
+{% endif %}
+
+{% if success %}
+    <h2>✅ Screening Completed</h2>
+    <p>Your AI oral health screening is complete.</p>
+
+    <!-- ✅ FIXED DOWNLOAD BUTTON -->
+    <button onclick="window.location.href='/report/{{ report_id }}'">
+        ⬇️ Download Report
+    </button>
+
+    <button onclick="sendEmail()">📧 Send to Email</button>
+    <button onclick="sendSMS()">📱 Send via SMS</button>
+{% endif %}
+
+<div id="status"></div>
+</div>
+
+<script>
+function sendEmail() {
+    const s = document.getElementById("status");
+    s.innerText = "⏳ Sending email...";
+    fetch("/send_email", {method:"POST"})
+        .then(r=>r.text())
+        .then(t=>{
+            s.innerText = t;
+            s.style.color = t.includes("✅") ? "green" : "red";
+        });
+}
+
+function sendSMS() {
+    const s = document.getElementById("status");
+    s.innerText = "⏳ Sending SMS...";
+    fetch("/send_sms", {method:"POST"})
+        .then(r=>r.text())
+        .then(t=>{
+            s.innerText = t;
+            s.style.color = t.includes("✅") ? "green" : "red";
+        });
+}
+</script>
+</body>
+</html>

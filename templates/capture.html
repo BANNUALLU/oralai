@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Capture Dental Images</title>
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap" rel="stylesheet">
+
+<style>
+body{
+    background:#ffffff;
+    font-family:'Poppins',sans-serif;
+    display:flex;
+    justify-content:center;
+    align-items:center;
+    height:100vh;
+}
+.container{
+    width:900px;
+    background:white;
+    padding:30px;
+    border-radius:18px;
+    box-shadow:0 20px 40px rgba(0,0,0,0.12);
+}
+.step{
+    text-align:center;
+    font-size:14px;
+    color:#666;
+}
+h2{
+    text-align:center;
+    color:#0a3d91;
+    margin-bottom:20px;
+}
+.split{
+    display:flex;
+    gap:30px;
+    align-items:center;
+    justify-content:center;
+}
+.left{
+    width:40%;
+    text-align:center;
+}
+.left img{
+    width:100%;
+    max-width:300px;
+    border-radius:14px;
+    box-shadow:0 12px 25px rgba(0,0,0,0.15);
+}
+.right{
+    width:60%;
+    text-align:center;
+}
+video{
+    width:100%;
+    max-width:420px;
+    border-radius:14px;
+    box-shadow:0 12px 25px rgba(0,0,0,0.15);
+}
+.preview{
+    margin-top:15px;
+}
+.preview img{
+    width:200px;
+    border-radius:10px;
+    border:2px solid #0a66c2;
+}
+.buttons{
+    margin-top:25px;
+    text-align:center;
+}
+.btn{
+    padding:12px 28px;
+    margin:0 8px;
+    border:none;
+    border-radius:8px;
+    font-weight:600;
+    cursor:pointer;
+}
+.primary{ background:#0a66c2; color:white; }
+.secondary{ background:#eaf2ff; color:#0a66c2; }
+.hidden{ display:none; }
+</style>
+</head>
+
+<body>
+
+<div class="container">
+
+    <div class="step" id="stepText">🦷 Step 1 of 3</div>
+    <h2 id="titleText">Capture UPPER Teeth</h2>
+
+    <div class="split">
+
+        <!-- LEFT: REFERENCE -->
+        <div class="left">
+            <img id="refImage" src="{{ url_for('static', filename='ref_upper.png') }}">
+            <p style="font-size:14px;color:#555;">Use this as reference</p>
+        </div>
+
+        <!-- RIGHT: CAMERA -->
+        <div class="right">
+            <video id="video" autoplay></video>
+
+            <div class="preview hidden" id="previewBox">
+                <p>Captured Image</p>
+                <img id="previewImage">
+            </div>
+        </div>
+
+    </div>
+
+    <!-- BUTTONS -->
+    <div class="buttons">
+        <button class="btn primary" id="captureBtn">Capture</button>
+        <button class="btn secondary hidden" id="retakeBtn">Retake</button>
+        <button class="btn primary hidden" id="nextBtn">Next</button>
+    </div>
+
+    <form action="/generate" method="post" id="generateForm" class="hidden" style="text-align:center;">
+        <button class="btn primary">Generate AI Report</button>
+    </form>
+
+</div>
+
+<canvas id="canvas" width="400" height="300" class="hidden"></canvas>
+
+<script>
+const video = document.getElementById("video");
+const canvas = document.getElementById("canvas");
+const ctx = canvas.getContext("2d");
+
+const stepText = document.getElementById("stepText");
+const titleText = document.getElementById("titleText");
+const refImage = document.getElementById("refImage");
+
+const captureBtn = document.getElementById("captureBtn");
+const retakeBtn = document.getElementById("retakeBtn");
+const nextBtn = document.getElementById("nextBtn");
+const generateForm = document.getElementById("generateForm");
+
+const previewBox = document.getElementById("previewBox");
+const previewImage = document.getElementById("previewImage");
+
+const steps = [
+    { type:"upper", title:"Capture UPPER Teeth", img:"ref_upper.png" },
+    { type:"front", title:"Capture FRONT Teeth", img:"ref_front.png" },
+    { type:"lower", title:"Capture LOWER Teeth", img:"ref_lower.png" }
+];
+
+let currentStep = 0;
+let lastImage = null;
+
+// Start camera
+navigator.mediaDevices.getUserMedia({ video:true })
+.then(stream => video.srcObject = stream);
+
+// Capture
+captureBtn.onclick = () => {
+    ctx.drawImage(video,0,0,canvas.width,canvas.height);
+    lastImage = canvas.toDataURL("image/jpeg");
+
+    previewImage.src = lastImage;
+    previewBox.classList.remove("hidden");
+
+    fetch("/capture",{
+        method:"POST",
+        headers:{ "Content-Type":"application/json" },
+        body:JSON.stringify({ image:lastImage, type:steps[currentStep].type })
+    });
+
+    captureBtn.classList.add("hidden");
+    retakeBtn.classList.remove("hidden");
+    nextBtn.classList.remove("hidden");
+};
+
+// Retake
+retakeBtn.onclick = () => {
+    previewBox.classList.add("hidden");
+    captureBtn.classList.remove("hidden");
+    retakeBtn.classList.add("hidden");
+    nextBtn.classList.add("hidden");
+};
+
+// Next
+nextBtn.onclick = () => {
+    currentStep++;
+
+    if(currentStep < steps.length){
+        stepText.innerText = `🦷 Step ${currentStep+1} of 3`;
+        titleText.innerText = steps[currentStep].title;
+        refImage.src = `/static/${steps[currentStep].img}`;
+
+        previewBox.classList.add("hidden");
+        captureBtn.classList.remove("hidden");
+        retakeBtn.classList.add("hidden");
+        nextBtn.classList.add("hidden");
+    } else {
+        document.querySelector(".buttons").classList.add("hidden");
+        generateForm.classList.remove("hidden");
+    }
+};
+</script>
+
+</body>
+</html>

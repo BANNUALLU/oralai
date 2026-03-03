@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Patient Details</title>
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap" rel="stylesheet">
+
+<style>
+body{
+    background:#f6f8fb;
+    font-family:'Poppins';
+    display:flex;
+    justify-content:center;
+    align-items:center;
+    height:100vh;
+}
+.card{
+    background:white;
+    width:460px;
+    padding:40px;
+    border-radius:18px;
+    box-shadow:0 20px 40px rgba(0,0,0,0.12);
+}
+h2{
+    text-align:center;
+    color:#0a3d91;
+}
+input,select,button{
+    width:100%;
+    padding:14px;
+    margin-top:14px;
+    border-radius:8px;
+    border:1px solid #ccc;
+    font-size:14px;
+}
+button{
+    background:#0a66c2;
+    color:white;
+    border:none;
+    font-weight:600;
+    margin-top:25px;
+    cursor:pointer;
+}
+button:hover{
+    background:#084b9c;
+}
+small{
+    color:#666;
+    font-size:12px;
+}
+</style>
+</head>
+
+<body>
+<div class="card">
+<h2>🦷 Patient Details</h2>
+
+<form action="/details" method="post">
+
+    <!-- Full Name -->
+    <input 
+        name="name" 
+        placeholder="Full Name" 
+        required
+    >
+
+    <!-- Age -->
+    <input 
+        type="number" 
+        name="age" 
+        placeholder="Age" 
+        min="1" 
+        max="120" 
+        required
+    >
+
+    <!-- Gender (must select) -->
+    <select name="gender" required>
+        <option value="" disabled selected>Select Gender</option>
+        <option>Male</option>
+        <option>Female</option>
+    </select>
+
+    <!-- Phone Number with validation -->
+    <input 
+        name="phone" 
+        placeholder="Phone Number (e.g. 91XXXXXXXXXX)" 
+        pattern="[0-9]{10,12}"
+        title="Enter valid phone number (10–12 digits)"
+        required
+    >
+    <small>Include country code if required (example: 91XXXXXXXXXX)</small>
+
+    <!-- Email -->
+    <input 
+        type="email" 
+        name="email" 
+        placeholder="Email Address" 
+        required
+    >
+
+    <button>Continue → Capture Images</button>
+
+</form>
+
+</div>
+</body>
+</html>

@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>OralAI – AI Oral Health Screening</title>
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap" rel="stylesheet">
+
+<style>
+body{
+    margin:0;
+    font-family:'Poppins',sans-serif;
+    background:#ffffff;
+}
+.header{
+    padding:18px 60px;
+    background:#ffffff;
+    box-shadow:0 4px 12px rgba(0,0,0,0.05);
+}
+.logo{
+    font-size:26px;
+    font-weight:600;
+    color:#0a66c2;
+}
+.hero{
+    height:85vh;
+    display:flex;
+    justify-content:center;
+    align-items:center;
+}
+.card{
+    background:#ffffff;
+    width:950px;
+    padding:60px;
+    border-radius:20px;
+    display:flex;
+    gap:50px;
+    align-items:center;
+    box-shadow:0 20px 40px rgba(0,0,0,0.08);
+}
+.card img{
+    width:400px;
+}
+h1{
+    color:#0a3d91;
+    margin-bottom:15px;
+}
+p{
+    color:#555;
+    line-height:1.6;
+    margin-bottom:35px;
+}
+.btn{
+    padding:15px 42px;
+    background:#0a66c2;
+    color:white;
+    border-radius:10px;
+    text-decoration:none;
+    font-weight:600;
+}
+.btn:hover{
+    background:#084b9c;
+}
+</style>
+</head>
+
+<body>
+
+<div class="header">
+    <div class="logo">🦷 OralAI</div>
+</div>
+
+<div class="hero">
+    <div class="card">
+
+        <!-- IMAGE (must be inside static/) -->
+        <img src="{{ url_for('static', filename='oral_ai.png') }}" alt="Dental AI">
+
+        <div>
+            <h1>AI-Based Oral Health Screening</h1>
+            <p>
+                Detect oral health issues early using Artificial Intelligence.
+                Upload dental images and receive instant AI-powered analysis.
+            </p>
+            <a href="/start" class="btn">Start Screening</a>
+        </div>
+
+    </div>
+</div>
+
+</body>
+</html>
