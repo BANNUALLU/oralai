@@ -1,7 +1,11 @@
 flask
+anthropic
 ultralytics
 opencv-python-headless
 numpy
 reportlab
+fpdf2
+pypdf
 requests
 gunicorn
+python-dotenv
