@@ -139,6 +139,45 @@ nav{position:fixed;top:0;left:0;right:0;z-index:100;display:flex;align-items:cen
 .t-avatar{width:38px;height:38px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:700;color:var(--white);}
 .t-name{font-size:13px;font-weight:700;}.t-role{font-size:11px;color:var(--muted);}
 
+/* ── REVIEW SECTION ── */
+.review-section{background:rgba(255,255,255,0.01);border-top:1px solid var(--border);}
+.review-wrap{display:grid;grid-template-columns:1fr 1fr;gap:60px;align-items:start;margin-top:56px;}
+.review-left h3{font-size:22px;font-weight:800;margin-bottom:10px;letter-spacing:-0.5px;}
+.review-left p{font-size:14px;color:var(--muted);line-height:1.8;margin-bottom:28px;}
+.review-highlights{display:flex;flex-direction:column;gap:12px;}
+.review-highlight{display:flex;align-items:center;gap:12px;background:var(--card);border:1px solid var(--border);border-radius:12px;padding:14px 16px;}
+.rh-icon{font-size:20px;flex-shrink:0;}
+.rh-text{font-size:13px;color:rgba(255,255,255,0.75);line-height:1.5;}
+.rh-text strong{color:var(--white);display:block;font-size:13px;margin-bottom:1px;}
+.review-form-box{background:var(--card);border:1px solid var(--border);border-radius:22px;padding:32px;}
+.review-form-box h3{font-size:18px;font-weight:700;margin-bottom:6px;}
+.review-form-box .sub{font-size:13px;color:var(--muted);margin-bottom:24px;}
+.rf-group{margin-bottom:14px;}
+.rf-group label{font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:0.06em;display:block;margin-bottom:6px;}
+.rf-group input,.rf-group textarea,.rf-group select{
+  width:100%;background:rgba(255,255,255,0.05);border:1.5px solid rgba(255,255,255,0.1);
+  border-radius:10px;padding:11px 14px;font-family:var(--font);font-size:14px;color:var(--white);
+  outline:none;transition:border-color .2s;-webkit-appearance:none;}
+.rf-group input::placeholder,.rf-group textarea::placeholder{color:rgba(255,255,255,0.2);}
+.rf-group input:focus,.rf-group textarea:focus,.rf-group select:focus{border-color:var(--blue);background:rgba(26,111,255,0.06);}
+.rf-group textarea{resize:vertical;min-height:90px;}
+.rf-group select option{background:var(--navy2);}
+/* Star rating */
+.star-rating{display:flex;gap:6px;flex-direction:row-reverse;justify-content:flex-end;}
+.star-rating input{display:none;}
+.star-rating label{font-size:28px;color:rgba(255,255,255,0.15);cursor:pointer;transition:color .15s;line-height:1;}
+.star-rating label:hover,.star-rating label:hover~label,.star-rating input:checked~label{color:var(--gold);}
+.rf-row{display:grid;grid-template-columns:1fr 1fr;gap:14px;}
+.btn-review{width:100%;padding:13px;background:var(--blue);color:var(--white);border:none;
+  border-radius:12px;font-family:var(--font);font-size:15px;font-weight:700;cursor:pointer;
+  box-shadow:0 8px 24px rgba(26,111,255,0.35);transition:all .2s;
+  display:flex;align-items:center;justify-content:center;gap:8px;margin-top:4px;}
+.btn-review:hover{background:var(--blue2);transform:translateY(-2px);}
+.btn-review:disabled{opacity:.6;cursor:not-allowed;transform:none;}
+.review-msg{margin-top:12px;font-size:13px;font-weight:600;text-align:center;padding:10px 14px;border-radius:10px;display:none;}
+.review-msg.ok{background:rgba(34,232,142,0.1);color:var(--green);border:1px solid rgba(34,232,142,0.2);}
+.review-msg.fail{background:rgba(239,68,68,0.1);color:#ef4444;border:1px solid rgba(239,68,68,0.2);}
+
 /* DEVELOPER */
 .dev-section{background:linear-gradient(135deg,rgba(26,111,255,0.05),rgba(0,200,224,0.03));border-top:1px solid var(--border);border-bottom:1px solid var(--border);}
 .dev-inner{display:grid;grid-template-columns:1fr 1fr;gap:72px;align-items:center;}
@@ -213,6 +252,7 @@ footer{background:rgba(0,0,0,0.4);border-top:1px solid var(--border);padding:56p
   .steps-grid{grid-template-columns:repeat(2,1fr);gap:40px;}.steps-grid::before{display:none;}
   .dev-inner{grid-template-columns:1fr;}.contact-grid{grid-template-columns:1fr;}
   .footer-top{grid-template-columns:1fr 1fr;gap:36px;}.t-grid{grid-template-columns:1fr 1fr;}
+  .review-wrap{grid-template-columns:1fr;}
 }
 @media(max-width:767px){
   nav{padding:0 20px;height:60px;}.mobile-menu{top:60px;}
@@ -224,6 +264,7 @@ footer{background:rgba(0,0,0,0.4);border-top:1px solid var(--border);padding:56p
   .t-grid{grid-template-columns:1fr;}.footer-top{grid-template-columns:1fr;}
   .cta-box{padding:44px 24px;}.cta-box h2{font-size:28px;}
   footer{padding:44px 20px 20px;}.section-title{font-size:30px;}.form-row{grid-template-columns:1fr;}
+  .review-wrap{grid-template-columns:1fr;}.rf-row{grid-template-columns:1fr;}
 }
 @media(max-width:480px){
   .hero-title{font-size:28px;letter-spacing:-0.5px;}
@@ -239,6 +280,7 @@ footer{background:rgba(0,0,0,0.4);border-top:1px solid var(--border);padding:56p
   footer{padding:36px 16px 16px;}
   .footer-top{grid-template-columns:1fr;gap:28px;}
   .footer-bottom{flex-direction:column;text-align:center;}
+  .review-form-box{padding:22px 18px;}
 }
 @media(max-width:360px){
   .hero-title{font-size:24px;}
@@ -251,7 +293,7 @@ footer{background:rgba(0,0,0,0.4);border-top:1px solid var(--border);padding:56p
 <body>
 <nav id="navbar">
   <div class="nav-logo">
-    <a href="/"><img src="{{ url_for('static', filename='logo.png') }}" alt="OralAI"></a>
+    <a href="/"><picture><source srcset="{{ url_for('static', filename='logo.webp') }}" type="image/webp"><img src="{{ url_for('static', filename='logo.png') }}" alt="OralAI" fetchpriority="high" decoding="async"></picture></a>
   </div>
   <div class="nav-links">
     <a href="#features">Features</a><a href="#how">How it Works</a>
@@ -367,6 +409,75 @@ footer{background:rgba(0,0,0,0.4);border-top:1px solid var(--border);padding:56p
       <div class="t-card fade-up"><div class="stars">&#9733;&#9733;&#9733;&#9733;&#9733;</div><p>"The Telugu report was perfect! My grandmother could read and understand her dental issues clearly. Amazing technology."</p><div class="t-author"><div class="t-avatar" style="background:linear-gradient(135deg,#1a6fff,#00c8e0)">R</div><div><div class="t-name">Ravi Kumar</div><div class="t-role">Patient, Hyderabad</div></div></div></div>
       <div class="t-card fade-up"><div class="stars">&#9733;&#9733;&#9733;&#9733;&#9733;</div><p>"Quick, accurate and the AI analysis was very detailed. Detected caries early that I wasn't even aware of. Great tool!"</p><div class="t-author"><div class="t-avatar" style="background:linear-gradient(135deg,#7c3aed,#1a6fff)">P</div><div><div class="t-name">Priya Sharma</div><div class="t-role">Patient, Bangalore</div></div></div></div>
       <div class="t-card fade-up"><div class="stars">&#9733;&#9733;&#9733;&#9733;&#9733;</div><p>"As a dental clinic, this helps us do quick pre-screenings. The WhatsApp report delivery is very convenient for patients."</p><div class="t-author"><div class="t-avatar" style="background:linear-gradient(135deg,#f5c842,#f97316)">D</div><div><div class="t-name">Dr. Anand</div><div class="t-role">Dentist, Chennai</div></div></div></div>
+    </div>
+  </div>
+</section>
+
+<!-- ══════════════════════════════════════════════
+     REVIEW SECTION — submissions emailed to dev
+════════════════════════════════════════════════ -->
+<section class="section review-section" id="reviews">
+  <div class="section-inner">
+    <div class="fade-up" style="text-align:center">
+      <div class="section-tag">Reviews</div>
+      <h2 class="section-title">Share Your <span>Experience</span></h2>
+      <p class="section-desc" style="margin:0 auto">Tried OralAI? We would love to hear your feedback!</p>
+    </div>
+    <div class="review-wrap">
+      <div class="review-left fade-up">
+        <h3>Your feedback helps us improve 🦷</h3>
+        <p>Every review is read by our team. Tell us what worked, what didn't, and how we can make OralAI better for patients across India and beyond.</p>
+        <div class="review-highlights">
+          <div class="review-highlight">
+            <span class="rh-icon">⚡</span>
+            <div class="rh-text"><strong>Takes 30 seconds</strong>Just rate, write a line and submit.</div>
+          </div>
+          <div class="review-highlight">
+            <span class="rh-icon">🔒</span>
+            <div class="rh-text"><strong>Private & safe</strong>Your review goes directly to our team — not published publicly.</div>
+          </div>
+          <div class="review-highlight">
+            <span class="rh-icon">💡</span>
+            <div class="rh-text"><strong>We actually read it</strong>Reviews directly shape our next update.</div>
+          </div>
+        </div>
+      </div>
+      <div class="review-form-box fade-up">
+        <h3>Leave a Review</h3>
+        <p class="sub">Tell us about your experience with OralAI</p>
+        <form onsubmit="submitReview(event)" id="reviewForm">
+          <div class="rf-row">
+            <div class="rf-group"><label>Your Name</label><input type="text" id="rv-name" placeholder="Ravi Kumar" required></div>
+            <div class="rf-group"><label>Phone / Email</label><input type="text" id="rv-contact" placeholder="Optional"></div>
+          </div>
+          <div class="rf-group">
+            <label>Rating</label>
+            <div class="star-rating">
+              <input type="radio" name="rating" id="s5" value="5"><label for="s5">★</label>
+              <input type="radio" name="rating" id="s4" value="4"><label for="s4">★</label>
+              <input type="radio" name="rating" id="s3" value="3"><label for="s3">★</label>
+              <input type="radio" name="rating" id="s2" value="2"><label for="s2">★</label>
+              <input type="radio" name="rating" id="s1" value="1"><label for="s1">★</label>
+            </div>
+          </div>
+          <div class="rf-group">
+            <label>What did you use it for?</label>
+            <select id="rv-type">
+              <option value="Patient Screening">Patient Screening</option>
+              <option value="Personal Use">Personal Use</option>
+              <option value="Dental Clinic">Dental Clinic</option>
+              <option value="Demo / Testing">Demo / Testing</option>
+              <option value="Other">Other</option>
+            </select>
+          </div>
+          <div class="rf-group">
+            <label>Your Review</label>
+            <textarea id="rv-review" placeholder="Share your experience — what did you like? What can we improve?" required></textarea>
+          </div>
+          <button type="submit" class="btn-review" id="reviewBtn">⭐ Submit Review</button>
+          <div class="review-msg" id="reviewMsg"></div>
+        </form>
+      </div>
     </div>
   </div>
 </section>
@@ -495,6 +606,8 @@ window.addEventListener('scroll',function(){
 });
 function toggleMenu(){document.getElementById('mobileMenu').classList.toggle('open');}
 function closeMenu(){document.getElementById('mobileMenu').classList.remove('open');}
+
+/* Contact form */
 function submitForm(e){
   e.preventDefault();
   var btn=document.getElementById('submitBtn'),msg=document.getElementById('formMsg'),form=e.target;
@@ -508,6 +621,53 @@ function submitForm(e){
     else{btn.innerText='Send Message';msg.style.color='#ef4444';msg.innerText='Failed to send: '+(res.error||'Unknown error');}
   })
   .catch(function(){btn.disabled=false;btn.innerText='Send Message';msg.style.color='#ef4444';msg.innerText='Network error. Please try again.';});
+}
+
+/* Review form */
+function submitReview(e){
+  e.preventDefault();
+  var btn=document.getElementById('reviewBtn');
+  var msg=document.getElementById('reviewMsg');
+  var name=document.getElementById('rv-name').value.trim();
+  var contact=document.getElementById('rv-contact').value.trim();
+  var review=document.getElementById('rv-review').value.trim();
+  var type=document.getElementById('rv-type').value;
+  var ratingEl=document.querySelector('input[name="rating"]:checked');
+  var rating=ratingEl?ratingEl.value:'Not rated';
+  var stars=ratingEl?'★'.repeat(parseInt(rating))+'☆'.repeat(5-parseInt(rating)):'Not rated';
+
+  if(!name||!review){return;}
+  btn.disabled=true;btn.innerText='Submitting...';
+  msg.className='review-msg';msg.style.display='none';
+
+  fetch('/review',{
+    method:'POST',
+    headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({name:name,contact:contact,review:review,type:type,rating:rating,stars:stars})
+  })
+  .then(function(r){return r.json();})
+  .then(function(res){
+    btn.disabled=false;
+    if(res.success){
+      btn.innerText='⭐ Submit Review';
+      msg.className='review-msg ok';
+      msg.innerText='✅ Thank you '+name+'! Your review has been submitted.';
+      msg.style.display='block';
+      document.getElementById('reviewForm').reset();
+      setTimeout(function(){msg.style.display='none';},6000);
+    }else{
+      btn.innerText='⭐ Submit Review';
+      msg.className='review-msg fail';
+      msg.innerText='❌ Failed to submit: '+(res.error||'Unknown error');
+      msg.style.display='block';
+    }
+  })
+  .catch(function(){
+    btn.disabled=false;btn.innerText='⭐ Submit Review';
+    msg.className='review-msg fail';
+    msg.innerText='❌ Network error. Please try again.';
+    msg.style.display='block';
+  });
 }
 </script>
 </body>

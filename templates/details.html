@@ -13,7 +13,7 @@
   --input-bg:rgba(255,255,255,0.05);--input-bd:rgba(255,255,255,0.1);--font:'Outfit',sans-serif;
 }
 html{font-family:var(--font);}
-body{background:var(--navy);color:var(--white);overflow-x:hidden;min-height:100vh;}
+body{background:var(--navy);color:var(--white);overflow-x:hidden;min-height:100vh;display:flex;flex-direction:column;}
 a{text-decoration:none;color:inherit;}
 body::before{content:'';position:fixed;inset:0;z-index:0;
   background:radial-gradient(ellipse 80% 50% at 20% -10%,rgba(26,111,255,0.15) 0%,transparent 60%),
@@ -47,7 +47,7 @@ nav{position:fixed;top:0;left:0;right:0;z-index:100;display:flex;align-items:cen
 .mobile-menu a:hover{color:var(--white);}
 
 /* MAIN */
-.main{min-height:100vh;display:flex;align-items:center;justify-content:center;
+.main{flex:1;display:flex;align-items:center;justify-content:center;
   padding:100px 24px 40px;position:relative;z-index:1;}
 
 /* CARD */
@@ -100,16 +100,34 @@ select option{background:var(--navy2);color:var(--white);}
   margin-top:14px;font-size:13px;color:var(--muted);text-decoration:none;transition:color .2s;}
 .back-link:hover{color:var(--white);}
 
+/* ── FOOTER ── */
+.site-footer{position:relative;z-index:1;border-top:1px solid var(--border);
+  background:rgba(8,18,34,0.95);padding:18px 40px;}
+.footer-inner{max-width:1400px;margin:0 auto;display:flex;align-items:center;
+  justify-content:space-between;flex-wrap:wrap;gap:10px;}
+.footer-copy{font-size:13px;color:var(--muted);font-weight:400;}
+.footer-powered{font-size:13px;color:var(--muted);}
+.footer-powered a{color:var(--blue2);text-decoration:none;font-weight:500;transition:color .2s;}
+.footer-powered a:hover{color:var(--white);}
+.scroll-top{position:fixed;bottom:24px;right:24px;z-index:200;width:44px;height:44px;
+  border-radius:50%;background:var(--blue);border:none;cursor:pointer;
+  display:flex;align-items:center;justify-content:center;
+  box-shadow:0 4px 16px rgba(26,111,255,0.5);transition:all .2s;font-size:18px;color:var(--white);}
+.scroll-top:hover{background:var(--blue2);transform:translateY(-3px);}
+
 /* ── RESPONSIVE ── */
 @media(max-width:1199px){nav{padding:0 32px;}}
 @media(max-width:767px){
   nav{padding:0 20px;height:60px;}.mobile-menu{top:60px;}
-  .nav-links,.nav-cta{display:none;}.hamburger{display:flex;}
-  .nav-logo img{height:44px;}
+  .nav-links,.nav-cta{display:none;}.hamburger{display:flex;}.nav-logo img{height:44px;}
   .main{padding:80px 16px 32px;}
   .card-top{padding:24px 20px 20px;}.card-body{padding:20px;}
   .row{grid-template-columns:1fr;gap:0;}
   .card-title{font-size:19px;}.card-sub{font-size:12px;}
+  .site-footer{padding:16px 20px;}
+  .footer-inner{flex-direction:column;align-items:flex-start;gap:6px;}
+  .footer-copy,.footer-powered{font-size:12px;}
+  .scroll-top{bottom:16px;right:16px;width:40px;height:40px;font-size:16px;}
 }
 @media(max-width:480px){
   .main{padding:72px 12px 24px;}
@@ -131,7 +149,7 @@ select option{background:var(--navy2);color:var(--white);}
 <body>
 <nav id="navbar">
   <div class="nav-logo">
-    <a href="/"><img src="{{ url_for('static', filename='logo.png') }}" alt="OralAI"></a>
+    <a href="/"><picture><source srcset="{{ url_for('static', filename='logo.webp') }}" type="image/webp"><img src="{{ url_for('static', filename='logo.png') }}" alt="OralAI" fetchpriority="high" decoding="async"></picture></a>
   </div>
   <div class="nav-links">
     <a href="/#features">Features</a><a href="/#how">How it Works</a>
@@ -198,6 +216,16 @@ select option{background:var(--navy2);color:var(--white);}
     </div>
   </div>
 </main>
+
+<!-- FOOTER -->
+<footer class="site-footer">
+  <div class="footer-inner">
+    <span class="footer-copy">2026 OralAI. All rights reserved. Built with love by Allu Satyanarayana Murthy</span>
+    <span class="footer-powered">Powered by <a href="https://anthropic.com" target="_blank">Anthropic Claude</a> and <a href="https://github.com/ultralytics/ultralytics" target="_blank">YOLOv8</a></span>
+  </div>
+</footer>
+<button class="scroll-top" onclick="window.scrollTo({top:0,behavior:'smooth'})" title="Back to top">↑</button>
+
 <script>
 function toggleMenu(){document.getElementById('mobileMenu').classList.toggle('open');}
 function closeMenu(){document.getElementById('mobileMenu').classList.remove('open');}

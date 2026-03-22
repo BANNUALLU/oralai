@@ -4,6 +4,7 @@ import os
 import uuid
 import json
 import smtplib
+from datetime import timedelta
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 import anthropic
@@ -15,9 +16,12 @@ from ai_recommendation import generate_recommendations
 from whatsapp_sender import send_whatsapp_report
 
 app = Flask(__name__)
-app.secret_key = "oralai_secret_2024"
+app.secret_key = os.getenv("SECRET_KEY", "oralai_secret_2024")
 
-user_data = {}
+# ── Fix 1 & 2: Make sessions permanent so they survive across
+#    Gunicorn workers and persist long enough ──────────────────
+app.config["SESSION_PERMANENT"]    = True
+app.config["PERMANENT_SESSION_LIFETIME"] = timedelta(hours=2)
 
 UPLOAD_DIR = "static/uploads"
 RESULT_DIR = "static/results"
@@ -28,12 +32,12 @@ os.makedirs(RESULT_DIR, exist_ok=True)
 os.makedirs(REPORT_DIR, exist_ok=True)
 
 # ── Anthropic client ──────────────────────────────────────
-client = anthropic.Anthropic(api_key="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")
+client = anthropic.Anthropic(api_key=os.getenv("ANTHROPIC_API_KEY", ""))
 
 # ── Email config ──────────────────────────────────────────
 EMAIL_USER      = os.getenv("EMAIL_USER", "oralai.site@gmail.com")
-EMAIL_PASS      = os.getenv("EMAIL_PASS", "ykfiyejpuqqypiez")
-DEVELOPER_EMAIL = "bannuallu123@gmail.com"
+EMAIL_PASS      = os.getenv("EMAIL_PASS", "")
+DEVELOPER_EMAIL = os.getenv("DEVELOPER_EMAIL", "bannuallu123@gmail.com")
 
 
 # ════════════════════════════════════════════════════════════
@@ -58,9 +62,25 @@ def start():
 @app.route("/details", methods=["GET", "POST"])
 def details():
     if request.method == "POST":
-        user_data.clear()
-        user_data.update(request.form)
-        session["language"] = request.form.get("language", "English")
+        # Fix 5: Clear ALL old session data before saving new patient ─
+        # This prevents old name/age/email leaking into a new screening
+        session.clear()
+
+        # Store all patient data in session
+        session["patient_name"]   = request.form.get("name", "").strip()
+        session["patient_age"]    = request.form.get("age", "").strip()
+        session["patient_gender"] = request.form.get("gender", "").strip()
+        session["patient_phone"]  = request.form.get("phone", "").strip()
+        session["patient_email"]  = request.form.get("email", "").strip()
+        session["language"]       = request.form.get("language", "English").strip()
+
+        # Generate unique screening ID for this patient
+        session["screening_id"]   = str(uuid.uuid4())[:8]
+
+        # Fix 1 & 2: Mark session as permanent and modified ──────────
+        session.permanent = True
+        session.modified  = True
+
         return redirect("/capture")
     return render_template("details.html")
 
@@ -70,6 +90,9 @@ def details():
 # ════════════════════════════════════════════════════════════
 @app.route("/capture")
 def capture_page():
+    # Fix 1: If session lost, send back to details ───────────────────
+    if not session.get("patient_name"):
+        return redirect("/details")
     language = session.get("language", "English")
     return render_template("capture.html", session_language=language)
 
@@ -136,7 +159,10 @@ def capture_image():
     image_type   = data["type"]
     image_base64 = data["image"].split(",")[1]
     image_bytes  = base64.b64decode(image_base64)
-    image_path   = os.path.join(UPLOAD_DIR, f"{image_type}.jpg")
+
+    screening_id = session.get("screening_id", "default")
+    image_path   = os.path.join(UPLOAD_DIR, f"{screening_id}_{image_type}.jpg")
+
     with open(image_path, "wb") as f:
         f.write(image_bytes)
     return jsonify({"status": "saved"})
@@ -227,22 +253,37 @@ Use bullet points where helpful.
 # ════════════════════════════════════════════════════════════
 @app.route("/generate", methods=["POST"])
 def generate():
-    if not user_data:
+    # Read patient data from session
+    name         = session.get("patient_name", "")
+    age          = session.get("patient_age", "25")
+    gender       = session.get("patient_gender", "Other")
+    phone        = session.get("patient_phone", "")
+    email        = session.get("patient_email", "")
+    language     = session.get("language", "English")
+    screening_id = session.get("screening_id", "")
+
+    # Fix 1: If name missing, redirect to details (don't fail silently)
+    if not name or not screening_id:
         return redirect("/details")
 
-    age      = user_data.get("age", "25")
-    gender   = user_data.get("gender", "Other")
-    language = user_data.get("language", "English")
+    print(f"Generating report for: {name}, language: {language}, screening: {screening_id}")
 
-    print(f"Report language: {language}")
+    patient_info = {
+        "name":     name,
+        "age":      age,
+        "gender":   gender,
+        "phone":    phone,
+        "email":    email,
+        "language": language,
+    }
 
     all_detections  = []
     detected_labels = []
     yolo_paths      = {}
 
     for part in ["upper", "front", "lower"]:
-        img_path = f"{UPLOAD_DIR}/{part}.jpg"
-        out_path = f"{RESULT_DIR}/{part}_yolo.jpg"
+        img_path = os.path.join(UPLOAD_DIR, f"{screening_id}_{part}.jpg")
+        out_path = os.path.join(RESULT_DIR, f"{screening_id}_{part}_yolo.jpg")
 
         if not os.path.exists(img_path):
             return render_template("result.html", error="Missing images. Please capture again.")
@@ -264,20 +305,22 @@ def generate():
 
     claude_analysis = analyse_with_claude(
         yolo_image_paths=yolo_paths,
-        patient_info=user_data
+        patient_info=patient_info
     )
 
     report_id   = str(uuid.uuid4())[:8]
     report_path = generate_pdf(
-        user_data=user_data,
+        user_data=patient_info,
         detected_labels=detected_labels,
         report_id=report_id,
         recommendations=recommendations,
         claude_analysis=claude_analysis
     )
 
-    user_data["report_path"] = report_path
-    user_data["report_id"]   = report_id
+    # Fix 2: Save report info to session AND mark modified ──────────
+    session["report_path"] = report_path
+    session["report_id"]   = report_id
+    session.modified       = True
 
     return render_template("result.html", success=True, report_id=report_id)
 
@@ -298,15 +341,24 @@ def view_report(report_id):
 # ════════════════════════════════════════════════════════════
 @app.route("/send_email", methods=["POST"])
 def send_email_route():
-    email       = user_data.get("email")
-    report_path = user_data.get("report_path")
-    if not email or not report_path:
-        return "Email or report missing."
+    email       = session.get("patient_email", "").strip()
+    report_path = session.get("report_path", "")
+    report_id   = session.get("report_id", "")
+
+    # Fix 2: If session lost report_path, recover from filesystem ────
+    if not report_path and report_id:
+        report_path = f"{REPORT_DIR}/{report_id}.pdf"
+
+    if not email:
+        return "❌ Patient email not found. Please start a new screening."
+    if not report_path or not os.path.exists(report_path):
+        return "❌ Report not found. Please generate the report first."
+
     try:
         send_report(email, report_path)
-        return "Email sent successfully!"
+        return "✅ Report sent successfully to " + email
     except Exception as e:
-        return f"Email failed: {str(e)}"
+        return f"❌ Email failed: {str(e)}"
 
 
 # ════════════════════════════════════════════════════════════
@@ -316,17 +368,21 @@ def send_email_route():
 def send_whatsapp_route():
     print("WhatsApp send requested...")
 
-    phone       = user_data.get("phone", "").strip()
-    name        = user_data.get("name", "Patient")
-    report_id   = user_data.get("report_id", "")
-    report_path = user_data.get("report_path", "")
+    phone       = session.get("patient_phone", "").strip()
+    name        = session.get("patient_name", "Patient")
+    report_id   = session.get("report_id", "")
+    report_path = session.get("report_path", "")
+
+    # Fix 2: If session lost report_path, recover from filesystem ────
+    if not report_path and report_id:
+        report_path = f"{REPORT_DIR}/{report_id}.pdf"
 
     if not phone:
-        return "No phone number found. Please re-enter patient details."
+        return "❌ No phone number found. Please re-enter patient details."
     if not report_id or not report_path:
-        return "Report not found. Please generate the report first."
+        return "❌ Report not found. Please generate the report first."
     if not os.path.exists(report_path):
-        return "Report file missing on server."
+        return "❌ Report file missing on server."
 
     try:
         success, message = send_whatsapp_report(
@@ -344,7 +400,75 @@ def send_whatsapp_route():
 
     except Exception as e:
         print(f"WhatsApp exception: {str(e)}")
-        return f"WhatsApp failed: {str(e)}"
+        return f"❌ WhatsApp failed: {str(e)}"
+
+
+# ════════════════════════════════════════════════════════════
+#  REVIEW FORM (sends review email to developer)
+# ════════════════════════════════════════════════════════════
+@app.route("/review", methods=["POST"])
+def review():
+    try:
+        data    = request.get_json()
+        name    = data.get("name", "Anonymous")
+        contact = data.get("contact", "N/A")
+        review  = data.get("review", "")
+        rtype   = data.get("type", "General")
+        rating  = data.get("rating", "N/A")
+        stars   = data.get("stars", "")
+
+        if not review.strip():
+            return jsonify({"success": False, "error": "Review cannot be empty."})
+
+        msg = MIMEMultipart("alternative")
+        msg["Subject"]  = f"⭐ OralAI Review ({rating}/5) — {name}"
+        msg["From"]     = EMAIL_USER
+        msg["To"]       = EMAIL_USER  # sends to oralai.site@gmail.com
+
+        html_body = f"""
+        <html>
+        <body style="font-family:Arial,sans-serif;background:#f4f7ff;padding:20px;">
+          <div style="max-width:560px;margin:0 auto;background:#ffffff;border-radius:12px;overflow:hidden;box-shadow:0 4px 20px rgba(0,0,0,0.08);">
+            <div style="background:#0a1628;padding:24px 28px;">
+              <h2 style="color:#ffffff;margin:0;font-size:20px;">⭐ New OralAI Review</h2>
+              <p style="color:#8a9bb5;margin:4px 0 0;font-size:13px;">Submitted from the OralAI website</p>
+            </div>
+            <div style="padding:28px;">
+              <div style="text-align:center;font-size:32px;margin-bottom:8px;letter-spacing:4px;">{stars}</div>
+              <div style="text-align:center;font-size:15px;font-weight:700;color:#1a6fff;margin-bottom:24px;">{rating} / 5 Stars</div>
+              <table style="width:100%;border-collapse:collapse;">
+                <tr><td style="padding:8px 0;font-size:13px;color:#64748b;width:120px;font-weight:600;">Name</td><td style="padding:8px 0;font-size:14px;color:#0f172a;font-weight:700;">{name}</td></tr>
+                <tr style="border-top:1px solid #f1f5f9;"><td style="padding:8px 0;font-size:13px;color:#64748b;font-weight:600;">Contact</td><td style="padding:8px 0;font-size:14px;color:#0f172a;">{contact}</td></tr>
+                <tr style="border-top:1px solid #f1f5f9;"><td style="padding:8px 0;font-size:13px;color:#64748b;font-weight:600;">Used for</td><td style="padding:8px 0;font-size:14px;color:#1a6fff;font-weight:600;">{rtype}</td></tr>
+              </table>
+              <div style="margin-top:20px;padding:18px;background:#f8fafc;border-radius:10px;border-left:4px solid #f5c842;">
+                <div style="font-size:12px;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:0.06em;margin-bottom:10px;">Review</div>
+                <p style="font-size:15px;color:#0f172a;line-height:1.8;margin:0;font-style:italic;">"{review}"</p>
+              </div>
+            </div>
+            <div style="background:#f8fafc;padding:16px 28px;border-top:1px solid #e2e8f0;">
+              <p style="font-size:12px;color:#94a3b8;margin:0;">OralAI — AI Oral Health Screening | www.oralai.site</p>
+            </div>
+          </div>
+        </body>
+        </html>
+        """
+
+        msg.attach(MIMEText(html_body, "html"))
+
+        with smtplib.SMTP("smtp.gmail.com", 587) as server:
+            server.starttls()
+            server.login(EMAIL_USER, EMAIL_PASS)
+            server.sendmail(EMAIL_USER, EMAIL_USER, msg.as_string())
+
+        print(f"Review received from {name} — {rating}/5 stars")
+        return jsonify({"success": True})
+
+    except smtplib.SMTPAuthenticationError:
+        return jsonify({"success": False, "error": "Email config error."})
+    except Exception as e:
+        print(f"Review error: {e}")
+        return jsonify({"success": False, "error": str(e)})
 
 
 # ════════════════════════════════════════════════════════════
@@ -364,9 +488,9 @@ def contact():
             return jsonify({"success": False, "error": "Message cannot be empty."})
 
         msg = MIMEMultipart("alternative")
-        msg["Subject"] = f"OralAI Contact: {subject}"
-        msg["From"]    = EMAIL_USER
-        msg["To"]      = DEVELOPER_EMAIL
+        msg["Subject"]  = f"OralAI Contact: {subject}"
+        msg["From"]     = EMAIL_USER
+        msg["To"]       = DEVELOPER_EMAIL
         msg["Reply-To"] = email
 
         html_body = f"""
@@ -402,22 +526,17 @@ def contact():
 
         msg.attach(MIMEText(html_body, "html"))
 
-        print(f"Using EMAIL_USER: {EMAIL_USER}")
-        print(f"Using EMAIL_PASS length: {len(EMAIL_PASS)}")
-
         with smtplib.SMTP("smtp.gmail.com", 587) as server:
             server.starttls()
             server.login(EMAIL_USER, EMAIL_PASS)
-            print("Login success!")
             server.sendmail(EMAIL_USER, DEVELOPER_EMAIL, msg.as_string())
-            print("Email sent!")
 
         print(f"Contact email sent from {name} ({email})")
         return jsonify({"success": True})
 
-    except smtplib.SMTPAuthenticationError as e:
-        print(f"AUTH ERROR: {e}")
-        return jsonify({"success": False, "error": f"Auth failed: {str(e)}"})
+    except smtplib.SMTPAuthenticationError:
+        print("Gmail auth failed — check EMAIL_USER and EMAIL_PASS env vars")
+        return jsonify({"success": False, "error": "Email configuration error. Please contact us directly."})
     except Exception as e:
         print(f"Contact form error: {e}")
         return jsonify({"success": False, "error": str(e)})
@@ -427,4 +546,5 @@ def contact():
 #  RUN APP
 # ════════════════════════════════════════════════════════════
 if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=5000, debug=True)
+    debug_mode = os.getenv("FLASK_DEBUG", "false").lower() == "true"
+    app.run(host="0.0.0.0", port=5000, debug=debug_mode)

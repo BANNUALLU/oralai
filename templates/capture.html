@@ -136,13 +136,33 @@ button{display:inline-flex;align-items:center;gap:6px;padding:9px 18px;border:no
 .gen-text h4{font-size:13px;font-weight:700;margin-bottom:2px;}
 .gen-text p{font-size:12px;color:var(--muted);}
 
+/* ── FOOTER ── */
+.site-footer{position:relative;z-index:1;border-top:1px solid var(--border);
+  background:rgba(8,18,34,0.95);padding:18px 40px;}
+.footer-inner{max-width:1400px;margin:0 auto;display:flex;align-items:center;
+  justify-content:space-between;flex-wrap:wrap;gap:10px;}
+.footer-copy{font-size:13px;color:var(--muted);font-weight:400;}
+.footer-powered{font-size:13px;color:var(--muted);}
+.footer-powered a{color:var(--blue2);text-decoration:none;font-weight:500;transition:color .2s;}
+.footer-powered a:hover{color:var(--white);}
+.scroll-top{position:fixed;bottom:24px;right:24px;z-index:200;width:44px;height:44px;
+  border-radius:50%;background:var(--blue);border:none;cursor:pointer;
+  display:flex;align-items:center;justify-content:center;
+  box-shadow:0 4px 16px rgba(26,111,255,0.5);transition:all .2s;font-size:18px;color:var(--white);}
+.scroll-top:hover{background:var(--blue2);transform:translateY(-3px);}
+@media(max-width:768px){
+  .site-footer{padding:16px 20px;}
+  .footer-inner{flex-direction:column;align-items:flex-start;gap:6px;}
+  .footer-copy,.footer-powered{font-size:12px;}
+  .scroll-top{bottom:16px;right:16px;width:40px;height:40px;font-size:16px;}
+}
+
 /* ── RESPONSIVE ── */
 @media(max-width:1199px){nav{padding:0 32px;}.container{padding:20px 24px;}.guide-panel{flex:0 0 160px;}}
 @media(max-width:900px){.guide-panel{flex:0 0 140px;}}
 @media(max-width:768px){
   nav{padding:0 20px;height:60px;}.mobile-menu{top:60px;}
-  .nav-links,.nav-cta{display:none;}.hamburger{display:flex;}
-  .nav-logo img{height:44px;}
+  .nav-links,.nav-cta{display:none;}.hamburger{display:flex;}.nav-logo img{height:44px;}
   body{padding-top:60px;}
   .container{padding:16px 18px;border-radius:18px;}
   .guide-panel{display:none;}
@@ -176,7 +196,7 @@ button{display:inline-flex;align-items:center;gap:6px;padding:9px 18px;border:no
 <body>
 <nav id="navbar">
   <div class="nav-logo">
-    <a href="/"><img src="{{ url_for('static', filename='logo.png') }}" alt="OralAI"></a>
+    <a href="/"><picture><source srcset="{{ url_for('static', filename='logo.webp') }}" type="image/webp"><img src="{{ url_for('static', filename='logo.png') }}" alt="OralAI" fetchpriority="high" decoding="async"></picture></a>
   </div>
   <div class="nav-links">
     <a href="/#features">Features</a><a href="/#how">How it Works</a>
@@ -257,6 +277,16 @@ button{display:inline-flex;align-items:center;gap:6px;padding:9px 18px;border:no
     </div>
   </div>
 </div>
+
+<!-- FOOTER -->
+<footer class="site-footer">
+  <div class="footer-inner">
+    <span class="footer-copy">2026 OralAI. All rights reserved. Built with love by Allu Satyanarayana Murthy</span>
+    <span class="footer-powered">Powered by <a href="https://anthropic.com" target="_blank">Anthropic Claude</a> and <a href="https://github.com/ultralytics/ultralytics" target="_blank">YOLOv8</a></span>
+  </div>
+</footer>
+<button class="scroll-top" onclick="window.scrollTo({top:0,behavior:'smooth'})" title="Back to top">↑</button>
+
 <canvas id="canvasFull" style="display:none;"></canvas>
 <canvas id="canvasCrop" style="display:none;"></canvas>
 <script>
@@ -295,7 +325,31 @@ function updatePills(){for(let i=0;i<3;i++){const p=document.getElementById("pil
 async function startCamera(){if(stream)stream.getTracks().forEach(t=>t.stop());stream=await navigator.mediaDevices.getUserMedia({video:{facingMode,width:{ideal:1920},height:{ideal:1080}}});video.srcObject=stream;}
 startCamera();
 switchBtn.onclick=()=>{facingMode=facingMode==="environment"?"user":"environment";startCamera();};
-flashBtn.onclick=async()=>{const track=stream.getVideoTracks()[0],cap=track.getCapabilities?track.getCapabilities():{};if(!cap.torch){alert("Flash not supported");return;}flash=!flash;await track.applyConstraints({advanced:[{torch:flash}]});flashBtn.textContent=flash?"🔦":"⚡";};
+flashBtn.onclick=async()=>{
+  if(!stream){return;}
+  const track=stream.getVideoTracks()[0];
+  const cap=track.getCapabilities?track.getCapabilities():{};
+  // Torch supported (works on Android: Samsung, Pixel, most Chrome browsers)
+  if(cap&&cap.torch){
+    try{
+      flash=!flash;
+      await track.applyConstraints({advanced:[{torch:flash}]});
+      flashBtn.textContent=flash?"🔦":"⚡";
+      flashBtn.style.opacity="1";
+    }catch(e){
+      flash=false;
+      console.warn("Torch error:",e);
+      flashBtn.textContent="⚡";
+    }
+  }else{
+    // Torch NOT supported — iPhone Safari blocks torch completely
+    // Show a clear message, don't alert, just dim the button
+    flashBtn.textContent="🚫";
+    flashBtn.style.opacity="0.4";
+    flashBtn.title="Flashlight not supported on this device or browser.\niPhone Safari does not allow torch access.";
+    setTimeout(()=>{flashBtn.textContent="⚡";flashBtn.style.opacity="1";},2000);
+  }
+};
 function showBanner(type,icon,message,sub){resultBanner.className="result-banner show "+type;bannerIcon.textContent=icon;bannerMsg.innerHTML=message+(sub?`<small>${sub}</small>`:"");}
 function hideBanner(){resultBanner.className="result-banner";}
 async function validateTeeth(b64){const res=await fetch("/validate",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({image:b64})});if(!res.ok)throw new Error("Server error: "+res.status);return await res.json();}

@@ -68,7 +68,7 @@ h2{font-size:22px;font-weight:800;letter-spacing:-0.5px;margin-bottom:8px;}
 .btn-primary{background:var(--blue);color:var(--white);box-shadow:0 8px 24px rgba(26,111,255,0.4);}
 .btn-primary:hover{background:var(--blue2);transform:translateY(-2px);}
 .btn-row{display:flex;gap:10px;}
-.btn-row .btn{flex:1;height:46px;font-size:13px;}
+.btn-row .btn{flex:1;height:50px;font-size:14px;}
 .btn-email{background:rgba(255,255,255,0.06);color:var(--white);border:1.5px solid var(--border);}
 .btn-email:hover{background:rgba(255,255,255,0.1);}
 .btn-wa{background:var(--wa);color:var(--white);box-shadow:0 6px 20px rgba(37,211,102,0.3);}
@@ -88,18 +88,39 @@ h2{font-size:22px;font-weight:800;letter-spacing:-0.5px;margin-bottom:8px;}
 .sep::before,.sep::after{content:'';flex:1;height:1px;background:var(--border);}
 .sep span{font-size:11px;color:var(--muted);}
 
+/* ── FOOTER ── */
+.site-footer{position:relative;z-index:1;width:100%;border-top:1px solid var(--border);
+  background:rgba(8,18,34,0.95);padding:18px 40px;margin-top:32px;}
+.footer-inner{max-width:1400px;margin:0 auto;display:flex;align-items:center;
+  justify-content:space-between;flex-wrap:wrap;gap:10px;}
+.footer-copy{font-size:13px;color:var(--muted);font-weight:400;}
+.footer-powered{font-size:13px;color:var(--muted);}
+.footer-powered a{color:var(--blue2);text-decoration:none;font-weight:500;transition:color .2s;}
+.footer-powered a:hover{color:var(--white);}
+.scroll-top{position:fixed;bottom:24px;right:24px;z-index:200;width:44px;height:44px;
+  border-radius:50%;background:var(--blue);border:none;cursor:pointer;
+  display:flex;align-items:center;justify-content:center;
+  box-shadow:0 4px 16px rgba(26,111,255,0.5);transition:all .2s;font-size:18px;color:var(--white);}
+.scroll-top:hover{background:var(--blue2);transform:translateY(-3px);}
+
 /* ── RESPONSIVE ── */
 @media(max-width:1199px){nav{padding:0 32px;}}
 @media(max-width:767px){
   nav{padding:0 20px;height:60px;}.mobile-menu{top:60px;}
-  .nav-links,.nav-cta{display:none;}.hamburger{display:flex;}
-  .nav-logo img{height:44px;}
-  body{padding:80px 16px 20px;}
+  .nav-links,.nav-cta{display:none;}.hamburger{display:flex;}.nav-logo img{height:44px;}
+  body{padding:80px 16px 0;}
+  /* Mobile button fix — bigger tap targets */
+  .btn-row{flex-direction:column;gap:10px;}
+  .btn-row .btn{height:54px;font-size:15px;width:100%;}
+  .btn-email,.btn-wa{height:54px;font-size:15px;}
+  .site-footer{padding:16px 20px;margin-top:24px;}
+  .footer-inner{flex-direction:column;align-items:flex-start;gap:6px;}
+  .footer-copy,.footer-powered{font-size:12px;}
+  .scroll-top{bottom:16px;right:16px;width:40px;height:40px;font-size:16px;}
 }
 @media(max-width:480px){
   .card{padding:28px 20px;border-radius:18px;}
   h2{font-size:20px;}.subtitle{font-size:13px;}
-  .btn-row{flex-direction:column;}.btn-row .btn{height:48px;}
   .icon-wrap{width:68px;height:68px;font-size:30px;}
 }
 @media(max-width:360px){
@@ -112,7 +133,7 @@ h2{font-size:22px;font-weight:800;letter-spacing:-0.5px;margin-bottom:8px;}
 <body>
 <nav id="navbar">
   <div class="nav-logo">
-    <a href="/"><img src="{{ url_for('static', filename='logo.png') }}" alt="OralAI"></a>
+    <a href="/"><picture><source srcset="{{ url_for('static', filename='logo.webp') }}" type="image/webp"><img src="{{ url_for('static', filename='logo.png') }}" alt="OralAI" fetchpriority="high" decoding="async"></picture></a>
   </div>
   <div class="nav-links">
     <a href="/#features">Features</a><a href="/#how">How it Works</a>
@@ -160,6 +181,16 @@ h2{font-size:22px;font-weight:800;letter-spacing:-0.5px;margin-bottom:8px;}
     </div>
   {% endif %}
 </div>
+
+<!-- FOOTER -->
+<footer class="site-footer">
+  <div class="footer-inner">
+    <span class="footer-copy">2026 OralAI. All rights reserved. Built with love by Allu Satyanarayana Murthy</span>
+    <span class="footer-powered">Powered by <a href="https://anthropic.com" target="_blank">Anthropic Claude</a> and <a href="https://github.com/ultralytics/ultralytics" target="_blank">YOLOv8</a></span>
+  </div>
+</footer>
+<button class="scroll-top" onclick="window.scrollTo({top:0,behavior:'smooth'})" title="Back to top">↑</button>
+
 <script>
 function toggleMenu(){document.getElementById('mobileMenu').classList.toggle('open');}
 function closeMenu(){document.getElementById('mobileMenu').classList.remove('open');}
