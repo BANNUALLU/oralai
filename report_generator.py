@@ -71,28 +71,14 @@ LANG_FONT_MAP = {
 }
 
 
-# ── Sanitize MUST be at top so class methods can use it ─────────
 def sanitize(text):
-    """
-    Replace ONLY special punctuation that crashes Helvetica font.
-    Do NOT touch Telugu/Indic Unicode characters — they go through NotoFont.
-    """
     if not isinstance(text, str):
         text = str(text)
     replacements = {
-        "\u2013": "-",    # en dash
-        "\u2014": "-",    # em dash
-        "\u2018": "'",    # left single quote
-        "\u2019": "'",    # right single quote
-        "\u201c": '"',    # left double quote
-        "\u201d": '"',    # right double quote
-        "\u2022": "-",    # bullet
-        "\u2026": "...",  # ellipsis
-        "\u00a0": " ",    # non-breaking space
-        "\u200b": "",     # zero-width space
-        "\u2212": "-",    # minus sign
-        "\u00d7": "x",    # multiplication
-        "\u00b0": " deg", # degree
+        "\u2013": "-", "\u2014": "-", "\u2018": "'", "\u2019": "'",
+        "\u201c": '"', "\u201d": '"', "\u2022": "-", "\u2026": "...",
+        "\u00a0": " ", "\u200b": "", "\u2212": "-", "\u00d7": "x",
+        "\u00b0": " deg",
     }
     for char, replacement in replacements.items():
         text = text.replace(char, replacement)
@@ -100,29 +86,19 @@ def sanitize(text):
 
 
 def hex_to_rgb(hex_color):
-    """Convert hex string like #2563eb to (R, G, B) tuple 0-255."""
     h = hex_color.lstrip("#")
     return tuple(int(h[i:i+2], 16) for i in (0, 2, 4))
 
 
 def clean_markdown(text):
-    """Remove ALL markdown symbols completely."""
-    # Remove headings ### ## #
     text = re.sub(r'^#{1,6}\s*', '', text, flags=re.MULTILINE)
-    # Remove bold/italic **text** *text*
     text = re.sub(r'\*{1,3}(.*?)\*{1,3}', r'\1', text)
     text = re.sub(r'_{1,2}(.*?)_{1,2}', r'\1', text)
-    # Remove horizontal rules ---
     text = re.sub(r'^[-=]{2,}\s*$', '', text, flags=re.MULTILINE)
-    # Remove markdown links
     text = re.sub(r'\[([^\]]+)\]\([^\)]+\)', r'\1', text)
-    # Remove backticks
     text = text.replace('`', '')
-    # Remove multiple ?? leftover
     text = re.sub(r'\?{2,}', '', text)
-    # Remove lines with only punctuation/symbols
     text = re.sub(r'^[-_=?#*]+$', '', text, flags=re.MULTILINE)
-    # Clean extra spaces
     text = re.sub(r'  +', ' ', text)
     return text.strip()
 
@@ -143,14 +119,13 @@ def wrap_text(text, max_chars=82):
 
 
 def draw_footer_rl(c, W, report_id, page_num, total_pages):
-    """Draw footer using ReportLab canvas."""
     c.setFillColor(C_HEADER)
     c.rect(0, 0, W, 42, fill=1, stroke=0)
     c.setFillColor(C_TEAL)
     c.rect(0, 0, 6, 42, fill=1, stroke=0)
     c.setFillColor(C_WHITE)
     c.setFont("Helvetica-Bold", 10)
-    c.drawString(18, 22, "OralAI  —  AI Oral Health Screening  |  www.oralai.site")
+    c.drawString(18, 22, "OralAI  -  AI Oral Health Screening  |  www.oralai.site")
     c.setFont("Helvetica", 9)
     c.setFillColor(colors.HexColor("#94a3b8"))
     c.drawRightString(W - 16, 16,
@@ -158,7 +133,6 @@ def draw_footer_rl(c, W, report_id, page_num, total_pages):
 
 
 def draw_disclaimer_rl(c, W):
-    """Draw disclaimer using ReportLab canvas."""
     c.setFillColor(C_WARN_BG)
     c.roundRect(28, 50, W - 56, 24, 6, fill=1, stroke=0)
     c.setStrokeColor(C_WARN_BD)
@@ -181,8 +155,7 @@ def draw_section_bar_rl(c, W, y, title, color=None):
 
 
 # ══════════════════════════════════════════════════════════════
-#  PAGE 2 GENERATOR using fpdf2
-#  fpdf2 does proper Unicode text shaping for Indic scripts
+#  PAGE 2+ GENERATOR using fpdf2
 # ══════════════════════════════════════════════════════════════
 
 class AnalysisPDF(FPDF):
@@ -199,12 +172,11 @@ class AnalysisPDF(FPDF):
         self.total_pages = total_pages
         self.page_num    = 2
 
-        # Register Unicode font
         self.font_name = "NotoUni"
         if os.path.exists(font_path):
             self.add_font(self.font_name, style="", fname=font_path)
         else:
-            self.font_name = None  # fallback to built-in
+            self.font_name = None
 
     def get_font(self, bold=False, size=10):
         if self.font_name:
@@ -213,39 +185,30 @@ class AnalysisPDF(FPDF):
             self.set_font("Helvetica", style="B" if bold else "", size=size)
 
     def draw_header(self):
-        """Navy header with logo."""
-        # Navy background
         self.set_fill_color(15, 23, 42)
         self.rect(0, 0, 210, 22, "F")
-
-        # Teal left accent
         self.set_fill_color(8, 145, 178)
         self.rect(0, 0, 3, 22, "F")
 
-        # Logo
         if self.logo_path and os.path.exists(self.logo_path):
             try:
                 self.image(self.logo_path, x=5, y=2, w=40, h=18)
             except:
                 pass
 
-        # Divider
         self.set_draw_color(51, 65, 85)
         self.line(50, 3, 50, 19)
 
-        # Title
         self.set_xy(53, 5)
         self.set_text_color(255, 255, 255)
         self.set_font("Helvetica", "B", 14)
         self.cell(0, 8, "AI Detailed Analysis", ln=0)
 
-        # Subtitle
         self.set_xy(53, 14)
         self.set_text_color(167, 139, 250)
         self.set_font("Helvetica", "", 7)
         self.cell(0, 5, f"Language: {sanitize(self.language)}   Observing all 3 dental images", ln=0)
 
-        # Patient info top right — use Unicode font for name
         self.set_xy(110, 5)
         self.set_text_color(148, 163, 184)
         if self.font_name:
@@ -256,14 +219,11 @@ class AnalysisPDF(FPDF):
             f"{self.pat_name} ({self.pat_age}/{self.pat_gender})",
             ln=0, align="R")
 
-        # Purple accent line below header
         self.set_fill_color(124, 58, 237)
         self.rect(0, 22, 210, 1.5, "F")
-
         self.set_y(25)
 
     def draw_footer(self):
-        """Navy footer."""
         self.set_y(-14)
         self.set_fill_color(15, 23, 42)
         self.rect(0, self.get_y(), 210, 14, "F")
@@ -274,8 +234,7 @@ class AnalysisPDF(FPDF):
         self.set_text_color(255, 255, 255)
         self.set_font("Helvetica", "B", 8)
         self.cell(100, 5,
-            sanitize("OralAI  -  AI Oral Health Screening  |  www.oralai.site"),
-            ln=0)
+            sanitize("OralAI  -  AI Oral Health Screening  |  www.oralai.site"), ln=0)
 
         self.set_x(110)
         self.set_text_color(148, 163, 184)
@@ -285,13 +244,11 @@ class AnalysisPDF(FPDF):
             align="R", ln=0)
 
     def draw_disclaimer(self):
-        """Yellow warning disclaimer."""
         y = self.get_y()
         self.set_fill_color(255, 251, 235)
         self.set_draw_color(252, 211, 77)
         self.set_line_width(0.4)
         self.rect(10, y, 190, 8, "FD")
-
         self.set_xy(12, y + 1.5)
         self.set_text_color(120, 53, 15)
         self.set_font("Helvetica", "I", 7)
@@ -301,7 +258,6 @@ class AnalysisPDF(FPDF):
         self.set_y(y + 9)
 
     def draw_section_heading(self, text):
-        """Blue section heading bar."""
         text = sanitize(text)
         self.set_fill_color(37, 99, 235)
         self.rect(0, self.get_y(), 210, 8, "F")
@@ -312,13 +268,10 @@ class AnalysisPDF(FPDF):
         self.ln(3)
 
     def draw_bullet(self, text):
-        """Bullet point with Unicode text."""
         text = sanitize(text)
         y = self.get_y()
-        # Blue dot
         self.set_fill_color(37, 99, 235)
         self.ellipse(12, y + 2.5, 2, 2, "F")
-        # Text
         self.set_xy(17, y)
         self.set_text_color(15, 23, 42)
         self.get_font(size=9)
@@ -326,7 +279,6 @@ class AnalysisPDF(FPDF):
         self.set_x(10)
 
     def draw_body_text(self, text):
-        """Normal body text with Unicode font."""
         text = sanitize(text)
         self.set_x(10)
         self.set_text_color(15, 23, 42)
@@ -334,18 +286,14 @@ class AnalysisPDF(FPDF):
         self.multi_cell(190, 5, text, ln=1)
 
     def header(self):
-        pass  # Handled manually
+        pass
 
     def footer(self):
-        pass  # Handled manually
+        pass
 
 
 def generate_analysis_pages_fpdf2(claude_analysis, language, name, age, gender,
                                    report_id, logo_path, start_page, total_pages):
-    """
-    Generate analysis pages using fpdf2 for perfect Unicode rendering.
-    Returns path to a temporary PDF containing only the analysis pages.
-    """
     font_file = LANG_FONT_MAP.get(language, "NotoSans-Regular.ttf")
     font_path = os.path.join(FONTS_DIR, font_file)
 
@@ -364,7 +312,8 @@ def generate_analysis_pages_fpdf2(claude_analysis, language, name, age, gender,
     cleaned   = clean_markdown(sanitize(claude_analysis))
     lines_raw = cleaned.split("\n")
 
-    BOTTOM_LIMIT = 265  # mm from top (A4 = 297mm, leave room for footer)
+    # ✅ FIXED: Leave more room — 255 instead of 265 to avoid cutoff
+    BOTTOM_LIMIT = 255
 
     render_items = []
     for raw_line in lines_raw:
@@ -381,9 +330,10 @@ def generate_analysis_pages_fpdf2(claude_analysis, language, name, age, gender,
 
     for item_type, item_text in render_items:
 
-        # Check if we need a new page
+        # ✅ FIXED: Check page limit before rendering each item
         if pdf.get_y() > BOTTOM_LIMIT:
-            pdf.draw_footer()  # no disclaimer on middle pages
+            pdf.draw_disclaimer()
+            pdf.draw_footer()
             pdf.page_num += 1
             pdf.add_page()
             # Continuation header
@@ -395,7 +345,6 @@ def generate_analysis_pages_fpdf2(claude_analysis, language, name, age, gender,
             pdf.set_text_color(255, 255, 255)
             pdf.set_font("Helvetica", "B", 11)
             pdf.cell(130, 8, sanitize("AI Detailed Analysis (continued)"))
-            # Patient name with unicode font
             pdf.set_text_color(148, 163, 184)
             if pdf.font_name:
                 pdf.set_font(pdf.font_name, size=7)
@@ -408,31 +357,29 @@ def generate_analysis_pages_fpdf2(claude_analysis, language, name, age, gender,
 
         if item_type == "blank":
             pdf.ln(3)
-
         elif item_type == "heading":
             pdf.ln(4)
             pdf.draw_section_heading(item_text)
             pdf.ln(2)
-
         elif item_type == "bullet":
             pdf.draw_bullet(item_text)
-
         else:
             if item_text:
                 pdf.draw_body_text(item_text)
                 pdf.ln(1)
 
+    # ✅ Always draw disclaimer and footer on last page
     pdf.draw_disclaimer()
     pdf.draw_footer()
 
-    # Save temp file
     temp_path = f"static/reports/temp_analysis_{report_id}.pdf"
     pdf.output(temp_path)
     return temp_path
 
 
+# ✅ FIXED: Added screening_id parameter to use correct images
 def generate_pdf(user_data, detected_labels, report_id,
-                 recommendations=None, claude_analysis=None):
+                 recommendations=None, claude_analysis=None, screening_id=None):
 
     name     = user_data.get("name", "Patient")
     age      = user_data.get("age", "N/A")
@@ -446,7 +393,7 @@ def generate_pdf(user_data, detected_labels, report_id,
 
     total_pages = 2
     if claude_analysis:
-        total_pages = 3  # rough estimate
+        total_pages = 3
 
     report_path = f"static/reports/{report_id}.pdf"
     logo_path   = "static/logo.png"
@@ -483,7 +430,7 @@ def generate_pdf(user_data, detected_labels, report_id,
         c.setFont("Helvetica-Bold", 22)
         c.drawString(30, H - header_h + 44, "Oral Health Screening Report")
 
-    # Patient info
+    # Patient info bar
     bar_top = H - header_h
     c.setFillColor(C_SURFACE2)
     c.rect(0, bar_top - 30, W, 30, fill=1, stroke=0)
@@ -507,15 +454,28 @@ def generate_pdf(user_data, detected_labels, report_id,
 
     # Screening section
     cur_y = bar_top - 30
-    cur_y = draw_section_bar_rl(c, W, cur_y, "🔬  AI SCREENING REPORT")
+    cur_y = draw_section_bar_rl(c, W, cur_y, "  AI SCREENING REPORT")
 
-    img_h   = 152
-    img_w   = 152
-    gap     = (W - 56 - img_w * 3) / 4
-    card_h  = img_h + 34
-    card_y  = cur_y - 14 - card_h
+    img_h  = 152
+    img_w  = 152
+    gap    = (W - 56 - img_w * 3) / 4
+    card_h = img_h + 34
+    card_y = cur_y - 14 - card_h
 
-    img_parts   = [("Upper Teeth","upper_yolo.jpg"),("Front Teeth","front_yolo.jpg"),("Lower Teeth","lower_yolo.jpg")]
+    # ✅ FIXED: Use screening_id in filenames so correct images show
+    if screening_id:
+        img_parts = [
+            ("Upper Teeth", f"{screening_id}_upper_yolo.jpg"),
+            ("Front Teeth", f"{screening_id}_front_yolo.jpg"),
+            ("Lower Teeth", f"{screening_id}_lower_yolo.jpg"),
+        ]
+    else:
+        img_parts = [
+            ("Upper Teeth", "upper_yolo.jpg"),
+            ("Front Teeth", "front_yolo.jpg"),
+            ("Lower Teeth", "lower_yolo.jpg"),
+        ]
+
     pill_colors = [C_ACCENT, C_TEAL, C_PURPLE]
 
     for i, (lbl, fname) in enumerate(img_parts):
@@ -569,7 +529,7 @@ def generate_pdf(user_data, detected_labels, report_id,
 
     # Treatment
     cur_y -= 4
-    cur_y = draw_section_bar_rl(c, W, cur_y, "💊  TREATMENT RECOMMENDATIONS")
+    cur_y = draw_section_bar_rl(c, W, cur_y, "  TREATMENT RECOMMENDATIONS")
     cur_y -= 8
 
     no_issues = (not recommendations or
@@ -640,10 +600,11 @@ def generate_pdf(user_data, detected_labels, report_id,
                 ty -= 13
         cur_y -= 8
 
+    draw_disclaimer_rl(c, W)
     draw_footer_rl(c, W, report_id, 1, total_pages)
     c.save()
 
-    # ── PAGES 2+ using fpdf2 (perfect Unicode) ───────────────────
+    # ── PAGES 2+ using fpdf2 ─────────────────────────────────────
     if claude_analysis:
         try:
             temp_path = generate_analysis_pages_fpdf2(
@@ -656,32 +617,27 @@ def generate_pdf(user_data, detected_labels, report_id,
                 total_pages=total_pages
             )
 
-            # Merge page 1 (ReportLab) + analysis pages (fpdf2) using pypdf
             from pypdf import PdfWriter, PdfReader
 
             writer = PdfWriter()
 
-            # Add page 1
             reader1 = PdfReader(report_path)
             for page in reader1.pages:
                 writer.add_page(page)
 
-            # Add analysis pages
             reader2 = PdfReader(temp_path)
             for page in reader2.pages:
                 writer.add_page(page)
 
-            # Save merged
             with open(report_path, "wb") as f:
                 writer.write(f)
 
-            # Remove temp file
             os.remove(temp_path)
 
-            print(f"✅ PDF generated with {len(writer.pages)} pages in {language}")
+            print(f"PDF generated with {len(writer.pages)} pages in {language}")
 
         except Exception as e:
-            print(f"⚠️ Analysis page merge failed: {e}")
+            print(f"Analysis page merge failed: {e}")
             print("Page 1 only saved.")
 
     return report_path

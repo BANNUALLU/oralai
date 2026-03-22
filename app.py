@@ -386,9 +386,11 @@ def generate():
             detected_labels=detected_labels,
             report_id=report_id,
             recommendations=recommendations,
-            claude_analysis=claude_analysis
+            claude_analysis=claude_analysis,
+            screening_id=screening_id   # ✅ FIXED: pass screening_id for correct images
         )
 
+        # ✅ FIXED: cleanup AFTER PDF is generated, not before
         cleanup_old_files(screening_id)
         print(f"Report slot released for: {name}")
 
