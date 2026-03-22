@@ -232,66 +232,43 @@ Patient Info:
 
 The images have green bounding boxes drawn by a YOLO model showing detected dental issues.
 
-IMPORTANT RULES:
-- Write your ENTIRE response in {language} language only.
+STRICT RULES:
+- Write ENTIRE response in {language} language only.
 - Do NOT use markdown symbols like **, ##, *, _ etc.
-- Use plain text only with numbered points and simple bullet points using -.
-- Cover ALL 6 sections below without skipping any.
-- Be warm, professional and easy to understand.
-- Keep cost estimates realistic for India (not too high).
+- Use plain text with numbered sections and - bullet points only.
+- STRICTLY limit each section to MAX 4 bullet points.
+- Each bullet point MAX 1 line only — keep it short and clear.
+- ALL 6 sections MUST be covered — do not skip any section.
+- Be concise — quality over quantity.
 
-Write the report in EXACTLY this structure:
+Write EXACTLY in this structure (no extra text, no long paragraphs):
 
 1. DETECTED PROBLEMS
-Look at all 3 images carefully. List each problem you see point by point.
-For each problem write:
-- Problem name
-- Which teeth are affected (upper / front / lower)
-- What it looks like in the image
-- Confidence level (high / medium / low) based on what you see
+- Problem 1: [name] | Teeth: [upper/front/lower] | Look: [1 line] | Confidence: [high/medium/low]
+- Problem 2: [name] | Teeth: [upper/front/lower] | Look: [1 line] | Confidence: [high/medium/low]
+- Problem 3: [name] | Teeth: [upper/front/lower] | Look: [1 line] | Confidence: [high/medium/low]
+(list only problems actually seen, max 4)
 
 2. PROBLEM STATUS
-For each problem detected, classify the current stage:
-- Starting Stage: Very early, minor signs visible
-- Middle Stage: Clearly visible, needs attention soon
-- Severe Stage: Advanced, urgent treatment needed
-Explain briefly why you classified it that way.
+- [Problem name]: [Starting/Middle/Severe] Stage — [1 line reason]
+(one line per problem, max 4 lines)
 
 3. SUGGESTIONS TO OVERCOME
-For each problem give specific actionable suggestions:
-- What treatment is needed at the dentist
-- What the patient can do at home immediately
-- Foods and habits to avoid
-- Foods and habits that help recovery
-- Urgency: Routine (6 months) / Soon (1 month) / Urgent (1 week)
+- [Problem name]: Visit dentist for [treatment]. At home: [1 tip]. Avoid: [1 thing]. Urgency: [Routine/Soon/Urgent]
+(one line per problem, max 4 lines)
 
 4. MONTHLY RECOVERY PLAN
-Create a month-by-month plan based on the problems detected.
-For each month include:
-- What to do that month (dental visits + home care)
-- Home tips specific to the detected problem
-- Recommended dental products available in India (toothpaste, mouthwash, floss, brush type etc.)
-  with approximate Indian price range in rupees
-- Target: what improvement to expect by end of that month
-Make the plan realistic - 1 to 3 months depending on severity.
+Month 1: [1 dental action] + [1 home tip] | Products: [product name] (~Rs.[price])
+Month 2: [1 dental action] + [1 home tip] | Products: [product name] (~Rs.[price])
+Month 3 (if needed): [1 dental action] + [1 home tip] | Products: [product name] (~Rs.[price])
 
 5. TOTAL COST ESTIMATE
-Give a realistic total cost estimate in Indian Rupees for:
-- Dental clinic treatments needed
-- Dental products to buy
-- Break it down clearly per problem
-- Give a minimum and maximum range
-- Keep costs realistic and affordable
-- End with total estimated range
+- Clinic treatments: Rs.[min] - Rs.[max]
+- Dental products: Rs.[min] - Rs.[max]
+- Total estimate: Rs.[min] - Rs.[max]
 
 6. CONCLUSION
-Write a short warm conclusion (3-4 sentences) that:
-- Summarises overall oral health status
-- Encourages the patient positively
-- Reminds them when to visit the dentist
-- Gives one final most important tip for {name}
-
-Patient age is {age} and gender is {gender} - tailor advice accordingly.
+[Write exactly 2-3 warm sentences summarising health status, encouraging {name}, and giving the single most important tip.]
 """
         })
 
@@ -299,12 +276,14 @@ Patient age is {age} and gender is {gender} - tailor advice accordingly.
 
         message = client.messages.create(
             model="claude-haiku-4-5-20251001",
-            max_tokens=2500,
+            max_tokens=2000,
             system=(
-                f"You are a friendly expert dental AI assistant writing a detailed structured dental report. "
+                f"You are a concise expert dental AI assistant. "
                 f"Always respond in {language} language only. "
-                f"Never use markdown formatting symbols like **, ##, *, _ in your response. "
-                f"Use plain text with numbered sections and simple - bullet points only."
+                f"Never use markdown symbols like **, ##, *, _ in your response. "
+                f"Use plain text with numbered sections and simple - bullet points only. "
+                f"Keep every section SHORT — max 4 bullet points per section, max 1 line per bullet. "
+                f"ALL 6 sections must be covered within the token limit."
             ),
             messages=[{"role": "user", "content": content}]
         )

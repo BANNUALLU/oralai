@@ -332,8 +332,7 @@ def generate_analysis_pages_fpdf2(claude_analysis, language, name, age, gender,
 
         # ✅ FIXED: Check page limit before rendering each item
         if pdf.get_y() > BOTTOM_LIMIT:
-            pdf.draw_disclaimer()
-            pdf.draw_footer()
+            pdf.draw_footer()  # NO disclaimer on middle pages
             pdf.page_num += 1
             pdf.add_page()
             # Continuation header
