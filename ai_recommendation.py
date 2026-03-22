@@ -98,7 +98,7 @@ def generate_recommendations(detections, age, gender):
                 if count >= 2 or avg_conf >= 0.65:
                     rec = (
                         "Advanced caries detected in an older patient. "
-                        "Root caries are common in seniors — RCT, crown or extraction may be needed. "
+                        "Root caries are common in seniors - RCT, crown or extraction may be needed. "
                         "Consult your dentist urgently. Use fluoride mouth rinse daily."
                     )
                 else:
@@ -107,11 +107,10 @@ def generate_recommendations(detections, age, gender):
                         "Restorative treatment and increased fluoride use are recommended."
                     )
 
-            # Female-specific note
             if gender == "female" and age_group in ("adult", "senior"):
                 rec += (
                     " Note: Hormonal changes (pregnancy, menopause) can accelerate dental decay "
-                    "— increased dental monitoring is advised."
+                    "- increased dental monitoring is advised."
                 )
 
         # ── STAINS ──────────────────────────────────────────
@@ -147,7 +146,7 @@ def generate_recommendations(detections, age, gender):
             else:  # senior
                 rec = (
                     "Dental staining detected. Professional cleaning is recommended. "
-                    "Seniors should be careful with whitening agents — consult your dentist before use."
+                    "Seniors should be careful with whitening agents - consult your dentist before use."
                 )
 
         # ── MALALIGNED ──────────────────────────────────────
@@ -155,7 +154,7 @@ def generate_recommendations(detections, age, gender):
 
             if age_group == "child":
                 rec = (
-                    "Tooth misalignment detected at an early age — this is the best time to treat. "
+                    "Tooth misalignment detected at an early age - this is the best time to treat. "
                     "Early orthodontic evaluation is strongly recommended. "
                     "Space maintainers or early braces may be advised."
                 )
@@ -183,7 +182,7 @@ def generate_recommendations(detections, age, gender):
 
             if age_group in ("child", "teen"):
                 rec = (
-                    "Pit and fissure caries detected — very common in younger patients. "
+                    "Pit and fissure caries detected - very common in younger patients. "
                     "Dental sealants are highly effective and strongly recommended at this age. "
                     "Schedule a sealant application at your next dental visit."
                 )

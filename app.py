@@ -209,7 +209,7 @@ def analyse_with_claude(yolo_image_paths, patient_info):
             if path and os.path.exists(path):
                 with open(path, "rb") as f:
                     img_b64 = base64.b64encode(f.read()).decode("utf-8")
-                content.append({"type": "text", "text": f"Image {i+1} — {label}:"})
+                content.append({"type": "text", "text": f"Image {i+1} - {label}:"})
                 content.append({
                     "type": "image",
                     "source": {
@@ -232,17 +232,66 @@ Patient Info:
 
 The images have green bounding boxes drawn by a YOLO model showing detected dental issues.
 
-IMPORTANT: Write your ENTIRE response in {language} language only.
+IMPORTANT RULES:
+- Write your ENTIRE response in {language} language only.
+- Do NOT use markdown symbols like **, ##, *, _ etc.
+- Use plain text only with numbered points and simple bullet points using -.
+- Cover ALL 6 sections below without skipping any.
+- Be warm, professional and easy to understand.
+- Keep cost estimates realistic for India (not too high).
 
-Please analyse all 3 images carefully and provide:
-1. OVERALL SUMMARY: A 2-3 sentence friendly overview of the patient's oral health.
-2. IMAGE-BY-IMAGE FINDINGS: For each image (Upper, Front, Lower), describe what you see.
-3. KEY CONCERNS: List the most important issues found (if any).
-4. PERSONALISED ADVICE: Give specific advice based on age ({age}) and gender ({gender}).
-5. URGENCY LEVEL: Rate as Routine / Soon (within 1 month) / Urgent (within 1 week).
+Write the report in EXACTLY this structure:
 
-Write in a warm, professional, easy-to-understand tone.
-Use bullet points where helpful.
+1. DETECTED PROBLEMS
+Look at all 3 images carefully. List each problem you see point by point.
+For each problem write:
+- Problem name
+- Which teeth are affected (upper / front / lower)
+- What it looks like in the image
+- Confidence level (high / medium / low) based on what you see
+
+2. PROBLEM STATUS
+For each problem detected, classify the current stage:
+- Starting Stage: Very early, minor signs visible
+- Middle Stage: Clearly visible, needs attention soon
+- Severe Stage: Advanced, urgent treatment needed
+Explain briefly why you classified it that way.
+
+3. SUGGESTIONS TO OVERCOME
+For each problem give specific actionable suggestions:
+- What treatment is needed at the dentist
+- What the patient can do at home immediately
+- Foods and habits to avoid
+- Foods and habits that help recovery
+- Urgency: Routine (6 months) / Soon (1 month) / Urgent (1 week)
+
+4. MONTHLY RECOVERY PLAN
+Create a month-by-month plan based on the problems detected.
+For each month include:
+- What to do that month (dental visits + home care)
+- Home tips specific to the detected problem
+- Recommended dental products available in India (toothpaste, mouthwash, floss, brush type etc.)
+  with approximate Indian price range in rupees
+- Target: what improvement to expect by end of that month
+Make the plan realistic - 1 to 3 months depending on severity.
+
+5. TOTAL COST ESTIMATE
+Give a realistic total cost estimate in Indian Rupees for:
+- Dental clinic treatments needed
+- Dental products to buy
+- Break it down clearly per problem
+- Give a minimum and maximum range
+- Keep costs realistic and affordable
+- End with total estimated range
+
+6. CONCLUSION
+Write a short warm conclusion (3-4 sentences) that:
+- Summarises overall oral health status
+- Encourages the patient positively
+- Reminds them when to visit the dentist
+- Gives one final most important tip for {name}
+
+Patient age is {age} and gender is {gender} - tailor advice accordingly.
 """
         })
 
@@ -250,10 +299,12 @@ Use bullet points where helpful.
 
         message = client.messages.create(
             model="claude-haiku-4-5-20251001",
-            max_tokens=1500,
+            max_tokens=2500,
             system=(
-                f"You are a friendly expert dental AI assistant. "
-                f"Always respond in {language} language as requested."
+                f"You are a friendly expert dental AI assistant writing a detailed structured dental report. "
+                f"Always respond in {language} language only. "
+                f"Never use markdown formatting symbols like **, ##, *, _ in your response. "
+                f"Use plain text with numbered sections and simple - bullet points only."
             ),
             messages=[{"role": "user", "content": content}]
         )
