@@ -30,7 +30,8 @@ nav{position:fixed;top:0;left:0;right:0;z-index:100;display:flex;align-items:cen
   background:rgba(10,22,40,0.9);backdrop-filter:blur(20px);
   border-bottom:1px solid var(--border);transition:all .3s;}
 .nav-logo a{display:flex;align-items:center;text-decoration:none;}
-.nav-logo img{height:200px;width:auto;object-fit:contain;}
+.nav-logo-text{font-size:22px;font-weight:800;color:var(--white);letter-spacing:-0.5px;}
+.nav-logo-text span{color:var(--blue);}
 .nav-links{display:flex;align-items:center;gap:32px;font-size:14px;font-weight:500;color:var(--muted);}
 .nav-links a:hover{color:var(--white);}
 .nav-cta{display:flex;align-items:center;gap:12px;}
@@ -100,7 +101,7 @@ select option{background:var(--navy2);color:var(--white);}
   margin-top:14px;font-size:13px;color:var(--muted);text-decoration:none;transition:color .2s;}
 .back-link:hover{color:var(--white);}
 
-/* ── FOOTER ── */
+/* FOOTER */
 .site-footer{position:relative;z-index:1;border-top:1px solid var(--border);
   background:rgba(8,18,34,0.95);padding:18px 40px;}
 .footer-inner{max-width:1400px;margin:0 auto;display:flex;align-items:center;
@@ -115,11 +116,11 @@ select option{background:var(--navy2);color:var(--white);}
   box-shadow:0 4px 16px rgba(26,111,255,0.5);transition:all .2s;font-size:18px;color:var(--white);}
 .scroll-top:hover{background:var(--blue2);transform:translateY(-3px);}
 
-/* ── RESPONSIVE ── */
+/* RESPONSIVE */
 @media(max-width:1199px){nav{padding:0 32px;}}
 @media(max-width:767px){
   nav{padding:0 20px;height:60px;}.mobile-menu{top:60px;}
-  .nav-links,.nav-cta{display:none;}.hamburger{display:flex;}.nav-logo img{height:44px;}
+  .nav-links,.nav-cta{display:none;}.hamburger{display:flex;}
   .main{padding:80px 16px 32px;}
   .card-top{padding:24px 20px 20px;}.card-body{padding:20px;}
   .row{grid-template-columns:1fr;gap:0;}
@@ -149,7 +150,7 @@ select option{background:var(--navy2);color:var(--white);}
 <body>
 <nav id="navbar">
   <div class="nav-logo">
-    <a href="/"><picture><source srcset="{{ url_for('static', filename='logo.webp') }}" type="image/webp"><img src="{{ url_for('static', filename='logo.png') }}" alt="OralAI" fetchpriority="high" decoding="async"></picture></a>
+    <a href="/"><span class="nav-logo-text">Oral<span>AI</span></span></a>
   </div>
   <div class="nav-links">
     <a href="/#features">Features</a><a href="/#how">How it Works</a>
@@ -216,16 +217,13 @@ select option{background:var(--navy2);color:var(--white);}
     </div>
   </div>
 </main>
-
-<!-- FOOTER -->
 <footer class="site-footer">
   <div class="footer-inner">
     <span class="footer-copy">2026 OralAI. All rights reserved. Built with love by Allu Satyanarayana Murthy</span>
-    <span class="footer-powered">Powered by <a href="https://anthropic.com" target="_blank">Anthropic Claude</a> and <a href="https://github.com/ultralytics/ultralytics" target="_blank">YOLOv8</a></span>
+    <span class="footer-powered">Powered by <a href="https://www.oralai.site" target="_blank">oralai.site</a></span>
   </div>
 </footer>
 <button class="scroll-top" onclick="window.scrollTo({top:0,behavior:'smooth'})" title="Back to top">↑</button>
-
 <script>
 function toggleMenu(){document.getElementById('mobileMenu').classList.toggle('open');}
 function closeMenu(){document.getElementById('mobileMenu').classList.remove('open');}

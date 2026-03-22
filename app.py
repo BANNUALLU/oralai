@@ -3,7 +3,9 @@ import base64
 import os
 import uuid
 import json
+import glob
 import smtplib
+import threading
 from datetime import timedelta
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
@@ -18,9 +20,7 @@ from whatsapp_sender import send_whatsapp_report
 app = Flask(__name__)
 app.secret_key = os.getenv("SECRET_KEY", "oralai_secret_2024")
 
-# ── Fix 1 & 2: Make sessions permanent so they survive across
-#    Gunicorn workers and persist long enough ──────────────────
-app.config["SESSION_PERMANENT"]    = True
+app.config["SESSION_PERMANENT"]          = True
 app.config["PERMANENT_SESSION_LIFETIME"] = timedelta(hours=2)
 
 UPLOAD_DIR = "static/uploads"
@@ -31,17 +31,37 @@ os.makedirs(UPLOAD_DIR, exist_ok=True)
 os.makedirs(RESULT_DIR, exist_ok=True)
 os.makedirs(REPORT_DIR, exist_ok=True)
 
-# ── Anthropic client ──────────────────────────────────────
+# Max 3 simultaneous report generations — others wait, never crash
+report_semaphore = threading.Semaphore(3)
+
 client = anthropic.Anthropic(api_key=os.getenv("ANTHROPIC_API_KEY", ""))
 
-# ── Email config ──────────────────────────────────────────
 EMAIL_USER      = os.getenv("EMAIL_USER", "oralai.site@gmail.com")
 EMAIL_PASS      = os.getenv("EMAIL_PASS", "")
 DEVELOPER_EMAIL = os.getenv("DEVELOPER_EMAIL", "bannuallu123@gmail.com")
 
 
 # ════════════════════════════════════════════════════════════
-#  HOME PAGE
+#  HELPER — Delete all files for a given screening_id
+# ════════════════════════════════════════════════════════════
+def cleanup_old_files(screening_id):
+    if not screening_id:
+        return
+    patterns = [
+        os.path.join(UPLOAD_DIR, f"{screening_id}_*.jpg"),
+        os.path.join(RESULT_DIR, f"{screening_id}_*.jpg"),
+    ]
+    for pattern in patterns:
+        for f in glob.glob(pattern):
+            try:
+                os.remove(f)
+                print(f"Deleted old file: {f}")
+            except Exception as e:
+                print(f"Could not delete {f}: {e}")
+
+
+# ════════════════════════════════════════════════════════════
+#  HOME
 # ════════════════════════════════════════════════════════════
 @app.route("/")
 def index():
@@ -49,7 +69,7 @@ def index():
 
 
 # ════════════════════════════════════════════════════════════
-#  START PAGE
+#  START
 # ════════════════════════════════════════════════════════════
 @app.route("/start")
 def start():
@@ -57,27 +77,25 @@ def start():
 
 
 # ════════════════════════════════════════════════════════════
-#  DETAILS PAGE
+#  DETAILS
 # ════════════════════════════════════════════════════════════
 @app.route("/details", methods=["GET", "POST"])
 def details():
     if request.method == "POST":
-        # Fix 5: Clear ALL old session data before saving new patient ─
-        # This prevents old name/age/email leaking into a new screening
+        old_screening_id = session.get("screening_id")
+        if old_screening_id:
+            cleanup_old_files(old_screening_id)
+
         session.clear()
 
-        # Store all patient data in session
         session["patient_name"]   = request.form.get("name", "").strip()
         session["patient_age"]    = request.form.get("age", "").strip()
         session["patient_gender"] = request.form.get("gender", "").strip()
         session["patient_phone"]  = request.form.get("phone", "").strip()
         session["patient_email"]  = request.form.get("email", "").strip()
         session["language"]       = request.form.get("language", "English").strip()
+        session["screening_id"]   = str(uuid.uuid4())
 
-        # Generate unique screening ID for this patient
-        session["screening_id"]   = str(uuid.uuid4())[:8]
-
-        # Fix 1 & 2: Mark session as permanent and modified ──────────
         session.permanent = True
         session.modified  = True
 
@@ -90,7 +108,6 @@ def details():
 # ════════════════════════════════════════════════════════════
 @app.route("/capture")
 def capture_page():
-    # Fix 1: If session lost, send back to details ───────────────────
     if not session.get("patient_name"):
         return redirect("/details")
     language = session.get("language", "English")
@@ -165,6 +182,8 @@ def capture_image():
 
     with open(image_path, "wb") as f:
         f.write(image_bytes)
+
+    print(f"Saved image: {image_path}")
     return jsonify({"status": "saved"})
 
 
@@ -253,7 +272,6 @@ Use bullet points where helpful.
 # ════════════════════════════════════════════════════════════
 @app.route("/generate", methods=["POST"])
 def generate():
-    # Read patient data from session
     name         = session.get("patient_name", "")
     age          = session.get("patient_age", "25")
     gender       = session.get("patient_gender", "Other")
@@ -262,7 +280,6 @@ def generate():
     language     = session.get("language", "English")
     screening_id = session.get("screening_id", "")
 
-    # Fix 1: If name missing, redirect to details (don't fail silently)
     if not name or not screening_id:
         return redirect("/details")
 
@@ -277,47 +294,53 @@ def generate():
         "language": language,
     }
 
-    all_detections  = []
-    detected_labels = []
-    yolo_paths      = {}
+    # Max 3 users generating at once — 4th user waits, never crashes or merges
+    with report_semaphore:
+        print(f"Report slot acquired for: {name}")
 
-    for part in ["upper", "front", "lower"]:
-        img_path = os.path.join(UPLOAD_DIR, f"{screening_id}_{part}.jpg")
-        out_path = os.path.join(RESULT_DIR, f"{screening_id}_{part}_yolo.jpg")
+        all_detections  = []
+        detected_labels = []
+        yolo_paths      = {}
 
-        if not os.path.exists(img_path):
-            return render_template("result.html", error="Missing images. Please capture again.")
+        for part in ["upper", "front", "lower"]:
+            img_path = os.path.join(UPLOAD_DIR, f"{screening_id}_{part}.jpg")
+            out_path = os.path.join(RESULT_DIR, f"{screening_id}_{part}_yolo.jpg")
 
-        detections = run_yolo(img_path, out_path)
-        yolo_paths[part] = out_path
+            if not os.path.exists(img_path):
+                return render_template("result.html", error="Missing images. Please capture again.")
 
-        if detections:
-            all_detections.extend(detections)
-            for d in detections:
-                if d["label"] not in detected_labels:
-                    detected_labels.append(d["label"])
+            detections = run_yolo(img_path, out_path)
+            yolo_paths[part] = out_path
 
-    recommendations = generate_recommendations(
-        detections=all_detections,
-        age=age,
-        gender=gender
-    )
+            if detections:
+                all_detections.extend(detections)
+                for d in detections:
+                    if d["label"] not in detected_labels:
+                        detected_labels.append(d["label"])
 
-    claude_analysis = analyse_with_claude(
-        yolo_image_paths=yolo_paths,
-        patient_info=patient_info
-    )
+        recommendations = generate_recommendations(
+            detections=all_detections,
+            age=age,
+            gender=gender
+        )
 
-    report_id   = str(uuid.uuid4())[:8]
-    report_path = generate_pdf(
-        user_data=patient_info,
-        detected_labels=detected_labels,
-        report_id=report_id,
-        recommendations=recommendations,
-        claude_analysis=claude_analysis
-    )
+        claude_analysis = analyse_with_claude(
+            yolo_image_paths=yolo_paths,
+            patient_info=patient_info
+        )
 
-    # Fix 2: Save report info to session AND mark modified ──────────
+        report_id   = str(uuid.uuid4())
+        report_path = generate_pdf(
+            user_data=patient_info,
+            detected_labels=detected_labels,
+            report_id=report_id,
+            recommendations=recommendations,
+            claude_analysis=claude_analysis
+        )
+
+        cleanup_old_files(screening_id)
+        print(f"Report slot released for: {name}")
+
     session["report_path"] = report_path
     session["report_id"]   = report_id
     session.modified       = True
@@ -337,7 +360,7 @@ def view_report(report_id):
 
 
 # ════════════════════════════════════════════════════════════
-#  SEND EMAIL (report to patient)
+#  SEND EMAIL
 # ════════════════════════════════════════════════════════════
 @app.route("/send_email", methods=["POST"])
 def send_email_route():
@@ -345,7 +368,6 @@ def send_email_route():
     report_path = session.get("report_path", "")
     report_id   = session.get("report_id", "")
 
-    # Fix 2: If session lost report_path, recover from filesystem ────
     if not report_path and report_id:
         report_path = f"{REPORT_DIR}/{report_id}.pdf"
 
@@ -373,7 +395,6 @@ def send_whatsapp_route():
     report_id   = session.get("report_id", "")
     report_path = session.get("report_path", "")
 
-    # Fix 2: If session lost report_path, recover from filesystem ────
     if not report_path and report_id:
         report_path = f"{REPORT_DIR}/{report_id}.pdf"
 
@@ -404,7 +425,7 @@ def send_whatsapp_route():
 
 
 # ════════════════════════════════════════════════════════════
-#  REVIEW FORM (sends review email to developer)
+#  REVIEW FORM
 # ════════════════════════════════════════════════════════════
 @app.route("/review", methods=["POST"])
 def review():
@@ -423,11 +444,10 @@ def review():
         msg = MIMEMultipart("alternative")
         msg["Subject"]  = f"⭐ OralAI Review ({rating}/5) — {name}"
         msg["From"]     = EMAIL_USER
-        msg["To"]       = EMAIL_USER  # sends to oralai.site@gmail.com
+        msg["To"]       = EMAIL_USER
 
         html_body = f"""
-        <html>
-        <body style="font-family:Arial,sans-serif;background:#f4f7ff;padding:20px;">
+        <html><body style="font-family:Arial,sans-serif;background:#f4f7ff;padding:20px;">
           <div style="max-width:560px;margin:0 auto;background:#ffffff;border-radius:12px;overflow:hidden;box-shadow:0 4px 20px rgba(0,0,0,0.08);">
             <div style="background:#0a1628;padding:24px 28px;">
               <h2 style="color:#ffffff;margin:0;font-size:20px;">⭐ New OralAI Review</h2>
@@ -450,12 +470,10 @@ def review():
               <p style="font-size:12px;color:#94a3b8;margin:0;">OralAI — AI Oral Health Screening | www.oralai.site</p>
             </div>
           </div>
-        </body>
-        </html>
+        </body></html>
         """
 
         msg.attach(MIMEText(html_body, "html"))
-
         with smtplib.SMTP("smtp.gmail.com", 587) as server:
             server.starttls()
             server.login(EMAIL_USER, EMAIL_PASS)
@@ -472,7 +490,7 @@ def review():
 
 
 # ════════════════════════════════════════════════════════════
-#  CONTACT FORM (sends email to developer)
+#  CONTACT FORM
 # ════════════════════════════════════════════════════════════
 @app.route("/contact", methods=["POST"])
 def contact():
@@ -494,8 +512,7 @@ def contact():
         msg["Reply-To"] = email
 
         html_body = f"""
-        <html>
-        <body style="font-family:Arial,sans-serif;background:#f4f7ff;padding:20px;">
+        <html><body style="font-family:Arial,sans-serif;background:#f4f7ff;padding:20px;">
           <div style="max-width:560px;margin:0 auto;background:#ffffff;border-radius:12px;overflow:hidden;box-shadow:0 4px 20px rgba(0,0,0,0.08);">
             <div style="background:#0a1628;padding:24px 28px;">
               <h2 style="color:#ffffff;margin:0;font-size:20px;">OralAI — New Contact Message</h2>
@@ -520,12 +537,10 @@ def contact():
               <p style="font-size:12px;color:#94a3b8;margin:0;">OralAI — AI Oral Health Screening | www.oralai.site</p>
             </div>
           </div>
-        </body>
-        </html>
+        </body></html>
         """
 
         msg.attach(MIMEText(html_body, "html"))
-
         with smtplib.SMTP("smtp.gmail.com", 587) as server:
             server.starttls()
             server.login(EMAIL_USER, EMAIL_PASS)
