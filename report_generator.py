@@ -332,7 +332,7 @@ def generate_analysis_pages_fpdf2(claude_analysis, language, name, age, gender,
 
         # ✅ FIXED: Check page limit before rendering each item
         if pdf.get_y() > BOTTOM_LIMIT:
-            pdf.draw_footer()  # NO disclaimer on middle pages
+            pdf.draw_footer()  # disclaimer only on last page, not here
             pdf.page_num += 1
             pdf.add_page()
             # Continuation header
@@ -390,9 +390,7 @@ def generate_pdf(user_data, detected_labels, report_id,
     if recommendations is None:
         recommendations = []
 
-    total_pages = 2
-    if claude_analysis:
-        total_pages = 3
+    total_pages = 99  # placeholder - updated after PDF merge
 
     report_path = f"static/reports/{report_id}.pdf"
     logo_path   = "static/logo.png"
@@ -628,12 +626,15 @@ def generate_pdf(user_data, detected_labels, report_id,
             for page in reader2.pages:
                 writer.add_page(page)
 
+            # ✅ FIX: get actual page count and update footer
+            actual_pages = len(writer.pages)
+
             with open(report_path, "wb") as f:
                 writer.write(f)
 
             os.remove(temp_path)
 
-            print(f"PDF generated with {len(writer.pages)} pages in {language}")
+            print(f"PDF generated with {actual_pages} pages in {language}")
 
         except Exception as e:
             print(f"Analysis page merge failed: {e}")

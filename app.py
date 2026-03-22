@@ -34,6 +34,28 @@ os.makedirs(REPORT_DIR, exist_ok=True)
 # Max 3 simultaneous report generations — others wait, never crash
 report_semaphore = threading.Semaphore(3)
 
+# ── Screening counter ─────────────────────────────────────────
+COUNTER_FILE = "static/screening_count.txt"
+COUNTER_START = 50  # starts from 50
+
+def get_screening_count():
+    try:
+        if os.path.exists(COUNTER_FILE):
+            with open(COUNTER_FILE, "r") as f:
+                return int(f.read().strip())
+        return COUNTER_START
+    except:
+        return COUNTER_START
+
+def increment_screening_count():
+    count = get_screening_count() + 1
+    try:
+        with open(COUNTER_FILE, "w") as f:
+            f.write(str(count))
+    except:
+        pass
+    return count
+
 client = anthropic.Anthropic(api_key=os.getenv("ANTHROPIC_API_KEY", ""))
 
 EMAIL_USER      = os.getenv("EMAIL_USER", "oralai.site@gmail.com")
@@ -66,6 +88,14 @@ def cleanup_old_files(screening_id):
 @app.route("/")
 def index():
     return render_template("index.html")
+
+
+# ════════════════════════════════════════════════════════════
+#  SCREENING COUNT API
+# ════════════════════════════════════════════════════════════
+@app.route("/screening_count")
+def screening_count():
+    return jsonify({"count": get_screening_count()})
 
 
 # ════════════════════════════════════════════════════════════
@@ -376,6 +406,9 @@ def generate():
     session["report_path"] = report_path
     session["report_id"]   = report_id
     session.modified       = True
+
+    # ✅ Increment screening counter on every completed report
+    increment_screening_count()
 
     return render_template("result.html", success=True, report_id=report_id)
 

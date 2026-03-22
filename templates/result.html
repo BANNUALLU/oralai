@@ -17,7 +17,7 @@
   --font:'Outfit',sans-serif;
 }
 body{font-family:var(--font);background:var(--navy);color:var(--white);
-  min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:100px 20px 20px;}
+  min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:flex-start;padding:100px 20px 0;}
 body::before{content:'';position:fixed;inset:0;z-index:0;
   background:radial-gradient(ellipse 60% 50% at 20% 20%,rgba(26,111,255,0.1) 0%,transparent 60%),
   radial-gradient(ellipse 40% 40% at 80% 80%,rgba(0,200,224,0.07) 0%,transparent 60%);pointer-events:none;}
@@ -91,7 +91,7 @@ h2{font-size:22px;font-weight:800;letter-spacing:-0.5px;margin-bottom:8px;}
 
 /* FOOTER */
 .site-footer{position:relative;z-index:1;width:100%;border-top:1px solid var(--border);
-  background:rgba(8,18,34,0.95);padding:18px 40px;margin-top:32px;}
+  background:rgba(8,18,34,0.95);padding:18px 40px;margin-top:auto;}
 .footer-inner{max-width:1400px;margin:0 auto;display:flex;align-items:center;
   justify-content:space-between;flex-wrap:wrap;gap:10px;}
 .footer-copy{font-size:13px;color:var(--muted);font-weight:400;}
