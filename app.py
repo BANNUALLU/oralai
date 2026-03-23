@@ -35,8 +35,8 @@ os.makedirs(REPORT_DIR, exist_ok=True)
 report_semaphore = threading.Semaphore(3)
 
 # ── Screening counter ─────────────────────────────────────────
-COUNTER_FILE = "static/screening_count.txt"
-COUNTER_START = 50  # starts from 50
+COUNTER_FILE  = "static/screening_count.txt"
+COUNTER_START = 50
 
 def get_screening_count():
     try:
@@ -251,54 +251,52 @@ def analyse_with_claude(yolo_image_paths, patient_info):
 
         content.append({
             "type": "text",
-            "text": f"""
-You are an expert dental AI assistant reviewing 3 dental images for a patient.
+            "text": f"""You are an expert dental AI assistant reviewing 3 dental images for a patient.
 
-Patient Info:
-- Name: {name}
-- Age: {age}
-- Gender: {gender}
-- Preferred Language: {language}
+Patient: {name}, Age: {age}, Gender: {gender}, Language: {language}
 
 The images have green bounding boxes drawn by a YOLO model showing detected dental issues.
 
-STRICT RULES:
-- Write ENTIRE response in {language} language only.
-- Do NOT use markdown symbols like **, ##, *, _ etc.
-- Use plain text with numbered sections and - bullet points only.
-- STRICTLY limit each section to MAX 4 bullet points.
-- Each bullet point MAX 1 line only — keep it short and clear.
-- ALL 6 sections MUST be covered — do not skip any section.
-- Be concise — quality over quantity.
-
-Write EXACTLY in this structure (no extra text, no long paragraphs):
+Write EXACTLY these 6 sections in {language} language. No markdown symbols (no **, ##, *, _). Use plain text with numbered sections and - bullet points only.
 
 1. DETECTED PROBLEMS
-- Problem 1: [name] | Teeth: [upper/front/lower] | Look: [1 line] | Confidence: [high/medium/low]
-- Problem 2: [name] | Teeth: [upper/front/lower] | Look: [1 line] | Confidence: [high/medium/low]
-- Problem 3: [name] | Teeth: [upper/front/lower] | Look: [1 line] | Confidence: [high/medium/low]
-(list only problems actually seen, max 4)
+For each detected problem write one bullet like this:
+- [Condition name] | Area: [upper/front/lower teeth] | Observed: [what is visually seen - color, position, shape, texture in 1-2 lines] | Affected teeth: [estimate which teeth eg. front 2, molars, gumline] | Confidence: [High/Medium/Low] | Risk: [why this needs attention in 1 line]
+List max 4 problems actually seen. Be specific about what the AI saw visually.
 
 2. PROBLEM STATUS
-- [Problem name]: [Starting/Middle/Severe] Stage — [1 line reason]
-(one line per problem, max 4 lines)
+For each problem write one bullet like this:
+- [Condition name]: [Starting/Middle/Advanced] Stage | Signs: [2-3 visible signs that indicate this stage] | Est. duration: [how long it may have been developing] | If untreated: [what will happen in 1 line]
+Be detailed — explain WHY it is at that stage based on visual evidence.
 
 3. SUGGESTIONS TO OVERCOME
-- [Problem name]: Visit dentist for [treatment]. At home: [1 tip]. Avoid: [1 thing]. Urgency: [Routine/Soon/Urgent]
-(one line per problem, max 4 lines)
+For each problem write one bullet:
+- [Condition name]: Dentist: [specific treatment needed] | Urgency: [Routine/Soon/Urgent] | Home: [2 specific tips] | Avoid: [1 thing to avoid] | Tip: [1 motivating tip]
 
 4. MONTHLY RECOVERY PLAN
-Month 1: [1 dental action] + [1 home tip] | Products: [product name] (~Rs.[price])
-Month 2: [1 dental action] + [1 home tip] | Products: [product name] (~Rs.[price])
-Month 3 (if needed): [1 dental action] + [1 home tip] | Products: [product name] (~Rs.[price])
+Month 1: [clinic action] + [home routine] | Products: [2 specific Indian products with prices eg. Colgate Total Rs.120, Oral-B brush Rs.250]
+Month 2: [clinic action] + [home routine] | Products: [2 specific Indian products with prices]
+Month 3: [clinic action] + [home routine] | Products: [2 specific Indian products with prices]
 
 5. TOTAL COST ESTIMATE
-- Clinic treatments: Rs.[min] - Rs.[max]
-- Dental products: Rs.[min] - Rs.[max]
-- Total estimate: Rs.[min] - Rs.[max]
+Write a detailed cost breakdown:
+- [Condition 1 treatment]: Rs.[min]-Rs.[max] (eg. Scaling & Polishing: Rs.800-Rs.1500)
+- [Condition 2 treatment]: Rs.[min]-Rs.[max]
+- [Condition 3 treatment if any]: Rs.[min]-Rs.[max]
+- Monthly dental products: Rs.[amount] per month (list 2-3 products with prices)
+- One-time product cost: Rs.[amount] (eg. electric toothbrush, flosser)
+- Budget option total: Rs.[min]-Rs.[max]
+- Standard option total: Rs.[min]-Rs.[max]
+Use realistic Indian clinic prices. Keep affordable — not too high, not too low.
 
 6. CONCLUSION
-[Write exactly 2-3 warm sentences summarising health status, encouraging {name}, and giving the single most important tip.]
+Write exactly 3 warm sentences: summarise the overall oral health status, encourage {name} with what can be improved, and state the single most important first action to take now.
+
+STRICT RULES:
+- Write entire response in {language} only
+- No markdown, no asterisks, no hashtags
+- All 6 sections must be present
+- Total response under 700 words
 """
         })
 
@@ -306,14 +304,13 @@ Month 3 (if needed): [1 dental action] + [1 home tip] | Products: [product name]
 
         message = client.messages.create(
             model="claude-haiku-4-5-20251001",
-            max_tokens=2000,
+            max_tokens=2500,
             system=(
                 f"You are a concise expert dental AI assistant. "
                 f"Always respond in {language} language only. "
                 f"Never use markdown symbols like **, ##, *, _ in your response. "
                 f"Use plain text with numbered sections and simple - bullet points only. "
-                f"Keep every section SHORT — max 4 bullet points per section, max 1 line per bullet. "
-                f"ALL 6 sections must be covered within the token limit."
+                f"All 6 sections must be present. Be specific and informative but concise."
             ),
             messages=[{"role": "user", "content": content}]
         )
@@ -354,7 +351,6 @@ def generate():
         "language": language,
     }
 
-    # Max 3 users generating at once — 4th user waits, never crashes or merges
     with report_semaphore:
         print(f"Report slot acquired for: {name}")
 
@@ -396,10 +392,10 @@ def generate():
             report_id=report_id,
             recommendations=recommendations,
             claude_analysis=claude_analysis,
-            screening_id=screening_id   # ✅ FIXED: pass screening_id for correct images
+            screening_id=screening_id
         )
 
-        # ✅ FIXED: cleanup AFTER PDF is generated, not before
+        # ✅ Cleanup AFTER PDF is generated
         cleanup_old_files(screening_id)
         print(f"Report slot released for: {name}")
 
@@ -407,7 +403,6 @@ def generate():
     session["report_id"]   = report_id
     session.modified       = True
 
-    # ✅ Increment screening counter on every completed report
     increment_screening_count()
 
     return render_template("result.html", success=True, report_id=report_id)

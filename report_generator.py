@@ -312,8 +312,7 @@ def generate_analysis_pages_fpdf2(claude_analysis, language, name, age, gender,
     cleaned   = clean_markdown(sanitize(claude_analysis))
     lines_raw = cleaned.split("\n")
 
-    # ✅ FIXED: Leave more room — 255 instead of 265 to avoid cutoff
-    BOTTOM_LIMIT = 255
+    BOTTOM_LIMIT = 252  # leave room for disclaimer (8mm) + footer (14mm) + margin
 
     render_items = []
     for raw_line in lines_raw:
@@ -330,9 +329,9 @@ def generate_analysis_pages_fpdf2(claude_analysis, language, name, age, gender,
 
     for item_type, item_text in render_items:
 
-        # ✅ FIXED: Check page limit before rendering each item
         if pdf.get_y() > BOTTOM_LIMIT:
-            pdf.draw_footer()  # disclaimer only on last page, not here
+            # ✅ NO disclaimer on middle pages — just footer
+            pdf.draw_footer()
             pdf.page_num += 1
             pdf.add_page()
             # Continuation header
@@ -367,16 +366,15 @@ def generate_analysis_pages_fpdf2(claude_analysis, language, name, age, gender,
                 pdf.draw_body_text(item_text)
                 pdf.ln(1)
 
-    # ✅ Always draw disclaimer and footer on last page
+    # ✅ ONLY on LAST page: disclaimer then footer
     pdf.draw_disclaimer()
     pdf.draw_footer()
 
     temp_path = f"static/reports/temp_analysis_{report_id}.pdf"
     pdf.output(temp_path)
-    return temp_path
+    return temp_path, pdf.page_num  # ✅ return actual last page number
 
 
-# ✅ FIXED: Added screening_id parameter to use correct images
 def generate_pdf(user_data, detected_labels, report_id,
                  recommendations=None, claude_analysis=None, screening_id=None):
 
@@ -390,12 +388,13 @@ def generate_pdf(user_data, detected_labels, report_id,
     if recommendations is None:
         recommendations = []
 
-    total_pages = 99  # placeholder - updated after PDF merge
-
     report_path = f"static/reports/{report_id}.pdf"
     logo_path   = "static/logo.png"
 
     # ── PAGE 1 using ReportLab ───────────────────────────────────
+    # Use placeholder total_pages=2 for page 1 — will be overwritten after merge
+    page1_total = 2
+
     c = rl_canvas.Canvas(report_path, pagesize=A4)
     W, H = A4
 
@@ -459,7 +458,6 @@ def generate_pdf(user_data, detected_labels, report_id,
     card_h = img_h + 34
     card_y = cur_y - 14 - card_h
 
-    # ✅ FIXED: Use screening_id in filenames so correct images show
     if screening_id:
         img_parts = [
             ("Upper Teeth", f"{screening_id}_upper_yolo.jpg"),
@@ -597,24 +595,25 @@ def generate_pdf(user_data, detected_labels, report_id,
                 ty -= 13
         cur_y -= 8
 
-    draw_disclaimer_rl(c, W)
-    draw_footer_rl(c, W, report_id, 1, total_pages)
+    # ✅ NO disclaimer on page 1 — only footer
+    draw_footer_rl(c, W, report_id, 1, page1_total)
     c.save()
 
     # ── PAGES 2+ using fpdf2 ─────────────────────────────────────
     if claude_analysis:
         try:
-            temp_path = generate_analysis_pages_fpdf2(
+            temp_path, last_fpdf_page = generate_analysis_pages_fpdf2(
                 claude_analysis=claude_analysis,
                 language=language,
                 name=name, age=age, gender=gender,
                 report_id=report_id,
                 logo_path=logo_path,
                 start_page=2,
-                total_pages=total_pages
+                total_pages=99  # placeholder, will fix below
             )
 
             from pypdf import PdfWriter, PdfReader
+            import io
 
             writer = PdfWriter()
 
@@ -626,18 +625,204 @@ def generate_pdf(user_data, detected_labels, report_id,
             for page in reader2.pages:
                 writer.add_page(page)
 
-            # ✅ FIX: get actual page count and update footer
+            # ✅ Get real total page count
             actual_pages = len(writer.pages)
 
+            # ✅ SECOND PASS: rewrite both PDFs with real page count
+            # Re-generate page 1 with correct total
+            c2 = rl_canvas.Canvas(report_path, pagesize=A4)
+            W2, H2 = A4
+
+            # --- Redraw page 1 fully with actual_pages ---
+            header_h = 90
+            c2.setFillColor(C_HEADER)
+            c2.rect(0, H2 - header_h, W2, header_h, fill=1, stroke=0)
+            c2.setFillColor(colors.HexColor("#1e3a8a"))
+            c2.rect(0, H2 - header_h, 8, header_h, fill=1, stroke=0)
+
+            if os.path.exists(logo_path):
+                logo_y2 = H2 - header_h + (header_h - 60) / 2
+                c2.drawImage(logo_path, 20, logo_y2,
+                            width=180, height=60,
+                            preserveAspectRatio=True, mask="auto")
+                c2.setStrokeColor(colors.HexColor("#334155"))
+                c2.setLineWidth(1)
+                c2.line(210, H2 - header_h + 14, 210, H2 - 14)
+                c2.setFillColor(C_WHITE)
+                c2.setFont("Helvetica-Bold", 20)
+                c2.drawString(222, H2 - header_h + 44, "Oral Health Screening Report")
+                c2.setFillColor(colors.HexColor("#7dd3fc"))
+                c2.setFont("Helvetica", 9)
+                c2.drawString(224, H2 - header_h + 26, "powered by OralAI")
+            else:
+                c2.setFillColor(C_WHITE)
+                c2.setFont("Helvetica-Bold", 22)
+                c2.drawString(30, H2 - header_h + 44, "Oral Health Screening Report")
+
+            bar_top2 = H2 - header_h
+            c2.setFillColor(C_SURFACE2)
+            c2.rect(0, bar_top2 - 30, W2, 30, fill=1, stroke=0)
+            c2.setStrokeColor(C_BORDER)
+            c2.setLineWidth(0.8)
+            c2.line(0, bar_top2 - 30, W2, bar_top2 - 30)
+
+            def info_pair2(label, value, x, y):
+                c2.setFillColor(C_MUTED)
+                c2.setFont("Helvetica", 9)
+                lw2 = c2.stringWidth(label, "Helvetica", 9)
+                c2.drawString(x, y, label)
+                c2.setFillColor(C_TEXT)
+                c2.setFont("Helvetica-Bold", 10)
+                c2.drawString(x + lw2 + 3, y, value)
+
+            iy2b = bar_top2 - 19
+            info_pair2("Name:",  f"{name}  ({age} / {gender})", 28, iy2b)
+            info_pair2("Phone:", phone, 240, iy2b)
+            info_pair2("Date:",  now,   380, iy2b)
+
+            cur_y2 = bar_top2 - 30
+            cur_y2 = draw_section_bar_rl(c2, W2, cur_y2, "  AI SCREENING REPORT")
+
+            card_y2 = cur_y2 - 14 - card_h
+
+            for i, (lbl, fname) in enumerate(img_parts):
+                ix3  = 28 + gap + i * (img_w + gap)
+                iy3  = card_y2
+
+                c2.setFillColor(colors.HexColor("#cbd5e1"))
+                c2.roundRect(ix3 + 3, iy3 - 3, img_w, card_h, 10, fill=1, stroke=0)
+                c2.setFillColor(C_WHITE)
+                c2.roundRect(ix3, iy3, img_w, card_h, 10, fill=1, stroke=0)
+                c2.setFillColor(C_SURFACE2)
+                c2.roundRect(ix3 + 5, iy3 + 28, img_w - 10, img_h, 8, fill=1, stroke=0)
+
+                img_path3 = os.path.join("static", "results", fname)
+                if os.path.exists(img_path3):
+                    c2.drawImage(img_path3, ix3 + 5, iy3 + 28,
+                                width=img_w - 10, height=img_h,
+                                preserveAspectRatio=True, mask="auto")
+
+                c2.setStrokeColor(C_BORDER)
+                c2.setLineWidth(0.8)
+                c2.roundRect(ix3, iy3, img_w, card_h, 10, fill=0, stroke=1)
+                c2.setFillColor(pill_colors[i])
+                c2.roundRect(ix3 + 14, iy3 + 7, img_w - 28, 17, 8, fill=1, stroke=0)
+                c2.setFillColor(C_WHITE)
+                c2.setFont("Helvetica-Bold", 9)
+                c2.drawCentredString(ix3 + img_w / 2, iy3 + 12, lbl)
+
+            cur_y2 = card_y2 - 18
+
+            detected2 = [k for k in ["malaligned","stains","caries","pit_fissure"]
+                        if k in detected_labels]
+            if detected2:
+                c2.setFillColor(C_SURFACE2)
+                c2.roundRect(28, cur_y2 - 10, W2 - 56, 22, 6, fill=1, stroke=0)
+                c2.setStrokeColor(C_BORDER)
+                c2.setLineWidth(0.6)
+                c2.roundRect(28, cur_y2 - 10, W2 - 56, 22, 6, fill=0, stroke=1)
+                lx2 = 44
+                for key2 in detected2:
+                    col2  = COND_COLOR[key2]
+                    text2 = COND_LABEL[key2]
+                    c2.setFillColor(col2)
+                    c2.circle(lx2 + 5, cur_y2 + 2, 5, fill=1, stroke=0)
+                    c2.setFillColor(C_TEXT)
+                    c2.setFont("Helvetica", 9)
+                    c2.drawString(lx2 + 14, cur_y2 - 2, text2)
+                    lx2 += c2.stringWidth(text2, "Helvetica", 9) + 34
+                cur_y2 -= 24
+
+            cur_y2 -= 4
+            cur_y2 = draw_section_bar_rl(c2, W2, cur_y2, "  TREATMENT RECOMMENDATIONS")
+            cur_y2 -= 8
+
+            if no_issues:
+                rec_text2 = recommendations[0]["recommendation"] if recommendations else "No issues detected."
+                lines2    = wrap_text(rec_text2, 76)
+                row_h2    = max(52, 22 + len(lines2) * 14)
+                cur_y2   -= row_h2 + 4
+
+                c2.setFillColor(C_SUCCESS_BG)
+                c2.roundRect(28, cur_y2, W2 - 56, row_h2, 8, fill=1, stroke=0)
+                c2.setStrokeColor(C_SUCCESS_BD)
+                c2.setLineWidth(1)
+                c2.roundRect(28, cur_y2, W2 - 56, row_h2, 8, fill=0, stroke=1)
+                c2.setFillColor(C_SUCCESS)
+                c2.rect(28, cur_y2, 5, row_h2, fill=1, stroke=0)
+                c2.setFillColor(C_SUCCESS)
+                c2.setFont("Helvetica-Bold", 11)
+                c2.drawString(42, cur_y2 + row_h2 - 15, "No major oral health issues detected")
+                ty2 = cur_y2 + row_h2 - 29
+                c2.setFillColor(C_MUTED)
+                c2.setFont("Helvetica", 9.5)
+                for ln2 in lines2:
+                    c2.drawString(42, ty2, ln2)
+                    ty2 -= 13
+            else:
+                for idx2, rec2 in enumerate(recommendations):
+                    if rec2["label"] == "none":
+                        continue
+                    label2     = rec2["label"]
+                    conf2      = rec2.get("confidence", 0)
+                    rec_text2  = rec2["recommendation"]
+                    lines2     = wrap_text(rec_text2, 73)
+                    row_h2     = max(56, 30 + len(lines2) * 13)
+                    col2       = COND_COLOR.get(label2, C_MUTED)
+                    bg2        = COND_BG.get(label2, C_SURFACE)
+                    bd2        = COND_BD.get(label2, C_BORDER)
+                    label_txt2 = COND_LABEL.get(label2, label2.title())
+
+                    cur_y2 -= row_h2 + 8
+                    c2.setFillColor(bg2)
+                    c2.roundRect(28, cur_y2, W2 - 56, row_h2, 8, fill=1, stroke=0)
+                    c2.setStrokeColor(bd2)
+                    c2.setLineWidth(1)
+                    c2.roundRect(28, cur_y2, W2 - 56, row_h2, 8, fill=0, stroke=1)
+                    c2.setFillColor(col2)
+                    c2.rect(28, cur_y2, 6, row_h2, fill=1, stroke=0)
+                    c2.setFillColor(col2)
+                    c2.circle(52, cur_y2 + row_h2 - 18, 8, fill=1, stroke=0)
+                    c2.setFillColor(C_TEXT)
+                    c2.setFont("Helvetica-Bold", 12)
+                    c2.drawString(68, cur_y2 + row_h2 - 14, label_txt2)
+                    bx2 = 68 + c2.stringWidth(label_txt2, "Helvetica-Bold", 12) + 8
+                    c2.setFillColor(col2)
+                    c2.roundRect(bx2, cur_y2 + row_h2 - 19, 56, 14, 5, fill=1, stroke=0)
+                    c2.setFillColor(C_WHITE)
+                    c2.setFont("Helvetica-Bold", 7.5)
+                    c2.drawCentredString(bx2 + 28, cur_y2 + row_h2 - 12, f"{conf2:.0%} confidence")
+                    c2.setFillColor(C_TEXT)
+                    c2.setFont("Helvetica", 9.5)
+                    ty2 = cur_y2 + row_h2 - 30
+                    for ln2 in lines2:
+                        c2.drawString(68, ty2, ln2)
+                        ty2 -= 13
+
+            # ✅ Page 1 footer with REAL total pages — NO disclaimer
+            draw_footer_rl(c2, W2, report_id, 1, actual_pages)
+            c2.save()
+
+            # ── Re-merge with corrected page 1 ──────────────────
+            writer2 = PdfWriter()
+            reader_p1 = PdfReader(report_path)
+            for page in reader_p1.pages:
+                writer2.add_page(page)
+            reader_p2 = PdfReader(temp_path)
+            for page in reader_p2.pages:
+                writer2.add_page(page)
+
             with open(report_path, "wb") as f:
-                writer.write(f)
+                writer2.write(f)
 
             os.remove(temp_path)
 
-            print(f"PDF generated with {actual_pages} pages in {language}")
+            print(f"PDF generated: {actual_pages} pages, language={language}")
 
         except Exception as e:
             print(f"Analysis page merge failed: {e}")
+            import traceback
+            traceback.print_exc()
             print("Page 1 only saved.")
 
     return report_path
