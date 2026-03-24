@@ -18,6 +18,7 @@ from ai_recommendation import generate_recommendations
 from whatsapp_sender import send_whatsapp_report
 
 app = Flask(__name__)
+app.config['MAX_CONTENT_LENGTH'] = 20 * 1024 * 1024  # 20 MB
 app.secret_key = os.getenv("SECRET_KEY", "oralai_secret_2024")
 
 app.config["SESSION_PERMANENT"]          = True
