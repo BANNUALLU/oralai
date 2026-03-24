@@ -62,11 +62,38 @@ EMAIL_USER      = os.getenv("EMAIL_USER", "oralai.site@gmail.com")
 EMAIL_PASS      = os.getenv("EMAIL_PASS", "")
 DEVELOPER_EMAIL = os.getenv("DEVELOPER_EMAIL", "bannuallu123@gmail.com")
 
-# ── In-memory token store for QR phone sessions ──────────────
-# Structure: { token: { screening_id, language, upper: bool, front: bool, lower: bool,
-#                        upper_thumb: str, front_thumb: str, lower_thumb: str } }
-phone_sessions = {}
+# ── File-based phone session store (works across all Gunicorn workers) ────────
+# Each session is stored as static/phone_sessions/<token>.json
+# This replaces the old in-memory dict which broke with multiple workers.
+PHONE_SESSIONS_DIR = "static/phone_sessions"
+os.makedirs(PHONE_SESSIONS_DIR, exist_ok=True)
 phone_sessions_lock = threading.Lock()
+
+
+def get_phone_session(token):
+    """Read a phone session from disk. Returns None if not found."""
+    path = os.path.join(PHONE_SESSIONS_DIR, f"{token}.json")
+    try:
+        with open(path, "r") as f:
+            return json.load(f)
+    except Exception:
+        return None
+
+
+def save_phone_session(token, data):
+    """Write (create or overwrite) a phone session to disk."""
+    path = os.path.join(PHONE_SESSIONS_DIR, f"{token}.json")
+    with open(path, "w") as f:
+        json.dump(data, f)
+
+
+def delete_phone_session(token):
+    """Remove a phone session file from disk (best-effort)."""
+    path = os.path.join(PHONE_SESSIONS_DIR, f"{token}.json")
+    try:
+        os.remove(path)
+    except Exception:
+        pass
 
 
 # ════════════════════════════════════════════════════════════
@@ -138,19 +165,18 @@ def details():
         session.permanent = True
         session.modified  = True
 
-        # Pre-register the phone session slot so phone can save images
+        # Pre-register the phone session slot on disk so any worker can read it
         token = session["session_token"]
-        with phone_sessions_lock:
-            phone_sessions[token] = {
-                "screening_id": session["screening_id"],
-                "language":     session["language"],
-                "upper":        False,
-                "front":        False,
-                "lower":        False,
-                "upper_thumb":  "",
-                "front_thumb":  "",
-                "lower_thumb":  "",
-            }
+        save_phone_session(token, {
+            "screening_id": session["screening_id"],
+            "language":     session["language"],
+            "upper":        False,
+            "front":        False,
+            "lower":        False,
+            "upper_thumb":  "",
+            "front_thumb":  "",
+            "lower_thumb":  "",
+        })
 
         return redirect("/capture")
     return render_template("details.html")
@@ -181,8 +207,7 @@ def phone_capture():
     if not token:
         return "Invalid link. Please ask the operator to regenerate the QR code.", 400
 
-    with phone_sessions_lock:
-        ps = phone_sessions.get(token)
+    ps = get_phone_session(token)
 
     if not ps:
         return "Session expired or not found. Please ask the operator to start a new screening.", 404
@@ -200,8 +225,7 @@ def phone_status():
     if not token:
         return jsonify({"error": "missing token"}), 400
 
-    with phone_sessions_lock:
-        ps = phone_sessions.get(token)
+    ps = get_phone_session(token)
 
     if not ps:
         return jsonify({"error": "session not found"}), 404
@@ -224,7 +248,7 @@ def phone_save():
     """
     Phone sends: { token, type (upper/front/lower), image (base64 jpeg) }
     We save the file under the screening_id, just like /capture does,
-    and update the phone_sessions dict so the laptop poll sees it.
+    and update the phone session JSON file so any worker's poll sees it.
     """
     try:
         data         = request.get_json()
@@ -235,8 +259,7 @@ def phone_save():
         if not token or image_type not in ("upper", "front", "lower") or not image_b64:
             return jsonify({"status": "error", "msg": "bad params"}), 400
 
-        with phone_sessions_lock:
-            ps = phone_sessions.get(token)
+        ps = get_phone_session(token)
 
         if not ps:
             return jsonify({"status": "error", "msg": "session expired"}), 404
@@ -257,9 +280,13 @@ def phone_save():
         # Build a small thumbnail (re-use the raw b64, just prefix it)
         thumb_b64 = "data:image/jpeg;base64," + image_b64
 
+        # Use a lock so two rapid saves don't corrupt the same JSON file
         with phone_sessions_lock:
-            phone_sessions[token][image_type]             = True
-            phone_sessions[token][image_type + "_thumb"]  = thumb_b64
+            # Re-read inside the lock in case another worker wrote in between
+            ps = get_phone_session(token) or ps
+            ps[image_type]            = True
+            ps[image_type + "_thumb"] = thumb_b64
+            save_phone_session(token, ps)
 
         return jsonify({"status": "saved"})
 
@@ -527,11 +554,10 @@ def generate():
     session["report_id"]   = report_id
     session.modified       = True
 
-    # Clean up the phone session token from memory
+    # Clean up the phone session file from disk
     token = session.get("session_token", "")
     if token:
-        with phone_sessions_lock:
-            phone_sessions.pop(token, None)
+        delete_phone_session(token)
 
     increment_screening_count()
 
