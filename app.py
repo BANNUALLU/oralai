@@ -62,6 +62,12 @@ EMAIL_USER      = os.getenv("EMAIL_USER", "oralai.site@gmail.com")
 EMAIL_PASS      = os.getenv("EMAIL_PASS", "")
 DEVELOPER_EMAIL = os.getenv("DEVELOPER_EMAIL", "bannuallu123@gmail.com")
 
+# ── In-memory token store for QR phone sessions ──────────────
+# Structure: { token: { screening_id, language, upper: bool, front: bool, lower: bool,
+#                        upper_thumb: str, front_thumb: str, lower_thumb: str } }
+phone_sessions = {}
+phone_sessions_lock = threading.Lock()
+
 
 # ════════════════════════════════════════════════════════════
 #  HELPER — Delete all files for a given screening_id
@@ -126,22 +132,140 @@ def details():
         session["language"]       = request.form.get("language", "English").strip()
         session["screening_id"]   = str(uuid.uuid4())
 
+        # Generate a session token for QR / phone mode
+        session["session_token"] = str(uuid.uuid4())
+
         session.permanent = True
         session.modified  = True
+
+        # Pre-register the phone session slot so phone can save images
+        token = session["session_token"]
+        with phone_sessions_lock:
+            phone_sessions[token] = {
+                "screening_id": session["screening_id"],
+                "language":     session["language"],
+                "upper":        False,
+                "front":        False,
+                "lower":        False,
+                "upper_thumb":  "",
+                "front_thumb":  "",
+                "lower_thumb":  "",
+            }
 
         return redirect("/capture")
     return render_template("details.html")
 
 
 # ════════════════════════════════════════════════════════════
-#  CAPTURE PAGE
+#  CAPTURE PAGE (laptop/desktop)
 # ════════════════════════════════════════════════════════════
 @app.route("/capture")
 def capture_page():
     if not session.get("patient_name"):
         return redirect("/details")
-    language = session.get("language", "English")
-    return render_template("capture.html", session_language=language)
+    language      = session.get("language", "English")
+    session_token = session.get("session_token", "")
+    return render_template("capture.html", session_language=language, session_token=session_token)
+
+
+# ════════════════════════════════════════════════════════════
+#  PHONE CAPTURE PAGE  (patient opens on phone via QR)
+# ════════════════════════════════════════════════════════════
+@app.route("/phone_capture")
+def phone_capture():
+    """
+    Phone-optimised capture page.
+    The token links this phone session back to the operator's screening_id.
+    """
+    token = request.args.get("token", "").strip()
+    if not token:
+        return "Invalid link. Please ask the operator to regenerate the QR code.", 400
+
+    with phone_sessions_lock:
+        ps = phone_sessions.get(token)
+
+    if not ps:
+        return "Session expired or not found. Please ask the operator to start a new screening.", 404
+
+    language = ps.get("language", "English")
+    return render_template("phone_capture.html", token=token, session_language=language)
+
+
+# ════════════════════════════════════════════════════════════
+#  PHONE STATUS  (laptop polls this to check photo progress)
+# ════════════════════════════════════════════════════════════
+@app.route("/phone_status")
+def phone_status():
+    token = request.args.get("token", "").strip()
+    if not token:
+        return jsonify({"error": "missing token"}), 400
+
+    with phone_sessions_lock:
+        ps = phone_sessions.get(token)
+
+    if not ps:
+        return jsonify({"error": "session not found"}), 404
+
+    return jsonify({
+        "upper":       ps["upper"],
+        "front":       ps["front"],
+        "lower":       ps["lower"],
+        "upper_thumb": ps["upper_thumb"],
+        "front_thumb": ps["front_thumb"],
+        "lower_thumb": ps["lower_thumb"],
+    })
+
+
+# ════════════════════════════════════════════════════════════
+#  PHONE CAPTURE SAVE  (phone POSTs images here)
+# ════════════════════════════════════════════════════════════
+@app.route("/phone_save", methods=["POST"])
+def phone_save():
+    """
+    Phone sends: { token, type (upper/front/lower), image (base64 jpeg) }
+    We save the file under the screening_id, just like /capture does,
+    and update the phone_sessions dict so the laptop poll sees it.
+    """
+    try:
+        data         = request.get_json()
+        token        = data.get("token", "").strip()
+        image_type   = data.get("type", "")
+        image_b64    = data.get("image", "")
+
+        if not token or image_type not in ("upper", "front", "lower") or not image_b64:
+            return jsonify({"status": "error", "msg": "bad params"}), 400
+
+        with phone_sessions_lock:
+            ps = phone_sessions.get(token)
+
+        if not ps:
+            return jsonify({"status": "error", "msg": "session expired"}), 404
+
+        # Strip data-url prefix if present
+        if "," in image_b64:
+            image_b64 = image_b64.split(",")[1]
+
+        image_bytes  = base64.b64decode(image_b64)
+        screening_id = ps["screening_id"]
+        image_path   = os.path.join(UPLOAD_DIR, f"{screening_id}_{image_type}.jpg")
+
+        with open(image_path, "wb") as f:
+            f.write(image_bytes)
+
+        print(f"[Phone] Saved {image_type} image for screening {screening_id}")
+
+        # Build a small thumbnail (re-use the raw b64, just prefix it)
+        thumb_b64 = "data:image/jpeg;base64," + image_b64
+
+        with phone_sessions_lock:
+            phone_sessions[token][image_type]             = True
+            phone_sessions[token][image_type + "_thumb"]  = thumb_b64
+
+        return jsonify({"status": "saved"})
+
+    except Exception as e:
+        print("PHONE_SAVE ERROR:", str(e))
+        return jsonify({"status": "error", "msg": str(e)}), 500
 
 
 # ════════════════════════════════════════════════════════════
@@ -198,7 +322,7 @@ def validate():
 
 
 # ════════════════════════════════════════════════════════════
-#  SAVE CAPTURED IMAGE
+#  SAVE CAPTURED IMAGE  (local camera mode)
 # ════════════════════════════════════════════════════════════
 @app.route("/capture", methods=["POST"])
 def capture_image():
@@ -402,6 +526,12 @@ def generate():
     session["report_path"] = report_path
     session["report_id"]   = report_id
     session.modified       = True
+
+    # Clean up the phone session token from memory
+    token = session.get("session_token", "")
+    if token:
+        with phone_sessions_lock:
+            phone_sessions.pop(token, None)
 
     increment_screening_count()
 

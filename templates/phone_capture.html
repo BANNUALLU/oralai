@@ -1,0 +1,438 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<title>OralAI – Capture Photos</title>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
+:root{
+  --navy:#0a1628;--blue:#1a6fff;--cyan:#00c8e0;
+  --white:#fff;--muted:#8a9bb5;--border:rgba(255,255,255,0.1);
+  --green:#22e88e;--green-bg:rgba(34,232,142,0.1);--green-bd:rgba(34,232,142,0.3);
+  --red:#ef4444;--red-bg:rgba(239,68,68,0.1);--red-bd:rgba(239,68,68,0.3);
+  --font:'Outfit',sans-serif;
+}
+html,body{height:100%;overflow:hidden;}
+body{font-family:var(--font);background:#000;color:var(--white);display:flex;flex-direction:column;}
+
+/* ── HEADER BAR ── */
+.topbar{display:flex;align-items:center;justify-content:space-between;
+  padding:12px 16px;background:rgba(0,0,0,0.7);backdrop-filter:blur(12px);
+  position:relative;z-index:30;flex-shrink:0;}
+.logo{font-size:18px;font-weight:800;letter-spacing:-0.3px;}
+.logo span{color:var(--blue);}
+.step-pills{display:flex;gap:6px;}
+.spill{width:28px;height:6px;border-radius:3px;background:rgba(255,255,255,0.15);transition:background .3s;}
+.spill.active{background:var(--blue);}
+.spill.done{background:var(--green);}
+
+/* ── CAMERA AREA ── */
+.cam-wrap{flex:1;position:relative;overflow:hidden;}
+#video{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;}
+#previewImg{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;display:none;}
+
+/* GUIDE FRAME */
+.gframe{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);
+  border:2.5px dashed var(--cyan);border-radius:14px;pointer-events:none;z-index:10;
+  box-shadow:0 0 24px rgba(0,200,224,0.2);animation:fpulse 2s ease-in-out infinite;}
+@keyframes fpulse{0%,100%{opacity:1}50%{opacity:.4}}
+.gframe::before,.gframe::after{content:'';position:absolute;width:18px;height:18px;border-color:var(--cyan);border-style:solid;}
+.gframe::before{top:-3px;left:-3px;border-width:3px 0 0 3px;border-radius:5px 0 0 0;}
+.gframe::after{bottom:-3px;right:-3px;border-width:0 3px 3px 0;border-radius:0 0 5px 0;}
+.gframe.upper{width:86%;height:58%;}
+.gframe.front{width:56%;height:32%;}
+.gframe.lower{width:86%;height:58%;}
+.gframe-label{position:absolute;top:-24px;left:50%;transform:translateX(-50%);
+  background:var(--cyan);color:#0a1628;font-size:10px;font-weight:800;
+  letter-spacing:.1em;text-transform:uppercase;padding:2px 10px;border-radius:999px;white-space:nowrap;}
+
+/* VALIDATION OVERLAY */
+.val-overlay{display:none;position:absolute;inset:0;background:rgba(0,0,0,0.8);
+  backdrop-filter:blur(10px);z-index:25;flex-direction:column;align-items:center;justify-content:center;gap:16px;}
+.val-overlay.show{display:flex;}
+.spinner{width:48px;height:48px;border:3px solid rgba(255,255,255,0.1);border-top-color:var(--blue);border-radius:50%;animation:spin .7s linear infinite;}
+@keyframes spin{to{transform:rotate(360deg)}}
+.val-text{font-size:15px;font-weight:700;}
+
+/* FLASH EFFECT */
+.flash-overlay{position:absolute;inset:0;background:white;z-index:28;opacity:0;pointer-events:none;transition:opacity .1s;}
+.flash-overlay.flash{opacity:0.7;}
+
+/* ── BOTTOM BAR ── */
+.bottombar{flex-shrink:0;background:rgba(0,0,0,0.85);backdrop-filter:blur(16px);
+  padding:14px 16px 28px;position:relative;z-index:30;}
+.tip-text{font-size:12px;color:var(--muted);text-align:center;margin-bottom:12px;line-height:1.5;}
+.result-row{display:none;align-items:center;gap:10px;padding:10px 14px;border-radius:12px;
+  font-size:13px;font-weight:600;margin-bottom:12px;}
+.result-row.show{display:flex;}
+.result-row.ok{background:var(--green-bg);border:1px solid var(--green-bd);color:var(--green);}
+.result-row.err{background:var(--red-bg);border:1px solid var(--red-bd);color:var(--red);}
+.result-row .ricon{font-size:18px;}
+.result-row .rmsg{flex:1;line-height:1.4;}
+.result-row .rmsg small{display:block;font-size:11px;font-weight:400;opacity:.8;margin-top:2px;}
+.btn-row{display:flex;align-items:center;justify-content:center;gap:14px;}
+.big-capture-btn{width:68px;height:68px;border-radius:50%;background:var(--white);
+  border:4px solid rgba(255,255,255,0.3);display:flex;align-items:center;justify-content:center;
+  cursor:pointer;transition:transform .15s,box-shadow .15s;box-shadow:0 0 0 0 rgba(255,255,255,0.3);}
+.big-capture-btn:active{transform:scale(.93);}
+.big-capture-btn.pulsing{animation:capPulse 1.5s ease-in-out infinite;}
+@keyframes capPulse{0%,100%{box-shadow:0 0 0 0 rgba(255,255,255,0.3)}50%{box-shadow:0 0 0 12px rgba(255,255,255,0)}}
+.big-capture-btn:disabled{opacity:.4;cursor:not-allowed;animation:none;}
+.btn-inner{width:52px;height:52px;border-radius:50%;background:var(--white);}
+.side-btn{width:44px;height:44px;border-radius:50%;background:rgba(255,255,255,0.1);
+  border:1px solid rgba(255,255,255,0.15);display:flex;align-items:center;justify-content:center;
+  font-size:18px;cursor:pointer;transition:background .2s;}
+.side-btn:active{background:rgba(255,255,255,0.2);}
+.action-row{display:flex;gap:10px;margin-top:10px;}
+.action-btn{flex:1;padding:10px;border-radius:12px;font-family:var(--font);font-size:13px;
+  font-weight:700;cursor:pointer;border:none;transition:all .2s;}
+.btn-retake-m{background:rgba(255,255,255,0.08);color:var(--white);border:1px solid rgba(255,255,255,0.15);}
+.btn-next-m{background:var(--green-bg);color:var(--green);border:1px solid var(--green-bd);}
+.hidden{display:none!important;}
+
+/* DONE SCREEN */
+.done-screen{display:none;position:fixed;inset:0;z-index:50;background:var(--navy);
+  flex-direction:column;align-items:center;justify-content:center;gap:18px;text-align:center;padding:24px;}
+.done-screen.show{display:flex;}
+.done-icon{width:80px;height:80px;background:var(--green-bg);border:2px solid var(--green-bd);
+  border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:36px;
+  animation:popIn .5s cubic-bezier(.175,.885,.32,1.275) both;box-shadow:0 0 40px rgba(34,232,142,0.2);}
+@keyframes popIn{0%{transform:scale(0);opacity:0}100%{transform:scale(1);opacity:1}}
+.done-screen h2{font-size:22px;font-weight:800;}
+.done-screen p{color:var(--muted);font-size:14px;max-width:280px;line-height:1.6;}
+.done-thumbs{display:flex;gap:10px;justify-content:center;}
+.done-thumb{width:80px;height:60px;border-radius:8px;overflow:hidden;
+  border:1px solid var(--green-bd);background:rgba(255,255,255,0.05);}
+.done-thumb img{width:100%;height:100%;object-fit:cover;}
+.done-note{font-size:12px;color:var(--muted);max-width:260px;line-height:1.6;
+  background:rgba(34,232,142,0.06);border:1px solid var(--green-bd);border-radius:10px;padding:12px 14px;}
+</style>
+</head>
+<body>
+
+<!-- TOP BAR -->
+<div class="topbar">
+  <div class="logo">Oral<span>AI</span></div>
+  <div class="step-pills">
+    <div class="spill active" id="sp0"></div>
+    <div class="spill" id="sp1"></div>
+    <div class="spill" id="sp2"></div>
+  </div>
+</div>
+
+<!-- CAMERA -->
+<div class="cam-wrap">
+  <video id="video" autoplay playsinline></video>
+  <img id="previewImg" alt="">
+  <div class="gframe upper" id="guideFrame">
+    <div class="gframe-label" id="gframeLabel">Upper Teeth</div>
+  </div>
+  <div class="val-overlay" id="valOverlay">
+    <div class="spinner"></div>
+    <div class="val-text" id="valText">Checking image...</div>
+  </div>
+  <div class="flash-overlay" id="flashOverlay"></div>
+</div>
+
+<!-- BOTTOM BAR -->
+<div class="bottombar">
+  <div class="tip-text" id="tipText">🦷 Open wide and angle the camera slightly downward.</div>
+  <div class="result-row" id="resultRow">
+    <span class="ricon" id="ricon"></span>
+    <div class="rmsg" id="rmsg"></div>
+  </div>
+  <div class="btn-row">
+    <button class="side-btn" id="switchBtn" title="Switch camera">🔄</button>
+    <button class="big-capture-btn pulsing" id="captureBtn" title="Capture">
+      <div class="btn-inner"></div>
+    </button>
+    <button class="side-btn" id="flashBtn" title="Flash">⚡</button>
+  </div>
+  <div class="action-row hidden" id="actionRow">
+    <button class="action-btn btn-retake-m" id="retakeBtn">↩ Retake</button>
+    <button class="action-btn btn-next-m" id="nextBtn">Next ➡</button>
+  </div>
+</div>
+
+<!-- DONE SCREEN -->
+<div class="done-screen" id="doneScreen">
+  <div class="done-icon">✅</div>
+  <h2 id="doneTitleEl">All Photos Sent!</h2>
+  <p id="doneDescEl">All 3 dental photos have been sent to the operator. You can now return the phone.</p>
+  <div class="done-thumbs" id="doneThumbs">
+    <div class="done-thumb"><img id="dth0" src="" alt=""></div>
+    <div class="done-thumb"><img id="dth1" src="" alt=""></div>
+    <div class="done-thumb"><img id="dth2" src="" alt=""></div>
+  </div>
+  <div class="done-note" id="doneNoteEl">
+    📋 The operator will now generate your AI dental report. Please wait at the clinic.
+  </div>
+</div>
+
+<canvas id="cvFull" style="display:none;"></canvas>
+<canvas id="cvCrop" style="display:none;"></canvas>
+
+<script>
+const LANG  = "{{session_language}}";
+const TOKEN = "{{token}}";
+
+const T = {
+  "English":{
+    steps:["upper","front","lower"],
+    titles:["Capture Upper Teeth","Capture Front Teeth","Capture Lower Teeth"],
+    tips:["🦷 Open wide and angle slightly downward to show your upper teeth.","😁 Hold steady. Show both top and bottom front teeth.","🦷 Tilt your head back slightly and angle the camera upward."],
+    labels:["Upper Teeth","Front Teeth","Lower Teeth"],
+    frames:["upper","front","lower"],
+    checking:"Checking image...",
+    ok:"Teeth detected!",
+    fail:"No teeth detected — please retake.",
+    next:"Next ➡",retake:"↩ Retake",
+    done_title:"All Photos Sent!",
+    done_desc:"All 3 dental photos have been sent to the operator. You can now return the phone.",
+    done_note:"📋 The operator will now generate your AI dental report. Please wait at the clinic."
+  },
+  "Telugu":{
+    steps:["upper","front","lower"],
+    titles:["పై దంతాలు తీయండి","ముందు దంతాలు తీయండి","కింది దంతాలు తీయండి"],
+    tips:["🦷 నోరు బాగా తెరచి కెమెరాను కొంచెం కిందకి వంచండి.","😁 కెమెరాను నోటికి సమాంతరంగా ఉంచండి.","🦷 తల వెనక్కి వాల్చి కెమెరాను పైకి వంచండి."],
+    labels:["పై దంతాలు","ముందు దంతాలు","కింది దంతాలు"],
+    frames:["upper","front","lower"],
+    checking:"చిత్రం తనిఖీ చేస్తున్నాం...",
+    ok:"దంతాలు గుర్తించబడ్డాయి!",
+    fail:"దంతాలు కనుగొనబడలేదు — మళ్ళీ తీయండి.",
+    next:"తదుపరి ➡",retake:"↩ మళ్ళీ",
+    done_title:"అన్ని ఫోటోలు పంపబడ్డాయి!",
+    done_desc:"3 ఫోటోలు ఆపరేటర్‌కు పంపబడ్డాయి.",
+    done_note:"📋 ఆపరేటర్ ఇప్పుడు మీ AI నివేదిక రూపొందిస్తారు."
+  },
+  "Hindi":{
+    steps:["upper","front","lower"],
+    titles:["ऊपरी दांत कैप्चर करें","सामने के दांत कैप्चर करें","निचले दांत कैप्चर करें"],
+    tips:["🦷 मुंह चौड़ा खोलें और कैमरे को थोड़ा नीचे झुकाएं।","😁 कैमरे को मुंह के बराबर रखें।","🦷 सिर थोड़ा पीछे झुकाएं और कैमरे को ऊपर करें।"],
+    labels:["ऊपरी दांत","सामने के दांत","निचले दांत"],
+    frames:["upper","front","lower"],
+    checking:"छवि जाँच रहे हैं...",
+    ok:"दांत पहचाने गए!",
+    fail:"दांत नहीं मिले — कृपया दोबारा लें।",
+    next:"अगला ➡",retake:"↩ दोबारा",
+    done_title:"सभी फ़ोटो भेज दी गई हैं!",
+    done_desc:"3 फ़ोटो ऑपरेटर को भेज दी गई हैं।",
+    done_note:"📋 ऑपरेटर अब आपकी AI रिपोर्ट तैयार करेगा।"
+  }
+};
+
+const L = T[LANG] || T["English"];
+
+let step = 0;
+let capturedImages = [];
+let stream, facingMode = "environment", flash = false;
+
+const video      = document.getElementById("video");
+const preview    = document.getElementById("previewImg");
+const cvFull     = document.getElementById("cvFull");
+const cvCrop     = document.getElementById("cvCrop");
+const ctxFull    = cvFull.getContext("2d");
+const ctxCrop    = cvCrop.getContext("2d");
+const guideFrame = document.getElementById("guideFrame");
+const gframeLabel= document.getElementById("gframeLabel");
+const tipText    = document.getElementById("tipText");
+const valOverlay = document.getElementById("valOverlay");
+const valText    = document.getElementById("valText");
+const captureBtn = document.getElementById("captureBtn");
+const retakeBtn  = document.getElementById("retakeBtn");
+const nextBtn    = document.getElementById("nextBtn");
+const actionRow  = document.getElementById("actionRow");
+const resultRow  = document.getElementById("resultRow");
+const ricon      = document.getElementById("ricon");
+const rmsg       = document.getElementById("rmsg");
+const flashOverlay = document.getElementById("flashOverlay");
+
+valText.innerText = L.checking;
+retakeBtn.innerText = L.retake;
+nextBtn.innerText = L.next;
+
+function renderStep() {
+  tipText.innerText = L.tips[step];
+  gframeLabel.innerText = L.labels[step];
+  guideFrame.className = "gframe " + L.frames[step];
+  for (let i = 0; i < 3; i++) {
+    const sp = document.getElementById("sp" + i);
+    sp.className = "spill" + (i < step ? " done" : i === step ? " active" : "");
+  }
+  resultRow.className = "result-row";
+  actionRow.classList.add("hidden");
+  captureBtn.disabled = false;
+  captureBtn.classList.add("pulsing");
+  preview.style.display = "none";
+  video.style.display = "block";
+}
+
+async function startCamera() {
+  if (stream) stream.getTracks().forEach(t => t.stop());
+  try {
+    stream = await navigator.mediaDevices.getUserMedia({
+      video: { facingMode, width: { ideal: 3840 }, height: { ideal: 2160 } }
+    });
+    video.srcObject = stream;
+  } catch(e) {
+    try {
+      stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode } });
+      video.srcObject = stream;
+    } catch(e2) { alert("Camera access denied. Please allow camera and reload."); }
+  }
+}
+
+document.getElementById("switchBtn").onclick = () => {
+  facingMode = facingMode === "environment" ? "user" : "environment";
+  startCamera();
+};
+
+document.getElementById("flashBtn").onclick = async () => {
+  if (!stream) return;
+  const track = stream.getVideoTracks()[0];
+  const cap = track.getCapabilities ? track.getCapabilities() : {};
+  if (cap && cap.torch) {
+    try {
+      flash = !flash;
+      await track.applyConstraints({ advanced: [{ torch: flash }] });
+      document.getElementById("flashBtn").textContent = flash ? "🔦" : "⚡";
+    } catch(e) { flash = false; document.getElementById("flashBtn").textContent = "⚡"; }
+  } else {
+    document.getElementById("flashBtn").textContent = "🚫";
+    setTimeout(() => document.getElementById("flashBtn").textContent = "⚡", 1500);
+  }
+};
+
+function showResult(type, icon, msg, sub) {
+  resultRow.className = "result-row show " + type;
+  ricon.textContent = icon;
+  rmsg.innerHTML = msg + (sub ? `<small>${sub}</small>` : "");
+}
+
+captureBtn.addEventListener("click", async () => {
+  const vw = video.videoWidth, vh = video.videoHeight;
+  if (!vw || !vh) { alert("Camera not ready."); return; }
+
+  // Flash effect
+  flashOverlay.classList.add("flash");
+  setTimeout(() => flashOverlay.classList.remove("flash"), 200);
+
+  // Compute visible area
+  const box = video.getBoundingClientRect();
+  const scale = Math.max(box.width / vw, box.height / vh);
+  const rW = vw * scale, rH = vh * scale;
+  const ox = (box.width - rW) / 2, oy = (box.height - rH) / 2;
+  const sx = Math.max(0, Math.round(-ox / scale));
+  const sy = Math.max(0, Math.round(-oy / scale));
+  const sw = Math.min(Math.round(box.width / scale), vw - sx);
+  const sh = Math.min(Math.round(box.height / scale), vh - sy);
+  cvFull.width = sw; cvFull.height = sh;
+  ctxFull.drawImage(video, sx, sy, sw, sh, 0, 0, sw, sh);
+  const fullImg = cvFull.toDataURL("image/jpeg", 0.93);
+
+  // Crop guide frame
+  const frameEl = guideFrame.getBoundingClientRect();
+  const fx = Math.max(0, Math.round((frameEl.left - box.left - ox) / scale));
+  const fy = Math.max(0, Math.round((frameEl.top  - box.top  - oy) / scale));
+  const fw = Math.min(Math.round(frameEl.width / scale), vw - fx);
+  const fh = Math.min(Math.round(frameEl.height / scale), vh - fy);
+  cvCrop.width = fw; cvCrop.height = fh;
+  ctxCrop.drawImage(video, fx, fy, fw, fh, 0, 0, fw, fh);
+  const cropImg = cvCrop.toDataURL("image/jpeg", 0.93);
+
+  // Show preview
+  preview.src = fullImg;
+  preview.style.display = "block";
+  video.style.display = "none";
+  captureBtn.disabled = true;
+  captureBtn.classList.remove("pulsing");
+  resultRow.className = "result-row";
+  valOverlay.classList.add("show");
+
+  try {
+    const res = await fetch("/validate", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ image: cropImg })
+    });
+    const result = await res.json();
+    valOverlay.classList.remove("show");
+
+    if (result.isTeeth) {
+      showResult("ok", "✅", L.ok, result.reason || "");
+      capturedImages[step] = fullImg;
+      // Save to server linked by token
+      await saveImage(cropImg, L.steps[step]);
+      actionRow.classList.remove("hidden");
+    } else {
+      showResult("err", "❌", L.fail, result.reason || "");
+      setTimeout(() => {
+        preview.style.display = "none";
+        video.style.display = "block";
+        resultRow.className = "result-row";
+        captureBtn.disabled = false;
+        captureBtn.classList.add("pulsing");
+      }, 2500);
+    }
+  } catch(e) {
+    valOverlay.classList.remove("show");
+    showResult("err", "❌", "Error — please retry.", "");
+    preview.style.display = "none";
+    video.style.display = "block";
+    captureBtn.disabled = false;
+    captureBtn.classList.add("pulsing");
+  }
+});
+
+retakeBtn.onclick = () => {
+  preview.style.display = "none";
+  video.style.display = "block";
+  actionRow.classList.add("hidden");
+  resultRow.className = "result-row";
+  captureBtn.disabled = false;
+  captureBtn.classList.add("pulsing");
+};
+
+nextBtn.onclick = () => {
+  step++;
+  if (step < 3) {
+    renderStep();
+  } else {
+    showDone();
+  }
+};
+
+async function saveImage(cropB64, type) {
+  try {
+    await fetch("/phone_save", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ token: TOKEN, type, image: cropB64 })
+    });
+  } catch(e) { console.warn("Save error:", e); }
+}
+
+function showDone() {
+  for (let i = 0; i < 3; i++) document.getElementById("sp" + i).className = "spill done";
+  if (stream) stream.getTracks().forEach(t => t.stop());
+  for (let i = 0; i < 3; i++) {
+    const el = document.getElementById("dth" + i);
+    if (capturedImages[i]) el.src = capturedImages[i];
+  }
+  document.getElementById("doneTitleEl").innerText = L.done_title;
+  document.getElementById("doneDescEl").innerText  = L.done_desc;
+  document.getElementById("doneNoteEl").innerText  = L.done_note;
+  document.getElementById("doneScreen").classList.add("show");
+}
+
+// Init
+startCamera();
+renderStep();
+</script>
+</body>
+</html>
