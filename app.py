@@ -126,6 +126,41 @@ def html_error(title, message, status=400):
     return html, status
 
 
+# ── HTML success page helper (for QR session complete) ────────
+def html_done(title, message):
+    """Return a styled HTML done page when QR session is complete."""
+    html = f"""<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>OralAI — {title}</title>
+  <style>
+    *{{box-sizing:border-box;margin:0;padding:0;}}
+    body{{font-family:'Segoe UI',sans-serif;background:#0a1628;color:#fff;
+      display:flex;flex-direction:column;align-items:center;justify-content:center;
+      min-height:100vh;padding:24px;text-align:center;}}
+    .icon{{font-size:64px;margin-bottom:16px;animation:popIn .5s cubic-bezier(.175,.885,.32,1.275) both;}}
+    @keyframes popIn{{0%{{transform:scale(0);opacity:0}}100%{{transform:scale(1);opacity:1}}}}
+    h1{{font-size:22px;font-weight:800;color:#22e88e;margin-bottom:10px;}}
+    p{{color:#8a9bb5;font-size:14px;line-height:1.7;max-width:300px;}}
+    .box{{margin-top:20px;background:rgba(34,232,142,0.08);border:1px solid rgba(34,232,142,0.25);
+      border-radius:12px;padding:14px 18px;font-size:13px;color:#22e88e;max-width:320px;}}
+    .logo{{font-size:20px;font-weight:800;margin-bottom:32px;}}
+    .logo span{{color:#1a6fff;}}
+  </style>
+</head>
+<body>
+  <div class="logo">Oral<span>AI</span></div>
+  <div class="icon">✅</div>
+  <h1>{title}</h1>
+  <p>{message}</p>
+  <div class="box">📋 The operator will now generate your AI dental report. Please wait at the clinic.</div>
+</body>
+</html>"""
+    return html, 200
+
+
 # ════════════════════════════════════════════════════════════
 #  HELPER — Delete all files for a given screening_id
 # ════════════════════════════════════════════════════════════
@@ -203,6 +238,7 @@ def details():
             "upper_thumb":  "",
             "front_thumb":  "",
             "lower_thumb":  "",
+            "expired":      False,
         })
 
         return redirect("/capture")
@@ -228,7 +264,7 @@ def capture_page():
 def phone_capture():
     token = request.args.get("token", "").strip()
 
-    # ── No token at all — user opened URL without QR ──
+    # ── No token at all ──
     if not token:
         print("phone_capture: no token in request")
         return html_error(
@@ -245,6 +281,14 @@ def phone_capture():
             "Session Expired or Not Found",
             "This QR code session has expired or is no longer valid. Please ask the operator to start a new screening.",
             404
+        )
+
+    # ── BUG 3 FIX: Session already expired (all 3 photos received) ──
+    if ps.get("expired"):
+        print(f"phone_capture: session already expired for token {token[:8]}...")
+        return html_done(
+            "All Photos Received!",
+            "All 3 dental photos have been successfully sent to the operator. You can return the phone."
         )
 
     language = ps.get("language", "English")
@@ -266,6 +310,7 @@ def phone_status():
     if not ps:
         return jsonify({"error": "session not found"}), 404
 
+    # BUG 3 FIX: include expired flag so phone page knows to show done screen
     return jsonify({
         "upper":       ps["upper"],
         "front":       ps["front"],
@@ -273,7 +318,36 @@ def phone_status():
         "upper_thumb": ps["upper_thumb"],
         "front_thumb": ps["front_thumb"],
         "lower_thumb": ps["lower_thumb"],
+        "expired":     ps.get("expired", False),
     })
+
+
+# ════════════════════════════════════════════════════════════
+#  PHONE EXPIRE  (BUG 3 FIX — operator calls this when all 3 photos received)
+# ════════════════════════════════════════════════════════════
+@app.route("/phone_expire", methods=["POST"])
+def phone_expire():
+    """Called by the operator page as soon as all 3 photos are confirmed,
+    so the phone capture page becomes invalid immediately."""
+    try:
+        data  = request.get_json()
+        token = data.get("token", "").strip()
+        if not token:
+            return jsonify({"status": "error", "msg": "missing token"}), 400
+
+        ps = get_phone_session(token)
+        if not ps:
+            return jsonify({"status": "already_expired"})
+
+        # Mark as expired — phone_capture will see this and show done screen
+        ps["expired"] = True
+        save_phone_session(token, ps)
+        print(f"[QR] Session expired for token {token[:8]}...")
+        return jsonify({"status": "expired"})
+
+    except Exception as e:
+        print(f"PHONE_EXPIRE ERROR: {str(e)}")
+        return jsonify({"status": "error", "msg": str(e)}), 500
 
 
 # ════════════════════════════════════════════════════════════
@@ -294,6 +368,10 @@ def phone_save():
 
         if not ps:
             return jsonify({"status": "error", "msg": "session expired"}), 404
+
+        # Reject if already expired
+        if ps.get("expired"):
+            return jsonify({"status": "error", "msg": "session already expired"}), 403
 
         if "," in image_b64:
             image_b64 = image_b64.split(",")[1]
@@ -507,13 +585,24 @@ STRICT RULES:
 # ════════════════════════════════════════════════════════════
 @app.route("/generate", methods=["POST"])
 def generate():
-    name         = session.get("patient_name", "")
-    age          = session.get("patient_age", "25")
-    gender       = session.get("patient_gender", "Other")
-    phone        = session.get("patient_phone", "")
-    email        = session.get("patient_email", "")
-    language     = session.get("language", "English")
+    name     = session.get("patient_name", "")
+    age      = session.get("patient_age", "25")
+    gender   = session.get("patient_gender", "Other")
+    phone    = session.get("patient_phone", "")
+    email    = session.get("patient_email", "")
+    language = session.get("language", "English")
     screening_id = session.get("screening_id", "")
+
+    # ── BUG 2 FIX: QR mode — sync screening_id from phone session if operator session is missing it ──
+    session_token = session.get("session_token", "")
+    if session_token and not screening_id:
+        ps = get_phone_session(session_token)
+        if ps:
+            screening_id = ps.get("screening_id", "")
+            if screening_id:
+                session["screening_id"] = screening_id
+                session.modified = True
+                print(f"[QR mode] Synced screening_id from phone session: {screening_id[:8]}...")
 
     if not name or not screening_id:
         return redirect("/details")

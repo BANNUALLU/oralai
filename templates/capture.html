@@ -174,9 +174,19 @@ button{display:inline-flex;align-items:center;gap:6px;padding:9px 18px;border:no
 .qr-wait-spinner{width:14px;height:14px;border:2px solid rgba(255,255,255,0.08);border-top-color:var(--purple);border-radius:50%;animation:spin .7s linear infinite;}
 .qr-all-done{display:none;align-items:center;gap:10px;margin-top:12px;font-size:13px;font-weight:700;color:var(--green);}
 .qr-all-done.show{display:flex;}
+
+/* ── BUG 1 FIX: QR generate progress ── */
+.qr-gen-progress{display:none;margin-top:12px;align-items:center;gap:12px;
+  background:rgba(26,111,255,0.1);border:1px solid rgba(26,111,255,0.25);
+  border-radius:12px;padding:14px 16px;}
+.qr-gen-progress.show{display:flex;}
+.qr-gen-spinner{width:18px;height:18px;flex-shrink:0;border:2px solid rgba(26,111,255,0.2);border-top-color:var(--blue2);border-radius:50%;animation:spin .7s linear infinite;}
+.qr-gen-text{font-size:13px;font-weight:600;color:var(--blue2);}
+
 .btn-proceed{background:var(--green);color:#0a1628;font-size:14px;font-weight:800;padding:11px 28px;
-  border-radius:12px;border:none;cursor:pointer;margin-top:4px;box-shadow:0 6px 20px rgba(34,232,142,0.3);}
+  border-radius:12px;border:none;cursor:pointer;margin-top:14px;box-shadow:0 6px 20px rgba(34,232,142,0.3);display:block;}
 .btn-proceed:hover{background:#1fd47d;transform:translateY(-2px);}
+.btn-proceed:disabled{opacity:.5;cursor:not-allowed;transform:none;}
 
 /* ── FINAL CARD ── */
 .final-card{display:none;flex-direction:column;align-items:center;text-align:center;padding:48px 32px;gap:18px;}
@@ -408,11 +418,17 @@ button{display:inline-flex;align-items:center;gap:6px;padding:9px 18px;border:no
           <div class="qr-all-done" id="qrAllDone">
             ✅ All 3 photos received!
           </div>
-          <div style="margin-top:14px;" id="qrProceedWrap" class="hidden">
-            <form action="/generate" method="post" onsubmit="startGenerating()">
-              <button class="btn-proceed">🤖 Generate AI Report</button>
-            </form>
+
+          <!-- BUG 1 FIX: generate progress panel for QR mode -->
+          <div class="qr-gen-progress" id="qrGenProgress">
+            <div class="qr-gen-spinner"></div>
+            <span class="qr-gen-text" id="qrGenText">Generating AI Report...</span>
           </div>
+
+          <!-- BUG 1 FIX: generate button now passes form reference -->
+          <form action="/generate" method="post" onsubmit="startGenerating(this)" id="qrGenerateForm">
+            <button class="btn-proceed" id="qrProceedBtn" style="display:none;">🤖 Generate AI Report</button>
+          </form>
         </div>
       </div>
     </div>
@@ -427,7 +443,8 @@ button{display:inline-flex;align-items:center;gap:6px;padding:9px 18px;border:no
         <div class="thumb"><img id="thumb1" src=""><div class="thumb-label" id="thumbLabel1">Front</div></div>
         <div class="thumb"><img id="thumb2" src=""><div class="thumb-label" id="thumbLabel2">Lower</div></div>
       </div>
-      <form action="/generate" method="post" onsubmit="startGenerating()">
+      <!-- BUG 1 FIX: cam mode generate also uses startGenerating(this) -->
+      <form action="/generate" method="post" onsubmit="startGenerating(this)">
         <button class="btn-generate" id="generateBtn">🤖 Generate AI Report</button>
       </form>
       <div class="gen-status" id="genStatus">
@@ -453,7 +470,7 @@ button{display:inline-flex;align-items:center;gap:6px;padding:9px 18px;border:no
 <script>
 // ── Injected by Flask ──
 const LANG = "{{session_language}}";
-const SESSION_TOKEN = "{{session_token}}";  // new — injected by Flask
+const SESSION_TOKEN = "{{session_token}}";
 const BASE_URL = window.location.origin;
 
 // ── Translations ──
@@ -507,7 +524,6 @@ function setMode(mode) {
   if (mode === "cam") {
     stopQrPolling();
     startCamera();
-    // Restore step titles (in case QR moved ahead)
     document.getElementById("titleText").innerText = steps[currentStep].title;
     document.getElementById("subText").innerText = steps[currentStep].sub;
   } else {
@@ -517,7 +533,7 @@ function setMode(mode) {
 }
 
 // ══════════════════════════════════════════════════
-//  CAM MODE — original logic, untouched
+//  CAM MODE
 // ══════════════════════════════════════════════════
 const video = document.getElementById("video");
 const preview = document.getElementById("previewImage");
@@ -675,11 +691,9 @@ function initQrMode() {
   if (qrGenerated) { startQrPolling(); return; }
   qrGenerated = true;
 
-  // Build URL: patient opens /phone_capture?token=<SESSION_TOKEN>
   const phoneUrl = `${BASE_URL}/phone_capture?token=${SESSION_TOKEN}`;
   document.getElementById("qrUrlText").innerText = phoneUrl;
 
-  // Generate QR
   new QRCode(document.getElementById("qrCodeEl"), {
     text: phoneUrl,
     width: 160,
@@ -715,8 +729,7 @@ async function pollQrStatus() {
     const res = await fetch(`/phone_status?token=${SESSION_TOKEN}`);
     if (!res.ok) return;
     const data = await res.json();
-    // data = { upper: true/false, front: true/false, lower: true/false,
-    //          upper_thumb: "data:...", front_thumb: "...", lower_thumb: "..." }
+
     const parts = ["upper", "front", "lower"];
     let count = 0;
     parts.forEach((part, i) => {
@@ -726,53 +739,75 @@ async function pollQrStatus() {
         if (!shot.classList.contains("received")) {
           shot.classList.add("received");
           if (data[part + "_thumb"]) document.getElementById("qrThumb" + i).src = data[part + "_thumb"];
-          // Update step pill
-          const pill = document.getElementById("pill" + i);
-          pill.className = "step-pill done";
+          document.getElementById("pill" + i).className = "step-pill done";
         }
       }
     });
 
     qrReceivedCount = count;
-    const waitEl = document.getElementById("qrWaiting");
-    const doneEl = document.getElementById("qrAllDone");
-    const proceedWrap = document.getElementById("qrProceedWrap");
+    const waitEl    = document.getElementById("qrWaiting");
+    const doneEl    = document.getElementById("qrAllDone");
+    const proceedBtn = document.getElementById("qrProceedBtn");
 
     if (count === 3) {
       waitEl.style.display = "none";
       doneEl.classList.add("show");
-      proceedWrap.classList.remove("hidden");
+      if (proceedBtn) proceedBtn.style.display = "block";
       stopQrPolling();
-      // Update pills all done
       for (let i = 0; i < 3; i++) document.getElementById("pill" + i).className = "step-pill done";
+
+      // ── BUG 3 FIX: expire the QR session so phone shows done screen immediately ──
+      fetch("/phone_expire", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ token: SESSION_TOKEN })
+      }).catch(e => console.warn("Expire call failed:", e));
+
     } else {
       const remaining = 3 - count;
       document.getElementById("qrWaitText").innerText =
-        count === 0 ? "Waiting for patient to capture photos on phone..." :
-        `${count}/3 received — waiting for ${remaining} more photo${remaining > 1 ? "s" : ""}...`;
+        count === 0
+          ? "Waiting for patient to capture photos on phone..."
+          : `${count}/3 received — waiting for ${remaining} more photo${remaining > 1 ? "s" : ""}...`;
     }
   } catch(e) { console.warn("Poll error:", e); }
 }
 
 // ══════════════════════════════════════════════════
-//  SHARED GENERATE
+//  BUG 1 FIX — startGenerating works for BOTH cam and QR modes
 // ══════════════════════════════════════════════════
-function startGenerating() {
-  const btn = document.getElementById("generateBtn") || document.querySelector(".btn-proceed");
-  const status = document.getElementById("genStatus");
-  const title = document.getElementById("genTitle");
-  const desc = document.getElementById("genDesc");
+function startGenerating(formEl) {
+  // Disable the submit button that triggered this
+  const btn = formEl
+    ? formEl.querySelector("button")
+    : (document.getElementById("generateBtn") || document.getElementById("qrProceedBtn"));
   if (btn) { btn.disabled = true; btn.innerText = "⏳ Generating..."; }
+
+  // Show gen-status panel (cam mode final card)
+  const status = document.getElementById("genStatus");
   if (status) status.classList.add("show");
+
+  // Show QR mode progress bar
+  const qrGenProgress = document.getElementById("qrGenProgress");
+  if (qrGenProgress) qrGenProgress.classList.add("show");
+
+  const qrGenText = document.getElementById("qrGenText");
+  const genTitle  = document.getElementById("genTitle");
+  const genDesc   = document.getElementById("genDesc");
+
   const s = [
-    {t:0,    title:"Generating AI Report...",       desc:"Running YOLO detection on your images..."},
-    {t:5000, title:"Analysing Detections...",        desc:"Processing detected dental conditions..."},
-    {t:12000,title:"Claude AI Analysing Images...",  desc:"Claude is reviewing all 3 dental images..."},
-    {t:25000,title:"Writing Detailed Analysis...",   desc:"Claude is writing your personalised report..."},
-    {t:40000,title:"Generating PDF Report...",       desc:"Building your multi-page dental report..."},
-    {t:55000,title:"Almost Ready...",                desc:"Finalising your report. Please wait..."}
+    {t:0,     title:"Generating AI Report...",        desc:"Running YOLO detection on your images...",       qr:"Generating AI Report..."},
+    {t:5000,  title:"Analysing Detections...",         desc:"Processing detected dental conditions...",       qr:"Analysing dental detections..."},
+    {t:12000, title:"Claude AI Analysing Images...",   desc:"Claude is reviewing all 3 dental images...",    qr:"Claude AI reviewing images..."},
+    {t:25000, title:"Writing Detailed Analysis...",    desc:"Claude is writing your personalised report...", qr:"Writing detailed analysis..."},
+    {t:40000, title:"Generating PDF Report...",        desc:"Building your multi-page dental report...",     qr:"Building PDF report..."},
+    {t:55000, title:"Almost Ready...",                 desc:"Finalising your report. Please wait...",        qr:"Almost ready — finalising report..."}
   ];
-  s.forEach(x => setTimeout(() => { if(title) title.innerText=x.title; if(desc) desc.innerText=x.desc; }, x.t));
+  s.forEach(x => setTimeout(() => {
+    if (genTitle)  genTitle.innerText  = x.title;
+    if (genDesc)   genDesc.innerText   = x.desc;
+    if (qrGenText) qrGenText.innerText = x.qr;
+  }, x.t));
 }
 
 // ── Nav helpers ──
