@@ -62,16 +62,13 @@ EMAIL_USER      = os.getenv("EMAIL_USER", "oralai.site@gmail.com")
 EMAIL_PASS      = os.getenv("EMAIL_PASS", "")
 DEVELOPER_EMAIL = os.getenv("DEVELOPER_EMAIL", "bannuallu123@gmail.com")
 
-# ── File-based phone session store (works across all Gunicorn workers) ────────
-# Each session is stored as static/phone_sessions/<token>.json
-# This replaces the old in-memory dict which broke with multiple workers.
+# ── File-based phone session store (works across all Gunicorn workers) ──
 PHONE_SESSIONS_DIR = "static/phone_sessions"
 os.makedirs(PHONE_SESSIONS_DIR, exist_ok=True)
 phone_sessions_lock = threading.Lock()
 
 
 def get_phone_session(token):
-    """Read a phone session from disk. Returns None if not found."""
     path = os.path.join(PHONE_SESSIONS_DIR, f"{token}.json")
     try:
         with open(path, "r") as f:
@@ -81,19 +78,51 @@ def get_phone_session(token):
 
 
 def save_phone_session(token, data):
-    """Write (create or overwrite) a phone session to disk."""
     path = os.path.join(PHONE_SESSIONS_DIR, f"{token}.json")
     with open(path, "w") as f:
         json.dump(data, f)
 
 
 def delete_phone_session(token):
-    """Remove a phone session file from disk (best-effort)."""
     path = os.path.join(PHONE_SESSIONS_DIR, f"{token}.json")
     try:
         os.remove(path)
     except Exception:
         pass
+
+
+# ── HTML error page helper ────────────────────────────────────
+def html_error(title, message, status=400):
+    """Return a styled HTML error page instead of plain text."""
+    html = f"""<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>OralAI — {title}</title>
+  <style>
+    *{{box-sizing:border-box;margin:0;padding:0;}}
+    body{{font-family:'Segoe UI',sans-serif;background:#0a1628;color:#fff;
+      display:flex;flex-direction:column;align-items:center;justify-content:center;
+      min-height:100vh;padding:24px;text-align:center;}}
+    .icon{{font-size:56px;margin-bottom:16px;}}
+    h1{{font-size:22px;font-weight:800;color:#ef4444;margin-bottom:10px;}}
+    p{{color:#8a9bb5;font-size:14px;line-height:1.7;max-width:300px;}}
+    .box{{margin-top:20px;background:rgba(239,68,68,0.08);border:1px solid rgba(239,68,68,0.25);
+      border-radius:12px;padding:14px 18px;font-size:13px;color:#ef4444;max-width:320px;}}
+    .logo{{font-size:20px;font-weight:800;margin-bottom:32px;}}
+    .logo span{{color:#1a6fff;}}
+  </style>
+</head>
+<body>
+  <div class="logo">Oral<span>AI</span></div>
+  <div class="icon">⚠️</div>
+  <h1>{title}</h1>
+  <p>{message}</p>
+  <div class="box">Please ask the operator to show the QR code again and scan it with your camera.</div>
+</body>
+</html>"""
+    return html, status
 
 
 # ════════════════════════════════════════════════════════════
@@ -158,14 +187,11 @@ def details():
         session["patient_email"]  = request.form.get("email", "").strip()
         session["language"]       = request.form.get("language", "English").strip()
         session["screening_id"]   = str(uuid.uuid4())
-
-        # Generate a session token for QR / phone mode
-        session["session_token"] = str(uuid.uuid4())
+        session["session_token"]  = str(uuid.uuid4())
 
         session.permanent = True
         session.modified  = True
 
-        # Pre-register the phone session slot on disk so any worker can read it
         token = session["session_token"]
         save_phone_session(token, {
             "screening_id": session["screening_id"],
@@ -199,20 +225,29 @@ def capture_page():
 # ════════════════════════════════════════════════════════════
 @app.route("/phone_capture")
 def phone_capture():
-    """
-    Phone-optimised capture page.
-    The token links this phone session back to the operator's screening_id.
-    """
     token = request.args.get("token", "").strip()
+
+    # ── No token at all — user opened URL without QR ──
     if not token:
-        return "Invalid link. Please ask the operator to regenerate the QR code.", 400
+        print("phone_capture: no token in request")
+        return html_error(
+            "Missing Session Token",
+            "This link is incomplete. It must be opened by scanning the QR code shown at the clinic, not typed manually."
+        )
 
     ps = get_phone_session(token)
 
+    # ── Token not found on disk ──
     if not ps:
-        return "Session expired or not found. Please ask the operator to start a new screening.", 404
+        print(f"phone_capture: token not found: {token[:8]}...")
+        return html_error(
+            "Session Expired or Not Found",
+            "This QR code session has expired or is no longer valid. Please ask the operator to start a new screening.",
+            404
+        )
 
     language = ps.get("language", "English")
+    print(f"phone_capture: valid session for screening {ps.get('screening_id', '?')[:8]}, lang={language}")
     return render_template("phone_capture.html", token=token, session_language=language)
 
 
@@ -245,16 +280,11 @@ def phone_status():
 # ════════════════════════════════════════════════════════════
 @app.route("/phone_save", methods=["POST"])
 def phone_save():
-    """
-    Phone sends: { token, type (upper/front/lower), image (base64 jpeg) }
-    We save the file under the screening_id, just like /capture does,
-    and update the phone session JSON file so any worker's poll sees it.
-    """
     try:
-        data         = request.get_json()
-        token        = data.get("token", "").strip()
-        image_type   = data.get("type", "")
-        image_b64    = data.get("image", "")
+        data       = request.get_json()
+        token      = data.get("token", "").strip()
+        image_type = data.get("type", "")
+        image_b64  = data.get("image", "")
 
         if not token or image_type not in ("upper", "front", "lower") or not image_b64:
             return jsonify({"status": "error", "msg": "bad params"}), 400
@@ -264,7 +294,6 @@ def phone_save():
         if not ps:
             return jsonify({"status": "error", "msg": "session expired"}), 404
 
-        # Strip data-url prefix if present
         if "," in image_b64:
             image_b64 = image_b64.split(",")[1]
 
@@ -277,12 +306,9 @@ def phone_save():
 
         print(f"[Phone] Saved {image_type} image for screening {screening_id}")
 
-        # Build a small thumbnail (re-use the raw b64, just prefix it)
         thumb_b64 = "data:image/jpeg;base64," + image_b64
 
-        # Use a lock so two rapid saves don't corrupt the same JSON file
         with phone_sessions_lock:
-            # Re-read inside the lock in case another worker wrote in between
             ps = get_phone_session(token) or ps
             ps[image_type]            = True
             ps[image_type + "_thumb"] = thumb_b64
@@ -546,7 +572,6 @@ def generate():
             screening_id=screening_id
         )
 
-        # ✅ Cleanup AFTER PDF is generated
         cleanup_old_files(screening_id)
         print(f"Report slot released for: {name}")
 
@@ -554,7 +579,6 @@ def generate():
     session["report_id"]   = report_id
     session.modified       = True
 
-    # Clean up the phone session file from disk
     token = session.get("session_token", "")
     if token:
         delete_phone_session(token)

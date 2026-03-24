@@ -20,7 +20,6 @@
 html,body{height:100%;overflow:hidden;}
 body{font-family:var(--font);background:#000;color:var(--white);display:flex;flex-direction:column;}
 
-/* ── HEADER BAR ── */
 .topbar{display:flex;align-items:center;justify-content:space-between;
   padding:12px 16px;background:rgba(0,0,0,0.7);backdrop-filter:blur(12px);
   position:relative;z-index:30;flex-shrink:0;}
@@ -31,12 +30,10 @@ body{font-family:var(--font);background:#000;color:var(--white);display:flex;fle
 .spill.active{background:var(--blue);}
 .spill.done{background:var(--green);}
 
-/* ── CAMERA AREA ── */
 .cam-wrap{flex:1;position:relative;overflow:hidden;}
 #video{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;}
 #previewImg{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;display:none;}
 
-/* GUIDE FRAME */
 .gframe{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);
   border:2.5px dashed var(--cyan);border-radius:14px;pointer-events:none;z-index:10;
   box-shadow:0 0 24px rgba(0,200,224,0.2);animation:fpulse 2s ease-in-out infinite;}
@@ -51,7 +48,6 @@ body{font-family:var(--font);background:#000;color:var(--white);display:flex;fle
   background:var(--cyan);color:#0a1628;font-size:10px;font-weight:800;
   letter-spacing:.1em;text-transform:uppercase;padding:2px 10px;border-radius:999px;white-space:nowrap;}
 
-/* VALIDATION OVERLAY */
 .val-overlay{display:none;position:absolute;inset:0;background:rgba(0,0,0,0.8);
   backdrop-filter:blur(10px);z-index:25;flex-direction:column;align-items:center;justify-content:center;gap:16px;}
 .val-overlay.show{display:flex;}
@@ -59,11 +55,9 @@ body{font-family:var(--font);background:#000;color:var(--white);display:flex;fle
 @keyframes spin{to{transform:rotate(360deg)}}
 .val-text{font-size:15px;font-weight:700;}
 
-/* FLASH EFFECT */
 .flash-overlay{position:absolute;inset:0;background:white;z-index:28;opacity:0;pointer-events:none;transition:opacity .1s;}
 .flash-overlay.flash{opacity:0.7;}
 
-/* ── BOTTOM BAR ── */
 .bottombar{flex-shrink:0;background:rgba(0,0,0,0.85);backdrop-filter:blur(16px);
   padding:14px 16px 28px;position:relative;z-index:30;}
 .tip-text{font-size:12px;color:var(--muted);text-align:center;margin-bottom:12px;line-height:1.5;}
@@ -95,6 +89,15 @@ body{font-family:var(--font);background:#000;color:var(--white);display:flex;fle
 .btn-next-m{background:var(--green-bg);color:var(--green);border:1px solid var(--green-bd);}
 .hidden{display:none!important;}
 
+/* ERROR SCREEN — shown before camera if token missing */
+.error-screen{display:none;position:fixed;inset:0;z-index:100;background:var(--navy);
+  flex-direction:column;align-items:center;justify-content:center;gap:16px;text-align:center;padding:32px;}
+.error-screen.show{display:flex;}
+.error-icon{font-size:56px;margin-bottom:4px;}
+.error-screen h2{font-size:20px;font-weight:800;color:var(--red);}
+.error-screen p{color:var(--muted);font-size:14px;max-width:280px;line-height:1.6;}
+.error-screen .err-detail{font-size:12px;color:rgba(239,68,68,0.6);margin-top:4px;word-break:break-all;max-width:300px;}
+
 /* DONE SCREEN */
 .done-screen{display:none;position:fixed;inset:0;z-index:50;background:var(--navy);
   flex-direction:column;align-items:center;justify-content:center;gap:18px;text-align:center;padding:24px;}
@@ -114,6 +117,15 @@ body{font-family:var(--font);background:#000;color:var(--white);display:flex;fle
 </style>
 </head>
 <body>
+
+<!-- ERROR SCREEN (shown if token missing/invalid) -->
+<div class="error-screen" id="errorScreen">
+  <div class="error-icon">⚠️</div>
+  <h2>Invalid Link</h2>
+  <p>This link is missing a session token or has expired.</p>
+  <p>Please ask the operator to show the QR code again and scan it fresh.</p>
+  <div class="err-detail" id="errDetail"></div>
+</div>
 
 <!-- TOP BAR -->
 <div class="topbar">
@@ -164,7 +176,7 @@ body{font-family:var(--font);background:#000;color:var(--white);display:flex;fle
   <div class="done-icon">✅</div>
   <h2 id="doneTitleEl">All Photos Sent!</h2>
   <p id="doneDescEl">All 3 dental photos have been sent to the operator. You can now return the phone.</p>
-  <div class="done-thumbs" id="doneThumbs">
+  <div class="done-thumbs">
     <div class="done-thumb"><img id="dth0" src="" alt=""></div>
     <div class="done-thumb"><img id="dth1" src="" alt=""></div>
     <div class="done-thumb"><img id="dth2" src="" alt=""></div>
@@ -178,97 +190,129 @@ body{font-family:var(--font);background:#000;color:var(--white);display:flex;fle
 <canvas id="cvCrop" style="display:none;"></canvas>
 
 <script>
-// ── These are Jinja2 template variables — rendered by Flask ──
+// ════════════════════════════════════════════════
+//  TOKEN & LANGUAGE — injected by Flask/Jinja2
+// ════════════════════════════════════════════════
 const LANG  = "{{ session_language }}";
 const TOKEN = "{{ token }}";
 
-// ── Fallback: if token is still a raw template string, something went wrong ──
-if (!TOKEN || TOKEN === "{{ token }}") {
-  document.body.innerHTML = `
-    <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;
-      height:100vh;background:#0a1628;color:#ef4444;font-family:sans-serif;text-align:center;padding:24px;">
-      <div style="font-size:48px;margin-bottom:16px;">⚠️</div>
-      <h2 style="margin-bottom:8px;">Session Error</h2>
-      <p style="color:#8a9bb5;font-size:14px;">Invalid or missing session token.<br>Please ask the operator to regenerate the QR code.</p>
-    </div>`;
-  throw new Error("Missing session token");
-}
+// ── Guard: show friendly error if token didn't render ──
+// This happens if someone opens /phone_capture without ?token=
+// OR if Jinja2 failed to substitute the variable.
+(function checkToken() {
+  const raw = TOKEN.trim();
+  // If Jinja2 didn't substitute it, it'll still look like "{{ token }}"
+  // If Flask returned 400 before rendering, this page won't load at all.
+  // This guard catches the edge case of an empty string.
+  if (!raw || raw.length < 8) {
+    document.getElementById("errorScreen").classList.add("show");
+    document.getElementById("errDetail").innerText =
+      raw ? `Token received: "${raw}" (too short)` : "No token in URL.";
+    // Hide the camera UI
+    document.querySelector(".topbar").style.display   = "none";
+    document.querySelector(".cam-wrap").style.display = "none";
+    document.querySelector(".bottombar").style.display= "none";
+    throw new Error("Bad token — stopping execution");
+  }
+})();
 
+// ════════════════════════════════════════════════
+//  TRANSLATIONS
+// ════════════════════════════════════════════════
 const T = {
-  "English":{
-    steps:["upper","front","lower"],
-    titles:["Capture Upper Teeth","Capture Front Teeth","Capture Lower Teeth"],
-    tips:["🦷 Open wide and angle slightly downward to show your upper teeth.","😁 Hold steady. Show both top and bottom front teeth.","🦷 Tilt your head back slightly and angle the camera upward."],
-    labels:["Upper Teeth","Front Teeth","Lower Teeth"],
-    frames:["upper","front","lower"],
-    checking:"Checking image...",
-    ok:"Teeth detected!",
-    fail:"No teeth detected — please retake.",
-    next:"Next ➡",retake:"↩ Retake",
-    done_title:"All Photos Sent!",
-    done_desc:"All 3 dental photos have been sent to the operator. You can now return the phone.",
-    done_note:"📋 The operator will now generate your AI dental report. Please wait at the clinic."
+  "English": {
+    steps:  ["upper","front","lower"],
+    tips:   [
+      "🦷 Open wide and angle slightly downward to show your upper teeth.",
+      "😁 Hold steady. Show both top and bottom front teeth.",
+      "🦷 Tilt your head back slightly and angle the camera upward."
+    ],
+    labels: ["Upper Teeth","Front Teeth","Lower Teeth"],
+    frames: ["upper","front","lower"],
+    checking: "Checking image...",
+    ok:       "Teeth detected!",
+    fail:     "No teeth detected — please retake.",
+    next:     "Next ➡", retake: "↩ Retake",
+    done_title: "All Photos Sent!",
+    done_desc:  "All 3 dental photos have been sent to the operator. You can now return the phone.",
+    done_note:  "📋 The operator will now generate your AI dental report. Please wait at the clinic."
   },
-  "Telugu":{
-    steps:["upper","front","lower"],
-    titles:["పై దంతాలు తీయండి","ముందు దంతాలు తీయండి","కింది దంతాలు తీయండి"],
-    tips:["🦷 నోరు బాగా తెరచి కెమెరాను కొంచెం కిందకి వంచండి.","😁 కెమెరాను నోటికి సమాంతరంగా ఉంచండి.","🦷 తల వెనక్కి వాల్చి కెమెరాను పైకి వంచండి."],
-    labels:["పై దంతాలు","ముందు దంతాలు","కింది దంతాలు"],
-    frames:["upper","front","lower"],
-    checking:"చిత్రం తనిఖీ చేస్తున్నాం...",
-    ok:"దంతాలు గుర్తించబడ్డాయి!",
-    fail:"దంతాలు కనుగొనబడలేదు — మళ్ళీ తీయండి.",
-    next:"తదుపరి ➡",retake:"↩ మళ్ళీ",
-    done_title:"అన్ని ఫోటోలు పంపబడ్డాయి!",
-    done_desc:"3 ఫోటోలు ఆపరేటర్‌కు పంపబడ్డాయి.",
-    done_note:"📋 ఆపరేటర్ ఇప్పుడు మీ AI నివేదిక రూపొందిస్తారు."
+  "Telugu": {
+    steps:  ["upper","front","lower"],
+    tips:   [
+      "🦷 నోరు బాగా తెరచి కెమెరాను కొంచెం కిందకి వంచండి.",
+      "😁 కెమెరాను నోటికి సమాంతరంగా ఉంచండి.",
+      "🦷 తల వెనక్కి వాల్చి కెమెరాను పైకి వంచండి."
+    ],
+    labels: ["పై దంతాలు","ముందు దంతాలు","కింది దంతాలు"],
+    frames: ["upper","front","lower"],
+    checking: "చిత్రం తనిఖీ చేస్తున్నాం...",
+    ok:       "దంతాలు గుర్తించబడ్డాయి!",
+    fail:     "దంతాలు కనుగొనబడలేదు — మళ్ళీ తీయండి.",
+    next:     "తదుపరి ➡", retake: "↩ మళ్ళీ",
+    done_title: "అన్ని ఫోటోలు పంపబడ్డాయి!",
+    done_desc:  "3 ఫోటోలు ఆపరేటర్‌కు పంపబడ్డాయి.",
+    done_note:  "📋 ఆపరేటర్ ఇప్పుడు మీ AI నివేదిక రూపొందిస్తారు."
   },
-  "Hindi":{
-    steps:["upper","front","lower"],
-    titles:["ऊपरी दांत कैप्चर करें","सामने के दांत कैप्चर करें","निचले दांत कैप्चर करें"],
-    tips:["🦷 मुंह चौड़ा खोलें और कैमरे को थोड़ा नीचे झुकाएं।","😁 कैमरे को मुंह के बराबर रखें।","🦷 सिर थोड़ा पीछे झुकाएं और कैमरे को ऊपर करें।"],
-    labels:["ऊपरी दांत","सामने के दांत","निचले दांत"],
-    frames:["upper","front","lower"],
-    checking:"छवि जाँच रहे हैं...",
-    ok:"दांत पहचाने गए!",
-    fail:"दांत नहीं मिले — कृपया दोबारा लें।",
-    next:"अगला ➡",retake:"↩ दोबारा",
-    done_title:"सभी फ़ोटो भेज दी गई हैं!",
-    done_desc:"3 फ़ोटो ऑपरेटर को भेज दी गई हैं।",
-    done_note:"📋 ऑपरेटर अब आपकी AI रिपोर्ट तैयार करेगा।"
+  "Hindi": {
+    steps:  ["upper","front","lower"],
+    tips:   [
+      "🦷 मुंह चौड़ा खोलें और कैमरे को थोड़ा नीचे झुकाएं।",
+      "😁 कैमरे को मुंह के बराबर रखें।",
+      "🦷 सिर थोड़ा पीछे झुकाएं और कैमरे को ऊपर करें।"
+    ],
+    labels: ["ऊपरी दांत","सामने के दांत","निचले दांत"],
+    frames: ["upper","front","lower"],
+    checking: "छवि जाँच रहे हैं...",
+    ok:       "दांत पहचाने गए!",
+    fail:     "दांत नहीं मिले — कृपया दोबारा लें।",
+    next:     "अगला ➡", retake: "↩ दोबारा",
+    done_title: "सभी फ़ोटो भेज दी गई हैं!",
+    done_desc:  "3 फ़ोटो ऑपरेटर को भेज दी गई हैं।",
+    done_note:  "📋 ऑपरेटर अब आपकी AI रिपोर्ट तैयार करेगा।"
   }
 };
 
 const L = T[LANG] || T["English"];
 
+// ════════════════════════════════════════════════
+//  STATE
+// ════════════════════════════════════════════════
 let step = 0;
 let capturedImages = [];
 let stream, facingMode = "environment", flash = false;
 
-const video       = document.getElementById("video");
-const preview     = document.getElementById("previewImg");
-const cvFull      = document.getElementById("cvFull");
-const cvCrop      = document.getElementById("cvCrop");
-const ctxFull     = cvFull.getContext("2d");
-const ctxCrop     = cvCrop.getContext("2d");
-const guideFrame  = document.getElementById("guideFrame");
-const gframeLabel = document.getElementById("gframeLabel");
-const tipText     = document.getElementById("tipText");
-const valOverlay  = document.getElementById("valOverlay");
-const valText     = document.getElementById("valText");
-const captureBtn  = document.getElementById("captureBtn");
-const retakeBtn   = document.getElementById("retakeBtn");
-const nextBtn     = document.getElementById("nextBtn");
-const actionRow   = document.getElementById("actionRow");
-const resultRow   = document.getElementById("resultRow");
-const ricon       = document.getElementById("ricon");
-const rmsg        = document.getElementById("rmsg");
-const flashOverlay= document.getElementById("flashOverlay");
+// ════════════════════════════════════════════════
+//  DOM REFS
+// ════════════════════════════════════════════════
+const video        = document.getElementById("video");
+const preview      = document.getElementById("previewImg");
+const cvFull       = document.getElementById("cvFull");
+const cvCrop       = document.getElementById("cvCrop");
+const ctxFull      = cvFull.getContext("2d");
+const ctxCrop      = cvCrop.getContext("2d");
+const guideFrame   = document.getElementById("guideFrame");
+const gframeLabel  = document.getElementById("gframeLabel");
+const tipText      = document.getElementById("tipText");
+const valOverlay   = document.getElementById("valOverlay");
+const valText      = document.getElementById("valText");
+const captureBtn   = document.getElementById("captureBtn");
+const retakeBtn    = document.getElementById("retakeBtn");
+const nextBtn      = document.getElementById("nextBtn");
+const actionRow    = document.getElementById("actionRow");
+const resultRow    = document.getElementById("resultRow");
+const ricon        = document.getElementById("ricon");
+const rmsg         = document.getElementById("rmsg");
+const flashOverlay = document.getElementById("flashOverlay");
 
+// Apply translations
 valText.innerText   = L.checking;
 retakeBtn.innerText = L.retake;
 nextBtn.innerText   = L.next;
 
+// ════════════════════════════════════════════════
+//  STEP RENDER
+// ════════════════════════════════════════════════
 function renderStep() {
   tipText.innerText     = L.tips[step];
   gframeLabel.innerText = L.labels[step];
@@ -277,14 +321,17 @@ function renderStep() {
     const sp = document.getElementById("sp" + i);
     sp.className = "spill" + (i < step ? " done" : i === step ? " active" : "");
   }
-  resultRow.className = "result-row";
+  resultRow.className   = "result-row";
   actionRow.classList.add("hidden");
-  captureBtn.disabled = false;
+  captureBtn.disabled   = false;
   captureBtn.classList.add("pulsing");
   preview.style.display = "none";
   video.style.display   = "block";
 }
 
+// ════════════════════════════════════════════════
+//  CAMERA
+// ════════════════════════════════════════════════
 async function startCamera() {
   if (stream) stream.getTracks().forEach(t => t.stop());
   try {
@@ -297,7 +344,7 @@ async function startCamera() {
       stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode } });
       video.srcObject = stream;
     } catch(e2) {
-      alert("Camera access denied. Please allow camera and reload.");
+      alert("Camera access denied. Please allow camera permission and reload.");
     }
   }
 }
@@ -326,10 +373,13 @@ document.getElementById("flashBtn").onclick = async () => {
   }
 };
 
+// ════════════════════════════════════════════════
+//  RESULT HELPERS
+// ════════════════════════════════════════════════
 function showResult(type, icon, msg, sub) {
-  resultRow.className  = "result-row show " + type;
-  ricon.textContent    = icon;
-  rmsg.innerHTML       = msg + (sub ? `<small>${sub}</small>` : "");
+  resultRow.className = "result-row show " + type;
+  ricon.textContent   = icon;
+  rmsg.innerHTML      = msg + (sub ? `<small>${sub}</small>` : "");
 }
 
 function resetToCamera() {
@@ -340,6 +390,9 @@ function resetToCamera() {
   captureBtn.classList.add("pulsing");
 }
 
+// ════════════════════════════════════════════════
+//  CAPTURE BUTTON
+// ════════════════════════════════════════════════
 captureBtn.addEventListener("click", async () => {
   const vw = video.videoWidth, vh = video.videoHeight;
   if (!vw || !vh) { alert("Camera not ready. Please wait a moment."); return; }
@@ -348,41 +401,42 @@ captureBtn.addEventListener("click", async () => {
   flashOverlay.classList.add("flash");
   setTimeout(() => flashOverlay.classList.remove("flash"), 200);
 
-  // Compute visible area
+  // Capture full visible frame
   const box   = video.getBoundingClientRect();
   const scale = Math.max(box.width / vw, box.height / vh);
   const rW    = vw * scale, rH = vh * scale;
-  const ox    = (box.width - rW) / 2, oy = (box.height - rH) / 2;
+  const ox    = (box.width  - rW) / 2;
+  const oy    = (box.height - rH) / 2;
   const sx    = Math.max(0, Math.round(-ox / scale));
   const sy    = Math.max(0, Math.round(-oy / scale));
-  const sw    = Math.min(Math.round(box.width / scale),  vw - sx);
+  const sw    = Math.min(Math.round(box.width  / scale), vw - sx);
   const sh    = Math.min(Math.round(box.height / scale), vh - sy);
 
-  cvFull.width  = sw; cvFull.height = sh;
+  cvFull.width = sw; cvFull.height = sh;
   ctxFull.drawImage(video, sx, sy, sw, sh, 0, 0, sw, sh);
   const fullImg = cvFull.toDataURL("image/jpeg", 0.93);
 
-  // Crop guide frame
+  // Crop guide frame only (sent to /validate)
   const frameEl = guideFrame.getBoundingClientRect();
   const fx = Math.max(0, Math.round((frameEl.left - box.left - ox) / scale));
   const fy = Math.max(0, Math.round((frameEl.top  - box.top  - oy) / scale));
   const fw = Math.min(Math.round(frameEl.width  / scale), vw - fx);
   const fh = Math.min(Math.round(frameEl.height / scale), vh - fy);
 
-  cvCrop.width  = fw; cvCrop.height = fh;
+  cvCrop.width = fw; cvCrop.height = fh;
   ctxCrop.drawImage(video, fx, fy, fw, fh, 0, 0, fw, fh);
   const cropImg = cvCrop.toDataURL("image/jpeg", 0.93);
 
-  // Show preview, disable button
-  preview.src            = fullImg;
-  preview.style.display  = "block";
-  video.style.display    = "none";
-  captureBtn.disabled    = true;
+  // Show preview, disable button, show spinner
+  preview.src           = fullImg;
+  preview.style.display = "block";
+  video.style.display   = "none";
+  captureBtn.disabled   = true;
   captureBtn.classList.remove("pulsing");
-  resultRow.className    = "result-row";
+  resultRow.className   = "result-row";
   valOverlay.classList.add("show");
 
-  // ── VALIDATE ────────────────────────────────────────────
+  // ── VALIDATE with Claude ─────────────────────
   try {
     const res = await fetch("/validate", {
       method:  "POST",
@@ -390,16 +444,15 @@ captureBtn.addEventListener("click", async () => {
       body:    JSON.stringify({ image: cropImg })
     });
 
-    // Check HTTP status first
     if (!res.ok) {
-      throw new Error(`Server returned ${res.status} — ${res.statusText}`);
+      throw new Error(`Server error ${res.status}: ${res.statusText}`);
     }
 
     let result;
     try {
       result = await res.json();
     } catch(jsonErr) {
-      throw new Error("Server response was not valid JSON. Check server logs.");
+      throw new Error("Invalid JSON from server. Check server logs.");
     }
 
     valOverlay.classList.remove("show");
@@ -407,7 +460,8 @@ captureBtn.addEventListener("click", async () => {
     if (result.isTeeth) {
       showResult("ok", "✅", L.ok, result.reason || "");
       capturedImages[step] = fullImg;
-      await saveImage(cropImg, L.steps[step]);
+      // Save full image (not crop) to server — matches what YOLO expects
+      await saveImage(fullImg, L.steps[step]);
       actionRow.classList.remove("hidden");
     } else {
       showResult("err", "❌", L.fail, result.reason || "");
@@ -416,13 +470,16 @@ captureBtn.addEventListener("click", async () => {
 
   } catch(e) {
     valOverlay.classList.remove("show");
-    // ── Show the REAL error message so you can debug it ──
+    // Show REAL error so you can debug
     showResult("err", "❌", "Error — please retry.", e.message || String(e));
     console.error("Validate error:", e);
     setTimeout(resetToCamera, 3500);
   }
 });
 
+// ════════════════════════════════════════════════
+//  RETAKE / NEXT
+// ════════════════════════════════════════════════
 retakeBtn.onclick = () => {
   actionRow.classList.add("hidden");
   resetToCamera();
@@ -437,42 +494,50 @@ nextBtn.onclick = () => {
   }
 };
 
-// ── SAVE IMAGE TO SERVER ─────────────────────────────────
-async function saveImage(cropB64, type) {
+// ════════════════════════════════════════════════
+//  SAVE IMAGE TO SERVER via /phone_save
+// ════════════════════════════════════════════════
+async function saveImage(imgB64, type) {
   try {
     const res = await fetch("/phone_save", {
       method:  "POST",
       headers: { "Content-Type": "application/json" },
-      body:    JSON.stringify({ token: TOKEN, type, image: cropB64 })
+      body:    JSON.stringify({ token: TOKEN, type: type, image: imgB64 })
     });
     if (!res.ok) {
-      console.error("phone_save failed:", res.status, res.statusText);
+      console.error("phone_save HTTP error:", res.status, res.statusText);
+      return;
+    }
+    const data = await res.json();
+    if (data.status !== "saved") {
+      console.warn("phone_save unexpected:", data);
     } else {
-      const data = await res.json();
-      if (data.status !== "saved") {
-        console.warn("phone_save unexpected response:", data);
-      }
+      console.log("Saved", type, "image successfully");
     }
   } catch(e) {
-    console.warn("Save error:", e);
+    console.warn("phone_save network error:", e);
   }
 }
 
-// ── DONE SCREEN ──────────────────────────────────────────
+// ════════════════════════════════════════════════
+//  DONE SCREEN
+// ════════════════════════════════════════════════
 function showDone() {
-  for (let i = 0; i < 3; i++) document.getElementById("sp" + i).className = "spill done";
-  if (stream) stream.getTracks().forEach(t => t.stop());
   for (let i = 0; i < 3; i++) {
+    document.getElementById("sp" + i).className = "spill done";
     const el = document.getElementById("dth" + i);
     if (capturedImages[i]) el.src = capturedImages[i];
   }
+  if (stream) stream.getTracks().forEach(t => t.stop());
   document.getElementById("doneTitleEl").innerText = L.done_title;
   document.getElementById("doneDescEl").innerText  = L.done_desc;
   document.getElementById("doneNoteEl").innerText  = L.done_note;
   document.getElementById("doneScreen").classList.add("show");
 }
 
-// ── INIT ─────────────────────────────────────────────────
+// ════════════════════════════════════════════════
+//  INIT
+// ════════════════════════════════════════════════
 startCamera();
 renderStep();
 </script>
