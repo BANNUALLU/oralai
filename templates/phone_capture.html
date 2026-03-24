@@ -178,8 +178,21 @@ body{font-family:var(--font);background:#000;color:var(--white);display:flex;fle
 <canvas id="cvCrop" style="display:none;"></canvas>
 
 <script>
-const LANG  = "{{session_language}}";
-const TOKEN = "{{token}}";
+// ── These are Jinja2 template variables — rendered by Flask ──
+const LANG  = "{{ session_language }}";
+const TOKEN = "{{ token }}";
+
+// ── Fallback: if token is still a raw template string, something went wrong ──
+if (!TOKEN || TOKEN === "{{ token }}") {
+  document.body.innerHTML = `
+    <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;
+      height:100vh;background:#0a1628;color:#ef4444;font-family:sans-serif;text-align:center;padding:24px;">
+      <div style="font-size:48px;margin-bottom:16px;">⚠️</div>
+      <h2 style="margin-bottom:8px;">Session Error</h2>
+      <p style="color:#8a9bb5;font-size:14px;">Invalid or missing session token.<br>Please ask the operator to regenerate the QR code.</p>
+    </div>`;
+  throw new Error("Missing session token");
+}
 
 const T = {
   "English":{
@@ -232,34 +245,34 @@ let step = 0;
 let capturedImages = [];
 let stream, facingMode = "environment", flash = false;
 
-const video      = document.getElementById("video");
-const preview    = document.getElementById("previewImg");
-const cvFull     = document.getElementById("cvFull");
-const cvCrop     = document.getElementById("cvCrop");
-const ctxFull    = cvFull.getContext("2d");
-const ctxCrop    = cvCrop.getContext("2d");
-const guideFrame = document.getElementById("guideFrame");
-const gframeLabel= document.getElementById("gframeLabel");
-const tipText    = document.getElementById("tipText");
-const valOverlay = document.getElementById("valOverlay");
-const valText    = document.getElementById("valText");
-const captureBtn = document.getElementById("captureBtn");
-const retakeBtn  = document.getElementById("retakeBtn");
-const nextBtn    = document.getElementById("nextBtn");
-const actionRow  = document.getElementById("actionRow");
-const resultRow  = document.getElementById("resultRow");
-const ricon      = document.getElementById("ricon");
-const rmsg       = document.getElementById("rmsg");
-const flashOverlay = document.getElementById("flashOverlay");
+const video       = document.getElementById("video");
+const preview     = document.getElementById("previewImg");
+const cvFull      = document.getElementById("cvFull");
+const cvCrop      = document.getElementById("cvCrop");
+const ctxFull     = cvFull.getContext("2d");
+const ctxCrop     = cvCrop.getContext("2d");
+const guideFrame  = document.getElementById("guideFrame");
+const gframeLabel = document.getElementById("gframeLabel");
+const tipText     = document.getElementById("tipText");
+const valOverlay  = document.getElementById("valOverlay");
+const valText     = document.getElementById("valText");
+const captureBtn  = document.getElementById("captureBtn");
+const retakeBtn   = document.getElementById("retakeBtn");
+const nextBtn     = document.getElementById("nextBtn");
+const actionRow   = document.getElementById("actionRow");
+const resultRow   = document.getElementById("resultRow");
+const ricon       = document.getElementById("ricon");
+const rmsg        = document.getElementById("rmsg");
+const flashOverlay= document.getElementById("flashOverlay");
 
-valText.innerText = L.checking;
+valText.innerText   = L.checking;
 retakeBtn.innerText = L.retake;
-nextBtn.innerText = L.next;
+nextBtn.innerText   = L.next;
 
 function renderStep() {
-  tipText.innerText = L.tips[step];
+  tipText.innerText     = L.tips[step];
   gframeLabel.innerText = L.labels[step];
-  guideFrame.className = "gframe " + L.frames[step];
+  guideFrame.className  = "gframe " + L.frames[step];
   for (let i = 0; i < 3; i++) {
     const sp = document.getElementById("sp" + i);
     sp.className = "spill" + (i < step ? " done" : i === step ? " active" : "");
@@ -269,7 +282,7 @@ function renderStep() {
   captureBtn.disabled = false;
   captureBtn.classList.add("pulsing");
   preview.style.display = "none";
-  video.style.display = "block";
+  video.style.display   = "block";
 }
 
 async function startCamera() {
@@ -283,7 +296,9 @@ async function startCamera() {
     try {
       stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode } });
       video.srcObject = stream;
-    } catch(e2) { alert("Camera access denied. Please allow camera and reload."); }
+    } catch(e2) {
+      alert("Camera access denied. Please allow camera and reload.");
+    }
   }
 }
 
@@ -295,13 +310,16 @@ document.getElementById("switchBtn").onclick = () => {
 document.getElementById("flashBtn").onclick = async () => {
   if (!stream) return;
   const track = stream.getVideoTracks()[0];
-  const cap = track.getCapabilities ? track.getCapabilities() : {};
+  const cap   = track.getCapabilities ? track.getCapabilities() : {};
   if (cap && cap.torch) {
     try {
       flash = !flash;
       await track.applyConstraints({ advanced: [{ torch: flash }] });
       document.getElementById("flashBtn").textContent = flash ? "🔦" : "⚡";
-    } catch(e) { flash = false; document.getElementById("flashBtn").textContent = "⚡"; }
+    } catch(e) {
+      flash = false;
+      document.getElementById("flashBtn").textContent = "⚡";
+    }
   } else {
     document.getElementById("flashBtn").textContent = "🚫";
     setTimeout(() => document.getElementById("flashBtn").textContent = "⚡", 1500);
@@ -309,29 +327,38 @@ document.getElementById("flashBtn").onclick = async () => {
 };
 
 function showResult(type, icon, msg, sub) {
-  resultRow.className = "result-row show " + type;
-  ricon.textContent = icon;
-  rmsg.innerHTML = msg + (sub ? `<small>${sub}</small>` : "");
+  resultRow.className  = "result-row show " + type;
+  ricon.textContent    = icon;
+  rmsg.innerHTML       = msg + (sub ? `<small>${sub}</small>` : "");
+}
+
+function resetToCamera() {
+  preview.style.display = "none";
+  video.style.display   = "block";
+  resultRow.className   = "result-row";
+  captureBtn.disabled   = false;
+  captureBtn.classList.add("pulsing");
 }
 
 captureBtn.addEventListener("click", async () => {
   const vw = video.videoWidth, vh = video.videoHeight;
-  if (!vw || !vh) { alert("Camera not ready."); return; }
+  if (!vw || !vh) { alert("Camera not ready. Please wait a moment."); return; }
 
   // Flash effect
   flashOverlay.classList.add("flash");
   setTimeout(() => flashOverlay.classList.remove("flash"), 200);
 
   // Compute visible area
-  const box = video.getBoundingClientRect();
+  const box   = video.getBoundingClientRect();
   const scale = Math.max(box.width / vw, box.height / vh);
-  const rW = vw * scale, rH = vh * scale;
-  const ox = (box.width - rW) / 2, oy = (box.height - rH) / 2;
-  const sx = Math.max(0, Math.round(-ox / scale));
-  const sy = Math.max(0, Math.round(-oy / scale));
-  const sw = Math.min(Math.round(box.width / scale), vw - sx);
-  const sh = Math.min(Math.round(box.height / scale), vh - sy);
-  cvFull.width = sw; cvFull.height = sh;
+  const rW    = vw * scale, rH = vh * scale;
+  const ox    = (box.width - rW) / 2, oy = (box.height - rH) / 2;
+  const sx    = Math.max(0, Math.round(-ox / scale));
+  const sy    = Math.max(0, Math.round(-oy / scale));
+  const sw    = Math.min(Math.round(box.width / scale),  vw - sx);
+  const sh    = Math.min(Math.round(box.height / scale), vh - sy);
+
+  cvFull.width  = sw; cvFull.height = sh;
   ctxFull.drawImage(video, sx, sy, sw, sh, 0, 0, sw, sh);
   const fullImg = cvFull.toDataURL("image/jpeg", 0.93);
 
@@ -339,63 +366,66 @@ captureBtn.addEventListener("click", async () => {
   const frameEl = guideFrame.getBoundingClientRect();
   const fx = Math.max(0, Math.round((frameEl.left - box.left - ox) / scale));
   const fy = Math.max(0, Math.round((frameEl.top  - box.top  - oy) / scale));
-  const fw = Math.min(Math.round(frameEl.width / scale), vw - fx);
+  const fw = Math.min(Math.round(frameEl.width  / scale), vw - fx);
   const fh = Math.min(Math.round(frameEl.height / scale), vh - fy);
-  cvCrop.width = fw; cvCrop.height = fh;
+
+  cvCrop.width  = fw; cvCrop.height = fh;
   ctxCrop.drawImage(video, fx, fy, fw, fh, 0, 0, fw, fh);
   const cropImg = cvCrop.toDataURL("image/jpeg", 0.93);
 
-  // Show preview
-  preview.src = fullImg;
-  preview.style.display = "block";
-  video.style.display = "none";
-  captureBtn.disabled = true;
+  // Show preview, disable button
+  preview.src            = fullImg;
+  preview.style.display  = "block";
+  video.style.display    = "none";
+  captureBtn.disabled    = true;
   captureBtn.classList.remove("pulsing");
-  resultRow.className = "result-row";
+  resultRow.className    = "result-row";
   valOverlay.classList.add("show");
 
+  // ── VALIDATE ────────────────────────────────────────────
   try {
     const res = await fetch("/validate", {
-      method: "POST",
+      method:  "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ image: cropImg })
+      body:    JSON.stringify({ image: cropImg })
     });
-    const result = await res.json();
+
+    // Check HTTP status first
+    if (!res.ok) {
+      throw new Error(`Server returned ${res.status} — ${res.statusText}`);
+    }
+
+    let result;
+    try {
+      result = await res.json();
+    } catch(jsonErr) {
+      throw new Error("Server response was not valid JSON. Check server logs.");
+    }
+
     valOverlay.classList.remove("show");
 
     if (result.isTeeth) {
       showResult("ok", "✅", L.ok, result.reason || "");
       capturedImages[step] = fullImg;
-      // Save to server linked by token
       await saveImage(cropImg, L.steps[step]);
       actionRow.classList.remove("hidden");
     } else {
       showResult("err", "❌", L.fail, result.reason || "");
-      setTimeout(() => {
-        preview.style.display = "none";
-        video.style.display = "block";
-        resultRow.className = "result-row";
-        captureBtn.disabled = false;
-        captureBtn.classList.add("pulsing");
-      }, 2500);
+      setTimeout(resetToCamera, 2500);
     }
+
   } catch(e) {
     valOverlay.classList.remove("show");
-    showResult("err", "❌", "Error — please retry.", "");
-    preview.style.display = "none";
-    video.style.display = "block";
-    captureBtn.disabled = false;
-    captureBtn.classList.add("pulsing");
+    // ── Show the REAL error message so you can debug it ──
+    showResult("err", "❌", "Error — please retry.", e.message || String(e));
+    console.error("Validate error:", e);
+    setTimeout(resetToCamera, 3500);
   }
 });
 
 retakeBtn.onclick = () => {
-  preview.style.display = "none";
-  video.style.display = "block";
   actionRow.classList.add("hidden");
-  resultRow.className = "result-row";
-  captureBtn.disabled = false;
-  captureBtn.classList.add("pulsing");
+  resetToCamera();
 };
 
 nextBtn.onclick = () => {
@@ -407,16 +437,28 @@ nextBtn.onclick = () => {
   }
 };
 
+// ── SAVE IMAGE TO SERVER ─────────────────────────────────
 async function saveImage(cropB64, type) {
   try {
-    await fetch("/phone_save", {
-      method: "POST",
+    const res = await fetch("/phone_save", {
+      method:  "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ token: TOKEN, type, image: cropB64 })
+      body:    JSON.stringify({ token: TOKEN, type, image: cropB64 })
     });
-  } catch(e) { console.warn("Save error:", e); }
+    if (!res.ok) {
+      console.error("phone_save failed:", res.status, res.statusText);
+    } else {
+      const data = await res.json();
+      if (data.status !== "saved") {
+        console.warn("phone_save unexpected response:", data);
+      }
+    }
+  } catch(e) {
+    console.warn("Save error:", e);
+  }
 }
 
+// ── DONE SCREEN ──────────────────────────────────────────
 function showDone() {
   for (let i = 0; i < 3; i++) document.getElementById("sp" + i).className = "spill done";
   if (stream) stream.getTracks().forEach(t => t.stop());
@@ -430,7 +472,7 @@ function showDone() {
   document.getElementById("doneScreen").classList.add("show");
 }
 
-// Init
+// ── INIT ─────────────────────────────────────────────────
 startCamera();
 renderStep();
 </script>
