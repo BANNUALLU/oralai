@@ -162,22 +162,29 @@ def html_done(title, message):
 
 
 # ════════════════════════════════════════════════════════════
-#  HELPER — Delete all files for a given screening_id
+#  HELPER — Delete uploaded + YOLO result images for a screening
+#  (called AFTER the PDF is fully generated so images are no longer needed)
 # ════════════════════════════════════════════════════════════
 def cleanup_old_files(screening_id):
+    """Delete all uploaded and YOLO-result images for a given screening_id.
+    The final PDF in static/reports/ is intentionally kept for download.
+    """
     if not screening_id:
         return
     patterns = [
-        os.path.join(UPLOAD_DIR, f"{screening_id}_*.jpg"),
-        os.path.join(RESULT_DIR, f"{screening_id}_*.jpg"),
+        os.path.join(UPLOAD_DIR, f"{screening_id}_*.jpg"),   # raw captures
+        os.path.join(RESULT_DIR, f"{screening_id}_*.jpg"),   # YOLO annotated
     ]
+    deleted = 0
     for pattern in patterns:
         for f in glob.glob(pattern):
             try:
                 os.remove(f)
-                print(f"Deleted old file: {f}")
+                print(f"[Cleanup] Deleted: {f}")
+                deleted += 1
             except Exception as e:
-                print(f"Could not delete {f}: {e}")
+                print(f"[Cleanup] Could not delete {f}: {e}")
+    print(f"[Cleanup] {deleted} file(s) removed for screening {screening_id[:8]}...")
 
 
 # ════════════════════════════════════════════════════════════
@@ -210,6 +217,7 @@ def start():
 @app.route("/details", methods=["GET", "POST"])
 def details():
     if request.method == "POST":
+        # Clean up any images from a previous session BEFORE clearing it
         old_screening_id = session.get("screening_id")
         if old_screening_id:
             cleanup_old_files(old_screening_id)
@@ -264,7 +272,6 @@ def capture_page():
 def phone_capture():
     token = request.args.get("token", "").strip()
 
-    # ── No token at all ──
     if not token:
         print("phone_capture: no token in request")
         return html_error(
@@ -274,7 +281,6 @@ def phone_capture():
 
     ps = get_phone_session(token)
 
-    # ── Token not found on disk ──
     if not ps:
         print(f"phone_capture: token not found: {token[:8]}...")
         return html_error(
@@ -283,7 +289,6 @@ def phone_capture():
             404
         )
 
-    # ── BUG 3 FIX: Session already expired (all 3 photos received) ──
     if ps.get("expired"):
         print(f"phone_capture: session already expired for token {token[:8]}...")
         return html_done(
@@ -306,11 +311,9 @@ def phone_status():
         return jsonify({"error": "missing token"}), 400
 
     ps = get_phone_session(token)
-
     if not ps:
         return jsonify({"error": "session not found"}), 404
 
-    # BUG 3 FIX: include expired flag so phone page knows to show done screen
     return jsonify({
         "upper":       ps["upper"],
         "front":       ps["front"],
@@ -323,12 +326,10 @@ def phone_status():
 
 
 # ════════════════════════════════════════════════════════════
-#  PHONE EXPIRE  (BUG 3 FIX — operator calls this when all 3 photos received)
+#  PHONE EXPIRE  (operator calls this when all 3 photos received)
 # ════════════════════════════════════════════════════════════
 @app.route("/phone_expire", methods=["POST"])
 def phone_expire():
-    """Called by the operator page as soon as all 3 photos are confirmed,
-    so the phone capture page becomes invalid immediately."""
     try:
         data  = request.get_json()
         token = data.get("token", "").strip()
@@ -339,7 +340,6 @@ def phone_expire():
         if not ps:
             return jsonify({"status": "already_expired"})
 
-        # Mark as expired — phone_capture will see this and show done screen
         ps["expired"] = True
         save_phone_session(token, ps)
         print(f"[QR] Session expired for token {token[:8]}...")
@@ -365,11 +365,9 @@ def phone_save():
             return jsonify({"status": "error", "msg": "bad params"}), 400
 
         ps = get_phone_session(token)
-
         if not ps:
             return jsonify({"status": "error", "msg": "session expired"}), 404
 
-        # Reject if already expired
         if ps.get("expired"):
             return jsonify({"status": "error", "msg": "session already expired"}), 403
 
@@ -383,7 +381,7 @@ def phone_save():
         with open(image_path, "wb") as f:
             f.write(image_bytes)
 
-        print(f"[Phone] Saved {image_type} image for screening {screening_id}")
+        print(f"[Phone] Saved {image_type} image for screening {screening_id[:8]}...")
 
         thumb_b64 = "data:image/jpeg;base64," + image_b64
 
@@ -401,7 +399,7 @@ def phone_save():
 
 
 # ════════════════════════════════════════════════════════════
-#  VALIDATE IMAGE
+#  VALIDATE IMAGE  (Claude Haiku checks for teeth)
 # ════════════════════════════════════════════════════════════
 @app.route("/validate", methods=["POST"])
 def validate():
@@ -469,12 +467,12 @@ def capture_image():
     with open(image_path, "wb") as f:
         f.write(image_bytes)
 
-    print(f"Saved image: {image_path}")
+    print(f"[Capture] Saved: {image_path}")
     return jsonify({"status": "saved"})
 
 
 # ════════════════════════════════════════════════════════════
-#  CLAUDE VISION ANALYSIS
+#  CLAUDE VISION ANALYSIS  (receives YOLO-annotated images)
 # ════════════════════════════════════════════════════════════
 def analyse_with_claude(yolo_image_paths, patient_info):
     try:
@@ -556,7 +554,7 @@ STRICT RULES:
 """
         })
 
-        print(f"Sending 3 YOLO images to Claude for analysis in {language}...")
+        print(f"[Claude] Sending 3 YOLO images for analysis in {language}...")
 
         message = client.messages.create(
             model="claude-haiku-4-5-20251001",
@@ -572,7 +570,7 @@ STRICT RULES:
         )
 
         analysis = message.content[0].text.strip()
-        print(f"Claude analysis done in {language}!")
+        print(f"[Claude] Analysis done in {language}!")
         return analysis
 
     except Exception as e:
@@ -582,6 +580,7 @@ STRICT RULES:
 
 # ════════════════════════════════════════════════════════════
 #  GENERATE REPORT
+#  Pipeline: YOLO → Claude AI → PDF → cleanup uploads/results
 # ════════════════════════════════════════════════════════════
 @app.route("/generate", methods=["POST"])
 def generate():
@@ -593,7 +592,7 @@ def generate():
     language = session.get("language", "English")
     screening_id = session.get("screening_id", "")
 
-    # ── BUG 2 FIX: QR mode — sync screening_id from phone session if operator session is missing it ──
+    # QR mode — sync screening_id from phone session if operator session is missing it
     session_token = session.get("session_token", "")
     if session_token and not screening_id:
         ps = get_phone_session(session_token)
@@ -607,7 +606,7 @@ def generate():
     if not name or not screening_id:
         return redirect("/details")
 
-    print(f"Generating report for: {name}, language: {language}, screening: {screening_id}")
+    print(f"[Generate] Starting report for: {name} | lang: {language} | id: {screening_id[:8]}...")
 
     patient_info = {
         "name":     name,
@@ -619,8 +618,9 @@ def generate():
     }
 
     with report_semaphore:
-        print(f"Report slot acquired for: {name}")
+        print(f"[Generate] Slot acquired for: {name}")
 
+        # ── Step 1: Run YOLO on all 3 images ──────────────────
         all_detections  = []
         detected_labels = []
         yolo_paths      = {}
@@ -630,8 +630,10 @@ def generate():
             out_path = os.path.join(RESULT_DIR, f"{screening_id}_{part}_yolo.jpg")
 
             if not os.path.exists(img_path):
+                print(f"[Generate] Missing image: {img_path}")
                 return render_template("result.html", error="Missing images. Please capture again.")
 
+            print(f"[YOLO] Running on {part} image...")
             detections = run_yolo(img_path, out_path)
             yolo_paths[part] = out_path
 
@@ -640,18 +642,24 @@ def generate():
                 for d in detections:
                     if d["label"] not in detected_labels:
                         detected_labels.append(d["label"])
+                print(f"[YOLO] {part}: {len(detections)} detection(s) — {[d['label'] for d in detections]}")
+            else:
+                print(f"[YOLO] {part}: no detections")
 
+        # ── Step 2: Generate recommendations ──────────────────
         recommendations = generate_recommendations(
             detections=all_detections,
             age=age,
             gender=gender
         )
 
+        # ── Step 3: Claude AI analyses YOLO-annotated images ──
         claude_analysis = analyse_with_claude(
             yolo_image_paths=yolo_paths,
             patient_info=patient_info
         )
 
+        # ── Step 4: Build PDF ──────────────────────────────────
         report_id   = str(uuid.uuid4())
         report_path = generate_pdf(
             user_data=patient_info,
@@ -661,19 +669,25 @@ def generate():
             claude_analysis=claude_analysis,
             screening_id=screening_id
         )
+        print(f"[Generate] PDF created: {report_path}")
 
+        # ── Step 5: Delete uploaded + YOLO images (PDF is kept) ──
         cleanup_old_files(screening_id)
-        print(f"Report slot released for: {name}")
 
+        print(f"[Generate] Slot released for: {name}")
+
+    # Save report info to session for download / email / WhatsApp
     session["report_path"] = report_path
     session["report_id"]   = report_id
     session.modified       = True
 
-    token = session.get("session_token", "")
-    if token:
-        delete_phone_session(token)
+    # Delete phone session file now that report is done
+    if session_token:
+        delete_phone_session(session_token)
+        print(f"[Generate] Phone session deleted for token {session_token[:8]}...")
 
     increment_screening_count()
+    print(f"[Generate] Done — report_id: {report_id}")
 
     return render_template("result.html", success=True, report_id=report_id)
 
@@ -743,14 +757,14 @@ def send_whatsapp_route():
             report_path=report_path
         )
         if success:
-            print(f"WhatsApp sent to {phone}")
+            print(f"[WhatsApp] Sent to {phone}")
             return f"{message}"
         else:
-            print(f"WhatsApp failed: {message}")
+            print(f"[WhatsApp] Failed: {message}")
             return f"{message}"
 
     except Exception as e:
-        print(f"WhatsApp exception: {str(e)}")
+        print(f"[WhatsApp] Exception: {str(e)}")
         return f"❌ WhatsApp failed: {str(e)}"
 
 
@@ -809,13 +823,13 @@ def review():
             server.login(EMAIL_USER, EMAIL_PASS)
             server.sendmail(EMAIL_USER, EMAIL_USER, msg.as_string())
 
-        print(f"Review received from {name} — {rating}/5 stars")
+        print(f"[Review] Received from {name} — {rating}/5 stars")
         return jsonify({"success": True})
 
     except smtplib.SMTPAuthenticationError:
         return jsonify({"success": False, "error": "Email config error."})
     except Exception as e:
-        print(f"Review error: {e}")
+        print(f"[Review] Error: {e}")
         return jsonify({"success": False, "error": str(e)})
 
 
@@ -876,14 +890,14 @@ def contact():
             server.login(EMAIL_USER, EMAIL_PASS)
             server.sendmail(EMAIL_USER, DEVELOPER_EMAIL, msg.as_string())
 
-        print(f"Contact email sent from {name} ({email})")
+        print(f"[Contact] Email sent from {name} ({email})")
         return jsonify({"success": True})
 
     except smtplib.SMTPAuthenticationError:
-        print("Gmail auth failed — check EMAIL_USER and EMAIL_PASS env vars")
+        print("[Contact] Gmail auth failed — check EMAIL_USER and EMAIL_PASS env vars")
         return jsonify({"success": False, "error": "Email configuration error. Please contact us directly."})
     except Exception as e:
-        print(f"Contact form error: {e}")
+        print(f"[Contact] Error: {e}")
         return jsonify({"success": False, "error": str(e)})
 
 

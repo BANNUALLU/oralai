@@ -278,14 +278,12 @@ button{display:inline-flex;align-items:center;gap:6px;padding:9px 18px;border:no
 <div class="main">
   <div class="container">
 
-    <!-- MODE TOGGLE -->
+    <!-- MODE TOGGLE — hidden on mobile/tablet, shown only on desktop -->
     <div class="mode-selector" id="modeSelector">
       <button class="mode-btn active" id="btnModeCam" onclick="setMode('cam')">
         <span class="mode-icon">📷</span> Use This Device's Camera
       </button>
-      <button class="mode-btn" id="btnModeQR" onclick="setMode('qr')">
-        <span class="mode-icon">📱</span> Scan QR — Use Phone Camera
-      </button>
+      <!-- ══ FIX 2: QR button is injected here only on desktop (see JS below) ══ -->
     </div>
 
     <!-- STEP PILLS (shared) -->
@@ -419,13 +417,11 @@ button{display:inline-flex;align-items:center;gap:6px;padding:9px 18px;border:no
             ✅ All 3 photos received!
           </div>
 
-          <!-- BUG 1 FIX: generate progress panel for QR mode -->
           <div class="qr-gen-progress" id="qrGenProgress">
             <div class="qr-gen-spinner"></div>
             <span class="qr-gen-text" id="qrGenText">Generating AI Report...</span>
           </div>
 
-          <!-- BUG 1 FIX: generate button now passes form reference -->
           <form action="/generate" method="post" onsubmit="startGenerating(this)" id="qrGenerateForm">
             <button class="btn-proceed" id="qrProceedBtn" style="display:none;">🤖 Generate AI Report</button>
           </form>
@@ -443,7 +439,6 @@ button{display:inline-flex;align-items:center;gap:6px;padding:9px 18px;border:no
         <div class="thumb"><img id="thumb1" src=""><div class="thumb-label" id="thumbLabel1">Front</div></div>
         <div class="thumb"><img id="thumb2" src=""><div class="thumb-label" id="thumbLabel2">Lower</div></div>
       </div>
-      <!-- BUG 1 FIX: cam mode generate also uses startGenerating(this) -->
       <form action="/generate" method="post" onsubmit="startGenerating(this)">
         <button class="btn-generate" id="generateBtn">🤖 Generate AI Report</button>
       </form>
@@ -472,6 +467,42 @@ button{display:inline-flex;align-items:center;gap:6px;padding:9px 18px;border:no
 const LANG = "{{session_language}}";
 const SESSION_TOKEN = "{{session_token}}";
 const BASE_URL = window.location.origin;
+
+// ══════════════════════════════════════════════════
+//  FIX 2 — QR button only on desktop/laptop
+//  (phones & tablets have a back camera, so QR is pointless)
+// ══════════════════════════════════════════════════
+(function injectQRButtonIfDesktop() {
+  const ua = navigator.userAgent;
+  // True if this looks like a phone or tablet
+  const isMobileOrTablet =
+    /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(ua) ||
+    // iPad on iOS 13+ reports as Macintosh, but has touch
+    (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1) ||
+    // Windows tablets
+    (/Windows/i.test(ua) && navigator.maxTouchPoints > 1);
+
+  if (!isMobileOrTablet) {
+    // Desktop/laptop: add the QR button
+    const selector = document.getElementById("modeSelector");
+    const btn = document.createElement("button");
+    btn.className = "mode-btn";
+    btn.id = "btnModeQR";
+    btn.onclick = function(){ setMode('qr'); };
+    btn.innerHTML = '<span class="mode-icon">📱</span> Scan QR — Use Phone Camera';
+    selector.appendChild(btn);
+  } else {
+    // Mobile/tablet: single-button selector looks odd — hide the wrapper border
+    const selector = document.getElementById("modeSelector");
+    selector.style.background = "none";
+    selector.style.border = "none";
+    selector.style.padding = "0";
+    selector.style.marginBottom = "14px";
+    const camBtn = document.getElementById("btnModeCam");
+    camBtn.style.flex = "none";
+    camBtn.style.cursor = "default";
+  }
+})();
 
 // ── Translations ──
 const T={"English":{upper_title:"Capture Upper Teeth",upper_sub:"Align your upper teeth inside the guide box, then tap Capture.",upper_tip:"🦷 Open wide and angle the camera slightly downward to show your upper teeth clearly.",upper_label:"Upper Teeth",front_title:"Capture Front Teeth",front_sub:"Show your front teeth straight-on inside the guide box.",front_tip:"😁 Keep the camera level with your mouth. Show both top and bottom front teeth.",front_label:"Front Teeth",lower_title:"Capture Lower Teeth",lower_sub:"Tilt the camera slightly upward to show your lower teeth inside the box.",lower_tip:"🦷 Tilt your head back slightly and angle the camera up to expose your lower row.",lower_label:"Lower Teeth",reference:"Reference",checking:"Checking image...",teeth_ok:"Teeth detected!",no_teeth:"Invalid image — no teeth detected.",retake_msg:"Please retake the photo.",capture:"📸 Capture",retake:"↩ Retake",next:"Next ➡",pill_upper:"Upper",pill_front:"Front",pill_lower:"Lower",final_title:"All Photos Captured!",final_desc:"All 3 dental views saved. Generate your AI dental report now.",generate:"🤖 Generate AI Report",thumb_upper:"Upper",thumb_front:"Front",thumb_lower:"Lower"},"Telugu":{upper_title:"పై దంతాలు తీయండి",upper_sub:"మీ పై దంతాలను గైడ్ బాక్స్ లో సరిచేసి, Capture నొక్కండి.",upper_tip:"🦷 నోరు బాగా తెరచి, కెమెరాను కొంచెం కిందకి వంచండి.",upper_label:"పై దంతాలు",front_title:"ముందు దంతాలు తీయండి",front_sub:"మీ ముందు దంతాలను గైడ్ బాక్స్ లో చూపించండి.",front_tip:"😁 కెమెరాను నోటికి సమాంతరంగా ఉంచండి.",front_label:"ముందు దంతాలు",lower_title:"కింది దంతాలు తీయండి",lower_sub:"కింది దంతాలు చూపించేందుకు కెమెరాను పైకి వంచండి.",lower_tip:"🦷 తల వెనక్కి వాల్చి కెమెరాను పైకి వంచండి.",lower_label:"కింది దంతాలు",reference:"మాదిరి",checking:"చిత్రం తనిఖీ చేస్తున్నాం...",teeth_ok:"దంతాలు గుర్తించబడ్డాయి!",no_teeth:"చెల్లని చిత్రం — దంతాలు కనుగొనబడలేదు.",retake_msg:"దయచేసి మళ్ళీ తీయండి.",capture:"📸 తీయండి",retake:"↩ మళ్ళీ",next:"తదుపరి ➡",pill_upper:"పై",pill_front:"ముందు",pill_lower:"కింది",final_title:"అన్ని ఫోటోలు తీయబడ్డాయి!",final_desc:"3 వ్యూలు సేవ్ చేయబడ్డాయి.",generate:"🤖 AI నివేదిక రూపొందించండి",thumb_upper:"పై",thumb_front:"ముందు",thumb_lower:"కింది"},"Hindi":{upper_title:"ऊपरी दांत कैप्चर करें",upper_sub:"अपने ऊपरी दांतों को गाइड बॉक्स में संरेखित करें, फिर Capture दबाएं।",upper_tip:"🦷 मुंह चौड़ा खोलें और कैमरे को थोड़ा नीचे झुकाएं।",upper_label:"ऊपरी दांत",front_title:"सामने के दांत कैप्चर करें",front_sub:"अपने सामने के दांत गाइड बॉक्स में सीधे दिखाएं।",front_tip:"😁 कैमरे को मुंह के बराबर रखें।",front_label:"सामने के दांत",lower_title:"निचले दांत कैप्चर करें",lower_sub:"निचले दांत दिखाने के लिए कैमरे को थोड़ा ऊपर झुकाएं।",lower_tip:"🦷 सिर थोड़ा पीछे झुकाएं और कैमरे को ऊपर की ओर करें।",lower_label:"निचले दांत",reference:"संदर्भ",checking:"छवि जाँच रहे हैं...",teeth_ok:"दांत पहचाने गए!",no_teeth:"अमान्य छवि — दांत नहीं मिले।",retake_msg:"कृपया दोबारा लें।",capture:"📸 कैप्चर करें",retake:"↩ दोबारा",next:"अगला ➡",pill_upper:"ऊपरी",pill_front:"सामने",pill_lower:"निचले",final_title:"सभी फ़ोटो ले ली गई हैं!",final_desc:"3 व्यू सहेजे गए।",generate:"🤖 AI रिपोर्ट बनाएं",thumb_upper:"ऊपरी",thumb_front:"सामने",thumb_lower:"निचले"}};
@@ -515,9 +546,12 @@ let qrPollTimer = null;
 
 function setMode(mode) {
   currentMode = mode;
+  const btnQR = document.getElementById("btnModeQR");
   document.getElementById("btnModeCam").classList.toggle("active", mode === "cam");
-  document.getElementById("btnModeQR").classList.toggle("active", mode === "qr");
-  document.getElementById("btnModeQR").classList.toggle("qr-mode", mode === "qr");
+  if (btnQR) {
+    btnQR.classList.toggle("active", mode === "qr");
+    btnQR.classList.toggle("qr-mode", mode === "qr");
+  }
   document.getElementById("camSection").classList.toggle("hidden", mode !== "cam");
   document.getElementById("qrSection").classList.toggle("hidden", mode !== "qr");
 
@@ -618,42 +652,81 @@ async function validateTeeth(b64) {
 captureBtn.onclick = async () => {
   const vw = video.videoWidth, vh = video.videoHeight;
   if (!vw || !vh) { alert("Camera not ready."); return; }
-  const boxRect = cameraBox.getBoundingClientRect(), frameRect = guideFrame.getBoundingClientRect();
+
+  const boxRect = cameraBox.getBoundingClientRect();
+  const frameRect = guideFrame.getBoundingClientRect();
   const boxW = boxRect.width, boxH = boxRect.height;
+
+  // Compute how the video is rendered (object-fit: cover) inside cameraBox
   const scale = Math.max(boxW / vw, boxH / vh);
   const renderedW = vw * scale, renderedH = vh * scale;
   const offsetX = (boxW - renderedW) / 2, offsetY = (boxH - renderedH) / 2;
-  const fSX = Math.max(0, Math.round(-offsetX / scale)), fSY = Math.max(0, Math.round(-offsetY / scale));
-  const fSW = Math.min(Math.round(boxW / scale), vw - fSX), fSH = Math.min(Math.round(boxH / scale), vh - fSY);
-  canvasFull.width = fSW; canvasFull.height = fSH;
-  ctxFull.drawImage(video, fSX, fSY, fSW, fSH, 0, 0, fSW, fSH);
-  const fullImg = canvasFull.toDataURL("image/jpeg", 0.92);
-  const fx = frameRect.left - boxRect.left, fy = frameRect.top - boxRect.top;
-  const sx = Math.max(0, Math.round((fx - offsetX) / scale)), sy = Math.max(0, Math.round((fy - offsetY) / scale));
-  const sw = Math.min(Math.round(frameRect.width / scale), vw - sx), sh = Math.min(Math.round(frameRect.height / scale), vh - sy);
-  canvasCrop.width = sw; canvasCrop.height = sh;
+
+  // ── FIX 1A: Crop exactly what's inside the GUIDE FRAME (blue box) ──
+  // Convert guide-frame pixel position → source video pixel coordinates
+  const fx = frameRect.left - boxRect.left;
+  const fy = frameRect.top  - boxRect.top;
+  const sx = Math.max(0, Math.round((fx - offsetX) / scale));
+  const sy = Math.max(0, Math.round((fy - offsetY) / scale));
+  const sw = Math.min(Math.round(frameRect.width  / scale), vw - sx);
+  const sh = Math.min(Math.round(frameRect.height / scale), vh - sy);
+
+  // Render the cropped region only (the guide-box region)
+  canvasCrop.width  = sw;
+  canvasCrop.height = sh;
   ctxCrop.drawImage(video, sx, sy, sw, sh, 0, 0, sw, sh);
   const cropImg = canvasCrop.toDataURL("image/jpeg", 0.92);
-  preview.src = fullImg; preview.style.display = "block"; video.style.display = "none";
-  captureBtn.disabled = true; hideBanner(); validationOverlay.classList.add("show");
+
+  // ── FIX 1B: Preview and thumbnail BOTH use the cropped image ──
+  preview.src = cropImg;
+  preview.style.display = "block";
+  video.style.display = "none";
+
+  captureBtn.disabled = true;
+  hideBanner();
+  validationOverlay.classList.add("show");
+
   try {
     const result = await validateTeeth(cropImg);
     validationOverlay.classList.remove("show");
+
     if (result.isTeeth) {
-      cameraBox.classList.add("valid-flash"); setTimeout(() => cameraBox.classList.remove("valid-flash"), 1500);
+      cameraBox.classList.add("valid-flash");
+      setTimeout(() => cameraBox.classList.remove("valid-flash"), 1500);
       showBanner("success", "✅", L.teeth_ok, result.reason);
-      capturedThumbs[currentStep] = fullImg;
-      fetch("/capture", {method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify({image:cropImg, type:steps[currentStep].type})}).catch(console.error);
-      captureBtn.classList.add("hidden"); retakeBtn.classList.remove("hidden"); nextBtn.classList.remove("hidden"); captureBtn.disabled = false;
+
+      // ── FIX 1C: Store cropImg (guide-box only) for the final card thumbnails ──
+      capturedThumbs[currentStep] = cropImg;
+
+      // Send the cropped image to the server for storage
+      fetch("/capture", {
+        method: "POST",
+        headers: {"Content-Type": "application/json"},
+        body: JSON.stringify({image: cropImg, type: steps[currentStep].type})
+      }).catch(console.error);
+
+      captureBtn.classList.add("hidden");
+      retakeBtn.classList.remove("hidden");
+      nextBtn.classList.remove("hidden");
+      captureBtn.disabled = false;
+
     } else {
-      cameraBox.classList.add("invalid-flash"); setTimeout(() => cameraBox.classList.remove("invalid-flash"), 1500);
+      cameraBox.classList.add("invalid-flash");
+      setTimeout(() => cameraBox.classList.remove("invalid-flash"), 1500);
       showBanner("error", "❌", L.no_teeth, result.reason + " " + L.retake_msg);
-      setTimeout(() => { preview.style.display = "none"; video.style.display = "block"; hideBanner(); captureBtn.disabled = false; }, 2500);
+      setTimeout(() => {
+        preview.style.display = "none";
+        video.style.display = "block";
+        hideBanner();
+        captureBtn.disabled = false;
+      }, 2500);
     }
   } catch(err) {
     validationOverlay.classList.remove("show");
     showBanner("error", "❌", "Validation failed — " + err.message, "");
-    preview.style.display = "none"; video.style.display = "block"; captureBtn.disabled = false;
+    preview.style.display = "none";
+    video.style.display = "block";
+    captureBtn.disabled = false;
   }
 };
 
@@ -675,7 +748,11 @@ nextBtn.onclick = () => {
     for (let i = 0; i < 3; i++) document.getElementById("pill" + i).className = "step-pill done";
     stopCamera();
     titleBar.style.display = "none"; splitLayout.style.display = "none";
-    for (let i = 0; i < 3; i++) { const t = document.getElementById("thumb" + i); if (capturedThumbs[i]) t.src = capturedThumbs[i]; }
+    // ── FIX 1D: Thumbnails show cropped images (guide-box only) ──
+    for (let i = 0; i < 3; i++) {
+      const t = document.getElementById("thumb" + i);
+      if (capturedThumbs[i]) t.src = capturedThumbs[i];
+    }
     finalCard.style.display = "flex";
     document.getElementById("modeSelector").style.display = "none";
   }
@@ -745,8 +822,8 @@ async function pollQrStatus() {
     });
 
     qrReceivedCount = count;
-    const waitEl    = document.getElementById("qrWaiting");
-    const doneEl    = document.getElementById("qrAllDone");
+    const waitEl     = document.getElementById("qrWaiting");
+    const doneEl     = document.getElementById("qrAllDone");
     const proceedBtn = document.getElementById("qrProceedBtn");
 
     if (count === 3) {
@@ -756,11 +833,10 @@ async function pollQrStatus() {
       stopQrPolling();
       for (let i = 0; i < 3; i++) document.getElementById("pill" + i).className = "step-pill done";
 
-      // ── BUG 3 FIX: expire the QR session so phone shows done screen immediately ──
       fetch("/phone_expire", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ token: SESSION_TOKEN })
+        headers: {"Content-Type": "application/json"},
+        body: JSON.stringify({token: SESSION_TOKEN})
       }).catch(e => console.warn("Expire call failed:", e));
 
     } else {
@@ -774,20 +850,17 @@ async function pollQrStatus() {
 }
 
 // ══════════════════════════════════════════════════
-//  BUG 1 FIX — startGenerating works for BOTH cam and QR modes
+//  startGenerating — shared for cam and QR modes
 // ══════════════════════════════════════════════════
 function startGenerating(formEl) {
-  // Disable the submit button that triggered this
   const btn = formEl
     ? formEl.querySelector("button")
     : (document.getElementById("generateBtn") || document.getElementById("qrProceedBtn"));
   if (btn) { btn.disabled = true; btn.innerText = "⏳ Generating..."; }
 
-  // Show gen-status panel (cam mode final card)
   const status = document.getElementById("genStatus");
   if (status) status.classList.add("show");
 
-  // Show QR mode progress bar
   const qrGenProgress = document.getElementById("qrGenProgress");
   if (qrGenProgress) qrGenProgress.classList.add("show");
 
@@ -812,11 +885,11 @@ function startGenerating(formEl) {
 
 // ── Nav helpers ──
 function toggleMenu() { document.getElementById("mobileMenu").classList.toggle("open"); }
-function closeMenu() { document.getElementById("mobileMenu").classList.remove("open"); }
+function closeMenu()  { document.getElementById("mobileMenu").classList.remove("open"); }
 window.addEventListener("scroll", function() {
   const nav = document.getElementById("navbar");
   nav.style.background = window.scrollY > 50 ? "rgba(10,22,40,0.98)" : "rgba(10,22,40,0.9)";
-  nav.style.boxShadow = window.scrollY > 50 ? "0 4px 30px rgba(0,0,0,0.3)" : "none";
+  nav.style.boxShadow  = window.scrollY > 50 ? "0 4px 30px rgba(0,0,0,0.3)" : "none";
 });
 </script>
 </body>
