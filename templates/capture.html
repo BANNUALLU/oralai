@@ -174,15 +174,12 @@ button{display:inline-flex;align-items:center;gap:6px;padding:9px 18px;border:no
 .qr-wait-spinner{width:14px;height:14px;border:2px solid rgba(255,255,255,0.08);border-top-color:var(--purple);border-radius:50%;animation:spin .7s linear infinite;}
 .qr-all-done{display:none;align-items:center;gap:10px;margin-top:12px;font-size:13px;font-weight:700;color:var(--green);}
 .qr-all-done.show{display:flex;}
-
-/* ── BUG 1 FIX: QR generate progress ── */
 .qr-gen-progress{display:none;margin-top:12px;align-items:center;gap:12px;
   background:rgba(26,111,255,0.1);border:1px solid rgba(26,111,255,0.25);
   border-radius:12px;padding:14px 16px;}
 .qr-gen-progress.show{display:flex;}
 .qr-gen-spinner{width:18px;height:18px;flex-shrink:0;border:2px solid rgba(26,111,255,0.2);border-top-color:var(--blue2);border-radius:50%;animation:spin .7s linear infinite;}
 .qr-gen-text{font-size:13px;font-weight:600;color:var(--blue2);}
-
 .btn-proceed{background:var(--green);color:#0a1628;font-size:14px;font-weight:800;padding:11px 28px;
   border-radius:12px;border:none;cursor:pointer;margin-top:14px;box-shadow:0 6px 20px rgba(34,232,142,0.3);display:block;}
 .btn-proceed:hover{background:#1fd47d;transform:translateY(-2px);}
@@ -221,7 +218,9 @@ button{display:inline-flex;align-items:center;gap:6px;padding:9px 18px;border:no
 .footer-inner{max-width:1400px;margin:0 auto;display:flex;align-items:center;
   justify-content:space-between;flex-wrap:wrap;gap:10px;}
 .footer-copy{font-size:13px;color:var(--muted);font-weight:400;}
-.footer-powered a{color:var(--blue2);text-decoration:none;font-weight:500;}
+.footer-powered{font-size:13px;color:var(--muted);}
+.footer-powered a{color:var(--blue2);text-decoration:none;font-weight:500;transition:color .2s;}
+.footer-powered a:hover{color:var(--white);}
 .scroll-top{position:fixed;bottom:24px;right:24px;z-index:200;width:44px;height:44px;
   border-radius:50%;background:var(--blue);border:none;cursor:pointer;
   display:flex;align-items:center;justify-content:center;
@@ -242,6 +241,8 @@ button{display:inline-flex;align-items:center;gap:6px;padding:9px 18px;border:no
   .qr-top{flex-direction:column;}
   .qr-code-box{align-self:center;}
   .site-footer{padding:16px 20px;}
+  .footer-inner{flex-direction:column;align-items:flex-start;gap:6px;}
+  .footer-copy,.footer-powered{font-size:12px;}
 }
 @media(max-width:599px){
   .main{padding:8px;}
@@ -278,15 +279,12 @@ button{display:inline-flex;align-items:center;gap:6px;padding:9px 18px;border:no
 <div class="main">
   <div class="container">
 
-    <!-- MODE TOGGLE — hidden on mobile/tablet, shown only on desktop -->
     <div class="mode-selector" id="modeSelector">
       <button class="mode-btn active" id="btnModeCam" onclick="setMode('cam')">
         <span class="mode-icon">📷</span> Use This Device's Camera
       </button>
-      <!-- ══ FIX 2: QR button is injected here only on desktop (see JS below) ══ -->
     </div>
 
-    <!-- STEP PILLS (shared) -->
     <div class="header">
       <div class="steps">
         <div class="step-pill active" id="pill0"><div class="dot"></div><span id="pill0txt">Upper</span></div>
@@ -295,13 +293,12 @@ button{display:inline-flex;align-items:center;gap:6px;padding:9px 18px;border:no
       </div>
     </div>
 
-    <!-- TITLE BAR (shared) -->
     <div class="title-bar" id="titleBar">
       <h2 id="titleText">Capture Upper Teeth</h2>
       <p id="subText">Align your upper teeth inside the guide box, then tap Capture.</p>
     </div>
 
-    <!-- ══════════════ CAM MODE ══════════════ -->
+    <!-- CAM MODE -->
     <div id="camSection">
       <div class="split" id="splitLayout">
         <div class="guide-panel">
@@ -338,7 +335,7 @@ button{display:inline-flex;align-items:center;gap:6px;padding:9px 18px;border:no
       </div>
     </div>
 
-    <!-- ══════════════ QR MODE ══════════════ -->
+    <!-- QR MODE -->
     <div id="qrSection" class="hidden">
       <div class="qr-panel">
         <div class="qr-top">
@@ -347,81 +344,31 @@ button{display:inline-flex;align-items:center;gap:6px;padding:9px 18px;border:no
               <h3>📱 Use Your Phone Camera</h3>
               <p>Scan the QR code with the patient's phone. The phone browser opens directly to the capture page — no app needed.</p>
               <div class="qr-steps">
-                <div class="qr-step">
-                  <div class="qr-step-num">1</div>
-                  <div class="qr-step-text"><strong>Scan</strong> the QR code with any phone camera or WhatsApp</div>
-                </div>
-                <div class="qr-step">
-                  <div class="qr-step-num">2</div>
-                  <div class="qr-step-text"><strong>Patient captures</strong> all 3 dental photos on their phone</div>
-                </div>
-                <div class="qr-step">
-                  <div class="qr-step-num">3</div>
-                  <div class="qr-step-text"><strong>This screen updates</strong> automatically as each photo is received</div>
-                </div>
-                <div class="qr-step">
-                  <div class="qr-step-num">4</div>
-                  <div class="qr-step-text"><strong>Click Generate</strong> once all 3 photos are confirmed below</div>
-                </div>
+                <div class="qr-step"><div class="qr-step-num">1</div><div class="qr-step-text"><strong>Scan</strong> the QR code with any phone camera or WhatsApp</div></div>
+                <div class="qr-step"><div class="qr-step-num">2</div><div class="qr-step-text"><strong>Patient captures</strong> all 3 dental photos on their phone</div></div>
+                <div class="qr-step"><div class="qr-step-num">3</div><div class="qr-step-text"><strong>This screen updates</strong> automatically as each photo is received</div></div>
+                <div class="qr-step"><div class="qr-step-num">4</div><div class="qr-step-text"><strong>Click Generate</strong> once all 3 photos are confirmed below</div></div>
               </div>
             </div>
-            <!-- URL copy box -->
             <div class="qr-url-box">
               <span class="qr-url-text" id="qrUrlText">Generating link...</span>
               <button class="btn-copy" onclick="copyQrUrl()">Copy</button>
             </div>
           </div>
-          <!-- QR CODE -->
           <div class="qr-code-box">
             <div id="qrCodeEl"></div>
           </div>
         </div>
-
-        <!-- LIVE PROGRESS -->
         <div class="qr-progress-wrap">
-          <div class="qr-progress-title">
-            <div class="live-dot"></div>
-            Live Photo Progress
-          </div>
+          <div class="qr-progress-title"><div class="live-dot"></div>Live Photo Progress</div>
           <div class="qr-shots">
-            <div class="qr-shot" id="qrShot0">
-              <img id="qrThumb0" src="" alt="">
-              <div class="qr-shot-placeholder">
-                <div class="qr-shot-icon">🦷</div>
-                <div class="qr-shot-label" id="qrShotLabel0">Upper</div>
-              </div>
-              <div class="qr-shot-badge">✓</div>
-            </div>
-            <div class="qr-shot" id="qrShot1">
-              <img id="qrThumb1" src="" alt="">
-              <div class="qr-shot-placeholder">
-                <div class="qr-shot-icon">😁</div>
-                <div class="qr-shot-label" id="qrShotLabel1">Front</div>
-              </div>
-              <div class="qr-shot-badge">✓</div>
-            </div>
-            <div class="qr-shot" id="qrShot2">
-              <img id="qrThumb2" src="" alt="">
-              <div class="qr-shot-placeholder">
-                <div class="qr-shot-icon">🦷</div>
-                <div class="qr-shot-label" id="qrShotLabel2">Lower</div>
-              </div>
-              <div class="qr-shot-badge">✓</div>
-            </div>
+            <div class="qr-shot" id="qrShot0"><img id="qrThumb0" src="" alt=""><div class="qr-shot-placeholder"><div class="qr-shot-icon">🦷</div><div class="qr-shot-label" id="qrShotLabel0">Upper</div></div><div class="qr-shot-badge">✓</div></div>
+            <div class="qr-shot" id="qrShot1"><img id="qrThumb1" src="" alt=""><div class="qr-shot-placeholder"><div class="qr-shot-icon">😁</div><div class="qr-shot-label" id="qrShotLabel1">Front</div></div><div class="qr-shot-badge">✓</div></div>
+            <div class="qr-shot" id="qrShot2"><img id="qrThumb2" src="" alt=""><div class="qr-shot-placeholder"><div class="qr-shot-icon">🦷</div><div class="qr-shot-label" id="qrShotLabel2">Lower</div></div><div class="qr-shot-badge">✓</div></div>
           </div>
-          <div class="qr-waiting" id="qrWaiting">
-            <div class="qr-wait-spinner"></div>
-            <span id="qrWaitText">Waiting for patient to capture photos on phone...</span>
-          </div>
-          <div class="qr-all-done" id="qrAllDone">
-            ✅ All 3 photos received!
-          </div>
-
-          <div class="qr-gen-progress" id="qrGenProgress">
-            <div class="qr-gen-spinner"></div>
-            <span class="qr-gen-text" id="qrGenText">Generating AI Report...</span>
-          </div>
-
+          <div class="qr-waiting" id="qrWaiting"><div class="qr-wait-spinner"></div><span id="qrWaitText">Waiting for patient to capture photos on phone...</span></div>
+          <div class="qr-all-done" id="qrAllDone">✅ All 3 photos received!</div>
+          <div class="qr-gen-progress" id="qrGenProgress"><div class="qr-gen-spinner"></div><span class="qr-gen-text" id="qrGenText">Generating AI Report...</span></div>
           <form action="/generate" method="post" onsubmit="startGenerating(this)" id="qrGenerateForm">
             <button class="btn-proceed" id="qrProceedBtn" style="display:none;">🤖 Generate AI Report</button>
           </form>
@@ -429,7 +376,7 @@ button{display:inline-flex;align-items:center;gap:6px;padding:9px 18px;border:no
       </div>
     </div>
 
-    <!-- FINAL CARD (cam mode complete) -->
+    <!-- FINAL CARD -->
     <div class="final-card" id="finalCard">
       <div class="final-icon">✅</div>
       <h3 id="finalTitle">All Photos Captured!</h3>
@@ -448,12 +395,12 @@ button{display:inline-flex;align-items:center;gap:6px;padding:9px 18px;border:no
       </div>
     </div>
 
-  </div><!-- /container -->
-</div><!-- /main -->
+  </div>
+</div>
 
 <footer class="site-footer">
   <div class="footer-inner">
-    <span class="footer-copy">2026 OralAI. All rights reserved. Built with love by Allu Satyanarayana Murthy</span>
+    <span class="footer-copy">© 2026 OralAI. All rights reserved.</span>
     <span class="footer-powered">Powered by <a href="https://www.oralai.site" target="_blank">oralai.site</a></span>
   </div>
 </footer>
@@ -463,27 +410,17 @@ button{display:inline-flex;align-items:center;gap:6px;padding:9px 18px;border:no
 <canvas id="canvasCrop" style="display:none;"></canvas>
 
 <script>
-// ── Injected by Flask ──
 const LANG = "{{session_language}}";
 const SESSION_TOKEN = "{{session_token}}";
 const BASE_URL = window.location.origin;
 
-// ══════════════════════════════════════════════════
-//  FIX 2 — QR button only on desktop/laptop
-//  (phones & tablets have a back camera, so QR is pointless)
-// ══════════════════════════════════════════════════
 (function injectQRButtonIfDesktop() {
   const ua = navigator.userAgent;
-  // True if this looks like a phone or tablet
   const isMobileOrTablet =
     /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(ua) ||
-    // iPad on iOS 13+ reports as Macintosh, but has touch
     (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1) ||
-    // Windows tablets
     (/Windows/i.test(ua) && navigator.maxTouchPoints > 1);
-
   if (!isMobileOrTablet) {
-    // Desktop/laptop: add the QR button
     const selector = document.getElementById("modeSelector");
     const btn = document.createElement("button");
     btn.className = "mode-btn";
@@ -492,7 +429,6 @@ const BASE_URL = window.location.origin;
     btn.innerHTML = '<span class="mode-icon">📱</span> Scan QR — Use Phone Camera';
     selector.appendChild(btn);
   } else {
-    // Mobile/tablet: single-button selector looks odd — hide the wrapper border
     const selector = document.getElementById("modeSelector");
     selector.style.background = "none";
     selector.style.border = "none";
@@ -504,12 +440,14 @@ const BASE_URL = window.location.origin;
   }
 })();
 
-// ── Translations ──
-const T={"English":{upper_title:"Capture Upper Teeth",upper_sub:"Align your upper teeth inside the guide box, then tap Capture.",upper_tip:"🦷 Open wide and angle the camera slightly downward to show your upper teeth clearly.",upper_label:"Upper Teeth",front_title:"Capture Front Teeth",front_sub:"Show your front teeth straight-on inside the guide box.",front_tip:"😁 Keep the camera level with your mouth. Show both top and bottom front teeth.",front_label:"Front Teeth",lower_title:"Capture Lower Teeth",lower_sub:"Tilt the camera slightly upward to show your lower teeth inside the box.",lower_tip:"🦷 Tilt your head back slightly and angle the camera up to expose your lower row.",lower_label:"Lower Teeth",reference:"Reference",checking:"Checking image...",teeth_ok:"Teeth detected!",no_teeth:"Invalid image — no teeth detected.",retake_msg:"Please retake the photo.",capture:"📸 Capture",retake:"↩ Retake",next:"Next ➡",pill_upper:"Upper",pill_front:"Front",pill_lower:"Lower",final_title:"All Photos Captured!",final_desc:"All 3 dental views saved. Generate your AI dental report now.",generate:"🤖 Generate AI Report",thumb_upper:"Upper",thumb_front:"Front",thumb_lower:"Lower"},"Telugu":{upper_title:"పై దంతాలు తీయండి",upper_sub:"మీ పై దంతాలను గైడ్ బాక్స్ లో సరిచేసి, Capture నొక్కండి.",upper_tip:"🦷 నోరు బాగా తెరచి, కెమెరాను కొంచెం కిందకి వంచండి.",upper_label:"పై దంతాలు",front_title:"ముందు దంతాలు తీయండి",front_sub:"మీ ముందు దంతాలను గైడ్ బాక్స్ లో చూపించండి.",front_tip:"😁 కెమెరాను నోటికి సమాంతరంగా ఉంచండి.",front_label:"ముందు దంతాలు",lower_title:"కింది దంతాలు తీయండి",lower_sub:"కింది దంతాలు చూపించేందుకు కెమెరాను పైకి వంచండి.",lower_tip:"🦷 తల వెనక్కి వాల్చి కెమెరాను పైకి వంచండి.",lower_label:"కింది దంతాలు",reference:"మాదిరి",checking:"చిత్రం తనిఖీ చేస్తున్నాం...",teeth_ok:"దంతాలు గుర్తించబడ్డాయి!",no_teeth:"చెల్లని చిత్రం — దంతాలు కనుగొనబడలేదు.",retake_msg:"దయచేసి మళ్ళీ తీయండి.",capture:"📸 తీయండి",retake:"↩ మళ్ళీ",next:"తదుపరి ➡",pill_upper:"పై",pill_front:"ముందు",pill_lower:"కింది",final_title:"అన్ని ఫోటోలు తీయబడ్డాయి!",final_desc:"3 వ్యూలు సేవ్ చేయబడ్డాయి.",generate:"🤖 AI నివేదిక రూపొందించండి",thumb_upper:"పై",thumb_front:"ముందు",thumb_lower:"కింది"},"Hindi":{upper_title:"ऊपरी दांत कैप्चर करें",upper_sub:"अपने ऊपरी दांतों को गाइड बॉक्स में संरेखित करें, फिर Capture दबाएं।",upper_tip:"🦷 मुंह चौड़ा खोलें और कैमरे को थोड़ा नीचे झुकाएं।",upper_label:"ऊपरी दांत",front_title:"सामने के दांत कैप्चर करें",front_sub:"अपने सामने के दांत गाइड बॉक्स में सीधे दिखाएं।",front_tip:"😁 कैमरे को मुंह के बराबर रखें।",front_label:"सामने के दांत",lower_title:"निचले दांत कैप्चर करें",lower_sub:"निचले दांत दिखाने के लिए कैमरे को थोड़ा ऊपर झुकाएं।",lower_tip:"🦷 सिर थोड़ा पीछे झुकाएं और कैमरे को ऊपर की ओर करें।",lower_label:"निचले दांत",reference:"संदर्भ",checking:"छवि जाँच रहे हैं...",teeth_ok:"दांत पहचाने गए!",no_teeth:"अमान्य छवि — दांत नहीं मिले।",retake_msg:"कृपया दोबारा लें।",capture:"📸 कैप्चर करें",retake:"↩ दोबारा",next:"अगला ➡",pill_upper:"ऊपरी",pill_front:"सामने",pill_lower:"निचले",final_title:"सभी फ़ोटो ले ली गई हैं!",final_desc:"3 व्यू सहेजे गए।",generate:"🤖 AI रिपोर्ट बनाएं",thumb_upper:"ऊपरी",thumb_front:"सामने",thumb_lower:"निचले"}};
+const T={
+  "English":{upper_title:"Capture Upper Teeth",upper_sub:"Align your upper teeth inside the guide box, then tap Capture.",upper_tip:"🦷 Open wide and angle the camera slightly downward to show your upper teeth clearly.",upper_label:"Upper Teeth",front_title:"Capture Front Teeth",front_sub:"Show your front teeth straight-on inside the guide box.",front_tip:"😁 Keep the camera level with your mouth. Show both top and bottom front teeth.",front_label:"Front Teeth",lower_title:"Capture Lower Teeth",lower_sub:"Tilt the camera slightly upward to show your lower teeth inside the box.",lower_tip:"🦷 Tilt your head back slightly and angle the camera up to expose your lower row.",lower_label:"Lower Teeth",reference:"Reference",checking:"Checking image...",teeth_ok:"Teeth detected!",no_teeth:"Invalid image — no teeth detected.",retake_msg:"Please retake the photo.",capture:"📸 Capture",retake:"↩ Retake",next:"Next ➡",pill_upper:"Upper",pill_front:"Front",pill_lower:"Lower",final_title:"All Photos Captured!",final_desc:"All 3 dental views saved. Generate your AI dental report now.",generate:"🤖 Generate AI Report",thumb_upper:"Upper",thumb_front:"Front",thumb_lower:"Lower"},
+  "Telugu":{upper_title:"పై దంతాలు తీయండి",upper_sub:"మీ పై దంతాలను గైడ్ బాక్స్ లో సరిచేసి, Capture నొక్కండి.",upper_tip:"🦷 నోరు బాగా తెరచి, కెమెరాను కొంచెం కిందకి వంచండి.",upper_label:"పై దంతాలు",front_title:"ముందు దంతాలు తీయండి",front_sub:"మీ ముందు దంతాలను గైడ్ బాక్స్ లో చూపించండి.",front_tip:"😁 కెమెరాను నోటికి సమాంతరంగా ఉంచండి.",front_label:"ముందు దంతాలు",lower_title:"కింది దంతాలు తీయండి",lower_sub:"కింది దంతాలు చూపించేందుకు కెమెరాను పైకి వంచండి.",lower_tip:"🦷 తల వెనక్కి వాల్చి కెమెరాను పైకి వంచండి.",lower_label:"కింది దంతాలు",reference:"మాదిరి",checking:"చిత్రం తనిఖీ చేస్తున్నాం...",teeth_ok:"దంతాలు గుర్తించబడ్డాయి!",no_teeth:"చెల్లని చిత్రం — దంతాలు కనుగొనబడలేదు.",retake_msg:"దయచేసి మళ్ళీ తీయండి.",capture:"📸 తీయండి",retake:"↩ మళ్ళీ",next:"తదుపరి ➡",pill_upper:"పై",pill_front:"ముందు",pill_lower:"కింది",final_title:"అన్ని ఫోటోలు తీయబడ్డాయి!",final_desc:"3 వ్యూలు సేవ్ చేయబడ్డాయి.",generate:"🤖 AI నివేదిక రూపొందించండి",thumb_upper:"పై",thumb_front:"ముందు",thumb_lower:"కింది"},
+  "Hindi":{upper_title:"ऊपरी दांत कैप्चर करें",upper_sub:"अपने ऊपरी दांतों को गाइड बॉक्स में संरेखित करें, फिर Capture दबाएं।",upper_tip:"🦷 मुंह चौड़ा खोलें और कैमरे को थोड़ा नीचे झुकाएं।",upper_label:"ऊपरी दांत",front_title:"सामने के दांत कैप्चर करें",front_sub:"अपने सामने के दांत गाइड बॉक्स में सीधे दिखाएं।",front_tip:"😁 कैमरे को मुंह के बराबर रखें।",front_label:"सामने के दांत",lower_title:"निचले दांत कैप्चर करें",lower_sub:"निचले दांत दिखाने के लिए कैमरे को थोड़ा ऊपर झुकाएं।",lower_tip:"🦷 सिर थोड़ा पीछे झुकाएं और कैमरे को ऊपर की ओर करें।",lower_label:"निचले दांत",reference:"संदर्भ",checking:"छवि जाँच रहे हैं...",teeth_ok:"दांत पहचाने गए!",no_teeth:"अमान्य छवि — दांत नहीं मिले।",retake_msg:"कृपया दोबारा लें।",capture:"📸 कैप्चर करें",retake:"↩ दोबारा",next:"अगला ➡",pill_upper:"ऊपरी",pill_front:"सामने",pill_lower:"निचले",final_title:"सभी फ़ोटो ले ली गई हैं!",final_desc:"3 व्यू सहेजे गए।",generate:"🤖 AI रिपोर्ट बनाएं",thumb_upper:"ऊपरी",thumb_front:"सामने",thumb_lower:"निचले"}
+};
 
 const L = T[LANG] || T["English"];
 
-// ── Apply translations ──
 document.getElementById("refLabel").innerText=L.reference;
 document.getElementById("checkingText").innerText=L.checking;
 document.getElementById("captureBtn").innerText=L.capture;
@@ -538,9 +476,6 @@ document.getElementById("subText").innerText=steps[0].sub;
 document.getElementById("guideTip").innerText=steps[0].tip;
 document.getElementById("frameLabel").innerText=steps[0].label;
 
-// ══════════════════════════════════════════════════
-//  MODE SWITCHING
-// ══════════════════════════════════════════════════
 let currentMode = "cam";
 let qrPollTimer = null;
 
@@ -548,27 +483,13 @@ function setMode(mode) {
   currentMode = mode;
   const btnQR = document.getElementById("btnModeQR");
   document.getElementById("btnModeCam").classList.toggle("active", mode === "cam");
-  if (btnQR) {
-    btnQR.classList.toggle("active", mode === "qr");
-    btnQR.classList.toggle("qr-mode", mode === "qr");
-  }
+  if (btnQR) { btnQR.classList.toggle("active", mode === "qr"); btnQR.classList.toggle("qr-mode", mode === "qr"); }
   document.getElementById("camSection").classList.toggle("hidden", mode !== "cam");
   document.getElementById("qrSection").classList.toggle("hidden", mode !== "qr");
-
-  if (mode === "cam") {
-    stopQrPolling();
-    startCamera();
-    document.getElementById("titleText").innerText = steps[currentStep].title;
-    document.getElementById("subText").innerText = steps[currentStep].sub;
-  } else {
-    stopCamera();
-    initQrMode();
-  }
+  if (mode === "cam") { stopQrPolling(); startCamera(); document.getElementById("titleText").innerText = steps[currentStep].title; document.getElementById("subText").innerText = steps[currentStep].sub; }
+  else { stopCamera(); initQrMode(); }
 }
 
-// ══════════════════════════════════════════════════
-//  CAM MODE
-// ══════════════════════════════════════════════════
 const video = document.getElementById("video");
 const preview = document.getElementById("previewImage");
 const canvasFull = document.getElementById("canvasFull");
@@ -652,81 +573,44 @@ async function validateTeeth(b64) {
 captureBtn.onclick = async () => {
   const vw = video.videoWidth, vh = video.videoHeight;
   if (!vw || !vh) { alert("Camera not ready."); return; }
-
   const boxRect = cameraBox.getBoundingClientRect();
   const frameRect = guideFrame.getBoundingClientRect();
   const boxW = boxRect.width, boxH = boxRect.height;
-
-  // Compute how the video is rendered (object-fit: cover) inside cameraBox
   const scale = Math.max(boxW / vw, boxH / vh);
   const renderedW = vw * scale, renderedH = vh * scale;
   const offsetX = (boxW - renderedW) / 2, offsetY = (boxH - renderedH) / 2;
-
-  // ── FIX 1A: Crop exactly what's inside the GUIDE FRAME (blue box) ──
-  // Convert guide-frame pixel position → source video pixel coordinates
   const fx = frameRect.left - boxRect.left;
   const fy = frameRect.top  - boxRect.top;
   const sx = Math.max(0, Math.round((fx - offsetX) / scale));
   const sy = Math.max(0, Math.round((fy - offsetY) / scale));
   const sw = Math.min(Math.round(frameRect.width  / scale), vw - sx);
   const sh = Math.min(Math.round(frameRect.height / scale), vh - sy);
-
-  // Render the cropped region only (the guide-box region)
-  canvasCrop.width  = sw;
-  canvasCrop.height = sh;
+  canvasCrop.width  = sw; canvasCrop.height = sh;
   ctxCrop.drawImage(video, sx, sy, sw, sh, 0, 0, sw, sh);
   const cropImg = canvasCrop.toDataURL("image/jpeg", 0.92);
-
-  // ── FIX 1B: Preview and thumbnail BOTH use the cropped image ──
-  preview.src = cropImg;
-  preview.style.display = "block";
-  video.style.display = "none";
-
-  captureBtn.disabled = true;
-  hideBanner();
-  validationOverlay.classList.add("show");
-
+  preview.src = cropImg; preview.style.display = "block"; video.style.display = "none";
+  captureBtn.disabled = true; hideBanner(); validationOverlay.classList.add("show");
   try {
     const result = await validateTeeth(cropImg);
     validationOverlay.classList.remove("show");
-
     if (result.isTeeth) {
       cameraBox.classList.add("valid-flash");
       setTimeout(() => cameraBox.classList.remove("valid-flash"), 1500);
       showBanner("success", "✅", L.teeth_ok, result.reason);
-
-      // ── FIX 1C: Store cropImg (guide-box only) for the final card thumbnails ──
       capturedThumbs[currentStep] = cropImg;
-
-      // Send the cropped image to the server for storage
-      fetch("/capture", {
-        method: "POST",
-        headers: {"Content-Type": "application/json"},
-        body: JSON.stringify({image: cropImg, type: steps[currentStep].type})
-      }).catch(console.error);
-
-      captureBtn.classList.add("hidden");
-      retakeBtn.classList.remove("hidden");
-      nextBtn.classList.remove("hidden");
+      fetch("/capture", {method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify({image:cropImg, type:steps[currentStep].type})}).catch(console.error);
+      captureBtn.classList.add("hidden"); retakeBtn.classList.remove("hidden"); nextBtn.classList.remove("hidden");
       captureBtn.disabled = false;
-
     } else {
       cameraBox.classList.add("invalid-flash");
       setTimeout(() => cameraBox.classList.remove("invalid-flash"), 1500);
       showBanner("error", "❌", L.no_teeth, result.reason + " " + L.retake_msg);
-      setTimeout(() => {
-        preview.style.display = "none";
-        video.style.display = "block";
-        hideBanner();
-        captureBtn.disabled = false;
-      }, 2500);
+      setTimeout(() => { preview.style.display = "none"; video.style.display = "block"; hideBanner(); captureBtn.disabled = false; }, 2500);
     }
   } catch(err) {
     validationOverlay.classList.remove("show");
     showBanner("error", "❌", "Validation failed — " + err.message, "");
-    preview.style.display = "none";
-    video.style.display = "block";
-    captureBtn.disabled = false;
+    preview.style.display = "none"; video.style.display = "block"; captureBtn.disabled = false;
   }
 };
 
@@ -748,38 +632,21 @@ nextBtn.onclick = () => {
     for (let i = 0; i < 3; i++) document.getElementById("pill" + i).className = "step-pill done";
     stopCamera();
     titleBar.style.display = "none"; splitLayout.style.display = "none";
-    // ── FIX 1D: Thumbnails show cropped images (guide-box only) ──
-    for (let i = 0; i < 3; i++) {
-      const t = document.getElementById("thumb" + i);
-      if (capturedThumbs[i]) t.src = capturedThumbs[i];
-    }
+    for (let i = 0; i < 3; i++) { const t = document.getElementById("thumb" + i); if (capturedThumbs[i]) t.src = capturedThumbs[i]; }
     finalCard.style.display = "flex";
     document.getElementById("modeSelector").style.display = "none";
   }
 };
 
-// ══════════════════════════════════════════════════
-//  QR MODE
-// ══════════════════════════════════════════════════
 let qrGenerated = false;
 let qrReceivedCount = 0;
 
 function initQrMode() {
   if (qrGenerated) { startQrPolling(); return; }
   qrGenerated = true;
-
   const phoneUrl = `${BASE_URL}/phone_capture?token=${SESSION_TOKEN}`;
   document.getElementById("qrUrlText").innerText = phoneUrl;
-
-  new QRCode(document.getElementById("qrCodeEl"), {
-    text: phoneUrl,
-    width: 160,
-    height: 160,
-    colorDark: "#000000",
-    colorLight: "#ffffff",
-    correctLevel: QRCode.CorrectLevel.M
-  });
-
+  new QRCode(document.getElementById("qrCodeEl"), {text:phoneUrl, width:160, height:160, colorDark:"#000000", colorLight:"#ffffff", correctLevel:QRCode.CorrectLevel.M});
   startQrPolling();
 }
 
@@ -792,22 +659,15 @@ function copyQrUrl() {
   });
 }
 
-function startQrPolling() {
-  if (qrPollTimer) return;
-  qrPollTimer = setInterval(pollQrStatus, 3000);
-}
-
-function stopQrPolling() {
-  if (qrPollTimer) { clearInterval(qrPollTimer); qrPollTimer = null; }
-}
+function startQrPolling() { if (qrPollTimer) return; qrPollTimer = setInterval(pollQrStatus, 3000); }
+function stopQrPolling() { if (qrPollTimer) { clearInterval(qrPollTimer); qrPollTimer = null; } }
 
 async function pollQrStatus() {
   try {
     const res = await fetch(`/phone_status?token=${SESSION_TOKEN}`);
     if (!res.ok) return;
     const data = await res.json();
-
-    const parts = ["upper", "front", "lower"];
+    const parts = ["upper","front","lower"];
     let count = 0;
     parts.forEach((part, i) => {
       if (data[part]) {
@@ -820,61 +680,43 @@ async function pollQrStatus() {
         }
       }
     });
-
     qrReceivedCount = count;
-    const waitEl     = document.getElementById("qrWaiting");
-    const doneEl     = document.getElementById("qrAllDone");
+    const waitEl = document.getElementById("qrWaiting");
+    const doneEl = document.getElementById("qrAllDone");
     const proceedBtn = document.getElementById("qrProceedBtn");
-
     if (count === 3) {
-      waitEl.style.display = "none";
-      doneEl.classList.add("show");
+      waitEl.style.display = "none"; doneEl.classList.add("show");
       if (proceedBtn) proceedBtn.style.display = "block";
       stopQrPolling();
       for (let i = 0; i < 3; i++) document.getElementById("pill" + i).className = "step-pill done";
-
-      fetch("/phone_expire", {
-        method: "POST",
-        headers: {"Content-Type": "application/json"},
-        body: JSON.stringify({token: SESSION_TOKEN})
-      }).catch(e => console.warn("Expire call failed:", e));
-
+      fetch("/phone_expire", {method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify({token:SESSION_TOKEN})}).catch(e => console.warn("Expire call failed:", e));
     } else {
       const remaining = 3 - count;
-      document.getElementById("qrWaitText").innerText =
-        count === 0
-          ? "Waiting for patient to capture photos on phone..."
-          : `${count}/3 received — waiting for ${remaining} more photo${remaining > 1 ? "s" : ""}...`;
+      document.getElementById("qrWaitText").innerText = count === 0 ? "Waiting for patient to capture photos on phone..." : `${count}/3 received — waiting for ${remaining} more photo${remaining > 1 ? "s" : ""}...`;
     }
   } catch(e) { console.warn("Poll error:", e); }
 }
 
-// ══════════════════════════════════════════════════
-//  startGenerating — shared for cam and QR modes
-// ══════════════════════════════════════════════════
+// CHANGE: "Claude AI" → "AI" in all status messages
 function startGenerating(formEl) {
   const btn = formEl
     ? formEl.querySelector("button")
     : (document.getElementById("generateBtn") || document.getElementById("qrProceedBtn"));
   if (btn) { btn.disabled = true; btn.innerText = "⏳ Generating..."; }
-
   const status = document.getElementById("genStatus");
   if (status) status.classList.add("show");
-
   const qrGenProgress = document.getElementById("qrGenProgress");
   if (qrGenProgress) qrGenProgress.classList.add("show");
-
   const qrGenText = document.getElementById("qrGenText");
   const genTitle  = document.getElementById("genTitle");
   const genDesc   = document.getElementById("genDesc");
-
   const s = [
-    {t:0,     title:"Generating AI Report...",        desc:"Running YOLO detection on your images...",       qr:"Generating AI Report..."},
-    {t:5000,  title:"Analysing Detections...",         desc:"Processing detected dental conditions...",       qr:"Analysing dental detections..."},
-    {t:12000, title:"Claude AI Analysing Images...",   desc:"Claude is reviewing all 3 dental images...",    qr:"Claude AI reviewing images..."},
-    {t:25000, title:"Writing Detailed Analysis...",    desc:"Claude is writing your personalised report...", qr:"Writing detailed analysis..."},
-    {t:40000, title:"Generating PDF Report...",        desc:"Building your multi-page dental report...",     qr:"Building PDF report..."},
-    {t:55000, title:"Almost Ready...",                 desc:"Finalising your report. Please wait...",        qr:"Almost ready — finalising report..."}
+    {t:0,     title:"Generating AI Report...",       desc:"Running YOLO detection on your images...",      qr:"Generating AI Report..."},
+    {t:5000,  title:"Analysing Detections...",        desc:"Processing detected dental conditions...",      qr:"Analysing dental detections..."},
+    {t:12000, title:"AI Analysing Images...",         desc:"AI is reviewing all 3 dental images...",        qr:"AI reviewing images..."},
+    {t:25000, title:"Writing Detailed Analysis...",   desc:"AI is writing your personalised report...",     qr:"Writing detailed analysis..."},
+    {t:40000, title:"Generating PDF Report...",       desc:"Building your multi-page dental report...",     qr:"Building PDF report..."},
+    {t:55000, title:"Almost Ready...",                desc:"Finalising your report. Please wait...",        qr:"Almost ready — finalising report..."}
   ];
   s.forEach(x => setTimeout(() => {
     if (genTitle)  genTitle.innerText  = x.title;
@@ -883,7 +725,6 @@ function startGenerating(formEl) {
   }, x.t));
 }
 
-// ── Nav helpers ──
 function toggleMenu() { document.getElementById("mobileMenu").classList.toggle("open"); }
 function closeMenu()  { document.getElementById("mobileMenu").classList.remove("open"); }
 window.addEventListener("scroll", function() {

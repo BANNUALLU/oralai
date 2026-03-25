@@ -257,7 +257,6 @@ footer{background:rgba(0,0,0,0.4);border-top:1px solid var(--border);padding:56p
 @media(max-width:767px){
   nav{padding:0 20px;height:60px;}.mobile-menu{top:60px;}
   .nav-links,.nav-cta{display:none;}.hamburger{display:flex;}
-  /* ✅ FIXED: mobile logo also corrected */
   .nav-logo img{height:38px;}
   .hero{padding:88px 20px 60px;}.hero-title{font-size:34px;letter-spacing:-1px;}
   .section{padding:60px 20px;}.trusted{padding:24px 20px;}.cta-section{padding:60px 20px;}
@@ -317,13 +316,14 @@ footer{background:rgba(0,0,0,0.4);border-top:1px solid var(--border);padding:56p
   <a href="/start" class="btn-nav btn-nav-fill" style="padding:11px;text-align:center;border-radius:12px;">Start Screening</a>
 </div>
 
+<!-- HERO -->
 <section class="hero" id="home">
   <div class="orb orb-1"></div><div class="orb orb-2"></div>
   <div class="hero-inner">
     <div class="hero-content fade-up">
       <div class="hero-badge">AI-Powered Dental Screening</div>
       <h1 class="hero-title">Detect Oral Issues<br><span class="italic">Before</span> They <span class="accent">Worsen</span></h1>
-      <p class="hero-desc">OralAI uses advanced AI to screen your oral health in seconds. Capture 3 dental images, get instant YOLO detection and Claude AI analysis in your language.</p>
+      <p class="hero-desc">OralAI uses advanced AI to screen your oral health in seconds. Capture 3 dental images, get instant YOLO detection and AI analysis in your language.</p>
       <div class="hero-btns">
         <a href="/start" class="btn-primary">Start Free Screening</a>
         <a href="#how" class="btn-secondary">See How it Works</a>
@@ -339,13 +339,14 @@ footer{background:rgba(0,0,0,0.4);border-top:1px solid var(--border);padding:56p
       <div class="hero-img-wrap">
         <div class="hero-img-bg"></div>
         <img src="{{ url_for('static', filename='oral_ai.png') }}" alt="OralAI">
-        <div class="float-card float-card-1"><span class="float-icon">🤖</span><div class="float-text"><strong>Analysing...</strong><small>Claude Vision Active</small></div></div>
+        <div class="float-card float-card-1"><span class="float-icon">🤖</span><div class="float-text"><strong>Analysing...</strong><small>AI Vision Active</small></div></div>
         <div class="float-card float-card-2"><span class="float-icon">✅</span><div class="float-text"><strong>Report Ready!</strong><small>PDF Generated</small></div></div>
       </div>
     </div>
   </div>
 </section>
 
+<!-- TRUSTED -->
 <div class="trusted">
   <div class="trusted-inner">
     <span class="trusted-label">Presented by</span>
@@ -353,6 +354,7 @@ footer{background:rgba(0,0,0,0.4);border-top:1px solid var(--border);padding:56p
   </div>
 </div>
 
+<!-- FEATURES -->
 <section class="section" id="features">
   <div class="section-inner">
     <div class="fade-up">
@@ -361,16 +363,17 @@ footer{background:rgba(0,0,0,0.4);border-top:1px solid var(--border);padding:56p
       <p class="section-desc">From image capture to PDF report — OralAI handles the complete AI screening pipeline.</p>
     </div>
     <div class="features-grid">
-      <div class="feature-card fade-up"><div class="feature-icon" style="background:rgba(26,111,255,0.12)">🤖</div><h3>Claude AI Analysis</h3><p>Claude Vision observes all 3 dental images and writes a detailed personalised analysis with findings and urgency level.</p></div>
+      <div class="feature-card fade-up"><div class="feature-icon" style="background:rgba(26,111,255,0.12)">🤖</div><h3>AI Analysis</h3><p>Our AI Vision observes all 3 dental images and writes a detailed personalised analysis with findings and urgency level.</p></div>
       <div class="feature-card fade-up"><div class="feature-icon" style="background:rgba(0,200,224,0.12)">🎯</div><h3>YOLO Detection</h3><p>YOLOv8 detects caries, stains, malalignment and pit fissure caries with bounding boxes and confidence scores.</p></div>
       <div class="feature-card fade-up"><div class="feature-icon" style="background:rgba(245,200,66,0.12)">📄</div><h3>PDF Report</h3><p>Professional multi-page PDF with YOLO images, treatment recommendations and AI analysis in the patient's language.</p></div>
       <div class="feature-card fade-up"><div class="feature-icon" style="background:rgba(34,232,142,0.12)">💬</div><h3>WhatsApp Delivery</h3><p>Send the PDF report directly to the patient's WhatsApp number instantly after screening is complete.</p></div>
       <div class="feature-card fade-up"><div class="feature-icon" style="background:rgba(124,58,237,0.12)">🌍</div><h3>9 Languages</h3><p>Full support for English, Hindi, Telugu, Tamil, Kannada, Malayalam, Marathi, Bengali and Arabic.</p></div>
-      <div class="feature-card fade-up"><div class="feature-icon" style="background:rgba(239,68,68,0.12)">🛡️</div><h3>Image Validation</h3><p>Claude validates each image before processing — rejects non-teeth photos automatically.</p></div>
+      <div class="feature-card fade-up"><div class="feature-icon" style="background:rgba(239,68,68,0.12)">🛡️</div><h3>Image Validation</h3><p>AI validates each image before processing — rejects non-teeth photos automatically.</p></div>
     </div>
   </div>
 </section>
 
+<!-- HOW IT WORKS -->
 <section class="section how-section" id="how">
   <div class="section-inner">
     <div class="fade-up" style="text-align:center">
@@ -381,12 +384,13 @@ footer{background:rgba(0,0,0,0.4);border-top:1px solid var(--border);padding:56p
     <div class="steps-grid">
       <div class="step-item fade-up"><div class="step-num" style="background:rgba(26,111,255,0.12);border:2px solid rgba(26,111,255,0.3)">📋</div><h3>Enter Details</h3><p>Patient fills name, age, gender, phone, email and preferred language.</p></div>
       <div class="step-item fade-up"><div class="step-num" style="background:rgba(0,200,224,0.12);border:2px solid rgba(0,200,224,0.3)">📸</div><h3>Capture Images</h3><p>3 guided captures — Upper, Front and Lower teeth with real-time AI validation.</p></div>
-      <div class="step-item fade-up"><div class="step-num" style="background:rgba(245,200,66,0.12);border:2px solid rgba(245,200,66,0.3)">⚡</div><h3>AI Analysis</h3><p>YOLO detects conditions. Claude analyses all 3 images and writes a detailed diagnosis.</p></div>
+      <div class="step-item fade-up"><div class="step-num" style="background:rgba(245,200,66,0.12);border:2px solid rgba(245,200,66,0.3)">⚡</div><h3>AI Analysis</h3><p>YOLO detects conditions. AI analyses all 3 images and writes a detailed diagnosis.</p></div>
       <div class="step-item fade-up"><div class="step-num" style="background:rgba(34,232,142,0.12);border:2px solid rgba(34,232,142,0.3)">📤</div><h3>Get Report</h3><p>Download PDF, receive via Email or WhatsApp in patient's chosen language.</p></div>
     </div>
   </div>
 </section>
 
+<!-- LANGUAGES -->
 <section class="section" id="languages">
   <div class="section-inner">
     <div class="fade-up">
@@ -404,6 +408,7 @@ footer{background:rgba(0,0,0,0.4);border-top:1px solid var(--border);padding:56p
   </div>
 </section>
 
+<!-- TESTIMONIALS -->
 <section class="section" style="background:rgba(255,255,255,0.01)">
   <div class="section-inner">
     <div class="fade-up" style="text-align:center">
@@ -418,6 +423,7 @@ footer{background:rgba(0,0,0,0.4);border-top:1px solid var(--border);padding:56p
   </div>
 </section>
 
+<!-- REVIEWS -->
 <section class="section review-section" id="reviews">
   <div class="section-inner">
     <div class="fade-up" style="text-align:center">
@@ -484,6 +490,7 @@ footer{background:rgba(0,0,0,0.4);border-top:1px solid var(--border);padding:56p
   </div>
 </section>
 
+<!-- DEVELOPER -->
 <section class="section dev-section" id="developer">
   <div class="section-inner">
     <div class="dev-inner">
@@ -493,6 +500,8 @@ footer{background:rgba(0,0,0,0.4);border-top:1px solid var(--border);padding:56p
         <p class="section-desc">OralAI is developed as a final year project by a team of 3 students from Swarnandhra College of Engineering and Technology (Autonomous), combining Computer Vision, Large Language Models and modern web technologies.</p>
       </div>
       <div class="dev-card fade-up">
+
+        <!-- TEAM MEMBERS -->
         <div style="font-size:12px;font-weight:700;color:var(--muted);letter-spacing:0.08em;text-transform:uppercase;margin-bottom:14px;">Our Team</div>
         <div style="display:flex;align-items:center;gap:14px;padding:14px 0;border-bottom:1px solid var(--border);">
           <div style="width:48px;height:48px;border-radius:50%;background:linear-gradient(135deg,#1a6fff,#00c8e0);display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0;">👨‍💻</div>
@@ -502,20 +511,41 @@ footer{background:rgba(0,0,0,0.4);border-top:1px solid var(--border);padding:56p
           <div style="width:48px;height:48px;border-radius:50%;background:linear-gradient(135deg,#7c3aed,#1a6fff);display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0;">👩‍💻</div>
           <div style="font-size:16px;font-weight:800;">Akula Lekhana Sai</div>
         </div>
-        <div style="display:flex;align-items:center;gap:14px;padding:14px 0;">
+        <div style="display:flex;align-items:center;gap:14px;padding:14px 0;border-bottom:1px solid var(--border);">
           <div style="width:48px;height:48px;border-radius:50%;background:linear-gradient(135deg,#00c8e0,#22e88e);display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0;">👩‍💻</div>
           <div style="font-size:16px;font-weight:800;">Chalamalasetti Kundhana</div>
         </div>
+
+        <!-- PROJECT GUIDE -->
+        <div style="margin-top:20px;padding-top:20px;border-top:1px solid var(--border);">
+          <div style="font-size:12px;font-weight:700;color:var(--muted);letter-spacing:0.08em;text-transform:uppercase;margin-bottom:14px;">Project Guide &amp; HOD</div>
+          <div style="display:flex;align-items:center;gap:14px;padding:16px;background:rgba(245,200,66,0.06);border:1px solid rgba(245,200,66,0.22);border-radius:16px;">
+            <div style="width:52px;height:52px;border-radius:50%;background:linear-gradient(135deg,#f5c842,#f97316);display:flex;align-items:center;justify-content:center;font-size:24px;flex-shrink:0;">👨‍🏫</div>
+            <div>
+              <div style="font-size:16px;font-weight:800;color:var(--white);">Dr. Bomma Rama Krishna</div>
+              <div style="font-size:12px;color:var(--muted);margin-top:3px;">M.Tech, Ph.D &nbsp;·&nbsp; Project Guide</div>
+              <div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:8px;">
+                <span style="background:rgba(245,200,66,0.12);border:1px solid rgba(245,200,66,0.3);color:#f5c842;font-size:11px;font-weight:700;padding:3px 10px;border-radius:999px;">HOD – AIDS</span>
+                <span style="background:rgba(245,200,66,0.12);border:1px solid rgba(245,200,66,0.3);color:#f5c842;font-size:11px;font-weight:700;padding:3px 10px;border-radius:999px;">HOD – AIML</span>
+              </div>
+              <div style="font-size:11px;color:var(--muted);margin-top:7px;">Swarnandhra College of Engineering and Technology (Autonomous)</div>
+            </div>
+          </div>
+        </div>
+        <!-- END PROJECT GUIDE -->
+
         <div class="dev-skills">
           <span class="dev-skill">Python</span><span class="dev-skill">Flask</span>
-          <span class="dev-skill">YOLOv8</span><span class="dev-skill">Claude AI</span>
+          <span class="dev-skill">YOLOv8</span><span class="dev-skill">AI</span>
           <span class="dev-skill">Computer Vision</span><span class="dev-skill">AWS EC2</span>
         </div>
+
       </div>
     </div>
   </div>
 </section>
 
+<!-- CONTACT -->
 <section class="section" id="contact">
   <div class="section-inner">
     <div class="fade-up">
@@ -525,7 +555,7 @@ footer{background:rgba(0,0,0,0.4);border-top:1px solid var(--border);padding:56p
     </div>
     <div class="contact-grid">
       <div class="contact-info fade-up">
-        <div class="contact-item"><div class="contact-icon" style="background:rgba(26,111,255,0.12)">📧</div><div class="contact-text"><h4>Email Us</h4><a href="/cdn-cgi/l/email-protection#82edf0e3eee3ebacf1ebf6e7c2e5efe3ebeeace1edef"><span class="__cf_email__" data-cfemail="e18e93808d8088cf92889584a1868c80888dcf828e8c">[email&#160;protected]</span></a></div></div>
+        <div class="contact-item"><div class="contact-icon" style="background:rgba(26,111,255,0.12)">📧</div><div class="contact-text"><h4>Email Us</h4><a href="mailto:oralai.site@gmail.com">oralai.site@gmail.com</a></div></div>
         <div class="contact-item"><div class="contact-icon" style="background:rgba(34,232,142,0.12)">📱</div><div class="contact-text"><h4>WhatsApp / Phone</h4><a href="tel:+918330985581">+91 83309 85581</a></div></div>
         <div class="contact-item"><div class="contact-icon" style="background:rgba(0,200,224,0.12)">🌐</div><div class="contact-text"><h4>Website</h4><a href="https://www.oralai.site" target="_blank">www.oralai.site</a></div></div>
         <div class="contact-item"><div class="contact-icon" style="background:rgba(245,200,66,0.12)">📍</div><div class="contact-text"><h4>Location</h4><p>Andhra Pradesh, India</p></div></div>
@@ -551,6 +581,7 @@ footer{background:rgba(0,0,0,0.4);border-top:1px solid var(--border);padding:56p
   </div>
 </section>
 
+<!-- CTA -->
 <section class="cta-section">
   <div class="cta-box fade-up">
     <h2>Ready to Screen Your Oral Health?</h2>
@@ -562,6 +593,7 @@ footer{background:rgba(0,0,0,0.4);border-top:1px solid var(--border);padding:56p
   </div>
 </section>
 
+<!-- FOOTER -->
 <footer>
   <div class="footer-inner">
     <div class="footer-top">
@@ -581,22 +613,22 @@ footer{background:rgba(0,0,0,0.4);border-top:1px solid var(--border);padding:56p
         <li><a href="#">Privacy Policy</a></li><li><a href="#">Terms of Use</a></li>
       </ul></div>
       <div class="footer-col"><h4>Contact</h4><ul>
-        <li><a href="/cdn-cgi/l/email-protection#6b04190a070a024518021f0e2b0c060a020745080406"><span class="__cf_email__" data-cfemail="0e617c6f626f67207d677a6b4e69636f6762206d6163">[email&#160;protected]</span></a></li>
+        <li><a href="mailto:oralai.site@gmail.com">oralai.site@gmail.com</a></li>
         <li><a href="tel:+918330985581">+91 83309 85581</a></li>
         <li><a href="https://www.oralai.site">www.oralai.site</a></li>
         <li><a>Andhra Pradesh, India</a></li>
       </ul></div>
     </div>
     <div class="footer-bottom">
-      <span>2026 OralAI. All rights reserved. Built with love by Allu Satyanarayana Murthy</span>
-      <span>Powered by <a href="https://anthropic.com" target="_blank">Anthropic Claude</a> and <a href="https://ultralytics.com" target="_blank">YOLOv8</a></span>
+      <span>© 2026 OralAI. All rights reserved. Built with love by Allu Satyanarayana Murthy</span>
+      <span>Powered by <a href="https://www.oralai.site" target="_blank">oralai.site</a></span>
     </div>
   </div>
 </footer>
 
 <button class="scroll-top" id="scrollTop" onclick="window.scrollTo({top:0,behavior:'smooth'})">↑</button>
 
-<script data-cfasync="false" src="/cdn-cgi/scripts/5c5dd728/cloudflare-static/email-decode.min.js"></script><script>
+<script>
 document.querySelectorAll('.fade-up').forEach(function(el){el.classList.add('visible');});
 var observer=new IntersectionObserver(function(entries){entries.forEach(function(e){if(e.isIntersecting)e.target.classList.add('visible');});},{threshold:0.05});
 document.querySelectorAll('.fade-up').forEach(function(el){observer.observe(el);});
@@ -609,7 +641,7 @@ window.addEventListener('scroll',function(){
 function toggleMenu(){document.getElementById('mobileMenu').classList.toggle('open');}
 function closeMenu(){document.getElementById('mobileMenu').classList.remove('open');}
 
-// ── Dynamic screening counter ──
+// Dynamic screening counter
 fetch('/screening_count')
   .then(r => r.json())
   .then(data => {
@@ -624,7 +656,7 @@ fetch('/screening_count')
         if(current >= target) { el.innerText = target + '+'; clearInterval(interval); }
       }, 80);
     }
-  }).catch(function(){ 
+  }).catch(function(){
     document.getElementById('screeningCount').innerText = '50+';
   });
 

@@ -22,7 +22,7 @@ body::after{content:'';position:fixed;inset:0;z-index:0;
   background-image:linear-gradient(rgba(26,111,255,0.04) 1px,transparent 1px),
   linear-gradient(90deg,rgba(26,111,255,0.04) 1px,transparent 1px);
   background-size:60px 60px;pointer-events:none;}
-nav,section{position:relative;z-index:1;}
+nav,section,main{position:relative;z-index:1;}
 
 /* NAV */
 nav{position:fixed;top:0;left:0;right:0;z-index:100;display:flex;align-items:center;
@@ -172,6 +172,7 @@ nav{position:fixed;top:0;left:0;right:0;z-index:100;display:flex;align-items:cen
   <a href="/#contact" onclick="closeMenu()">Contact</a>
   <a href="/start" class="btn-nav btn-nav-fill" style="padding:11px;text-align:center;border-radius:12px;">Start Screening</a>
 </div>
+
 <main class="main">
   <div class="card">
     <div class="card-top">
@@ -181,7 +182,8 @@ nav{position:fixed;top:0;left:0;right:0;z-index:100;display:flex;align-items:cen
       <div class="features">
         <span class="feat"><span class="feat-dot"></span>3 Photos</span>
         <span class="feat"><span class="feat-dot"></span>YOLO Detection</span>
-        <span class="feat"><span class="feat-dot"></span>Claude AI</span>
+        <!-- CHANGE 1: "Claude AI" → "AI" -->
+        <span class="feat"><span class="feat-dot"></span>AI Analysis</span>
         <span class="feat"><span class="feat-dot"></span>PDF Report</span>
         <span class="feat"><span class="feat-dot"></span>9 Languages</span>
       </div>
@@ -207,12 +209,15 @@ nav{position:fixed;top:0;left:0;right:0;z-index:100;display:flex;align-items:cen
     </div>
   </div>
 </main>
+
+<!-- CHANGE 2: © added, removed "Built with love by..." -->
 <footer class="site-footer">
   <div class="footer-inner">
-    <span class="footer-copy">2026 OralAI. All rights reserved. Built with love by Allu Satyanarayana Murthy</span>
+    <span class="footer-copy">© 2026 OralAI. All rights reserved.</span>
     <span class="footer-powered">Powered by <a href="https://www.oralai.site" target="_blank">oralai.site</a></span>
   </div>
 </footer>
+
 <button class="scroll-top" onclick="window.scrollTo({top:0,behavior:'smooth'})" title="Back to top">↑</button>
 <script>
 function toggleMenu(){document.getElementById('mobileMenu').classList.toggle('open');}
