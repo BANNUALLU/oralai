@@ -138,8 +138,9 @@ body{font-family:var(--font);background:#000;color:var(--white);display:flex;fle
 </div>
 
 <!-- CAMERA -->
-<div class="cam-wrap">
+<div class="cam-wrap" id="camWrap">
   <video id="video" autoplay playsinline></video>
+  <!-- FIX: previewImg now shows the CROPPED guide-box image, not full frame -->
   <img id="previewImg" alt="">
   <div class="gframe upper" id="guideFrame">
     <div class="gframe-label" id="gframeLabel">Upper Teeth</div>
@@ -177,6 +178,7 @@ body{font-family:var(--font);background:#000;color:var(--white);display:flex;fle
   <h2 id="doneTitleEl">All Photos Sent!</h2>
   <p id="doneDescEl">All 3 dental photos have been sent to the operator. You can now return the phone.</p>
   <div class="done-thumbs">
+    <!-- FIX: thumbnails now show the cropped guide-box images -->
     <div class="done-thumb"><img id="dth0" src="" alt=""></div>
     <div class="done-thumb"><img id="dth1" src="" alt=""></div>
     <div class="done-thumb"><img id="dth2" src="" alt=""></div>
@@ -186,6 +188,7 @@ body{font-family:var(--font);background:#000;color:var(--white);display:flex;fle
   </div>
 </div>
 
+<!-- canvasFull is no longer used but kept to avoid any future reference errors -->
 <canvas id="cvFull" style="display:none;"></canvas>
 <canvas id="cvCrop" style="display:none;"></canvas>
 
@@ -203,9 +206,9 @@ const TOKEN = "{{ token }}";
     document.getElementById("errorScreen").classList.add("show");
     document.getElementById("errDetail").innerText =
       raw ? `Token received: "${raw}" (too short)` : "No token in URL.";
-    document.querySelector(".topbar").style.display   = "none";
-    document.querySelector(".cam-wrap").style.display = "none";
-    document.querySelector(".bottombar").style.display= "none";
+    document.querySelector(".topbar").style.display    = "none";
+    document.getElementById("camWrap").style.display   = "none";
+    document.querySelector(".bottombar").style.display = "none";
     throw new Error("Bad token — stopping execution");
   }
 })();
@@ -273,14 +276,14 @@ const L = T[LANG] || T["English"];
 //  IMAGE COMPRESSION HELPER
 // ════════════════════════════════════════════════
 function compressCanvas(sourceCanvas, maxDim, quality) {
-  const sw = sourceCanvas.width;
-  const sh = sourceCanvas.height;
+  const sw    = sourceCanvas.width;
+  const sh    = sourceCanvas.height;
   const ratio = Math.min(1, maxDim / Math.max(sw, sh));
-  const tw = Math.round(sw * ratio);
-  const th = Math.round(sh * ratio);
-  const out = document.createElement("canvas");
-  out.width  = tw;
-  out.height = th;
+  const tw    = Math.round(sw * ratio);
+  const th    = Math.round(sh * ratio);
+  const out   = document.createElement("canvas");
+  out.width   = tw;
+  out.height  = th;
   out.getContext("2d").drawImage(sourceCanvas, 0, 0, tw, th);
   return out.toDataURL("image/jpeg", quality);
 }
@@ -289,18 +292,16 @@ function compressCanvas(sourceCanvas, maxDim, quality) {
 //  STATE
 // ════════════════════════════════════════════════
 let step = 0;
-let capturedImages = [];
+let capturedImages = [];   // stores cropImg for each step
 let stream, facingMode = "environment", flash = false;
-let expireCheckTimer = null;   // BUG 3 FIX
+let expireCheckTimer = null;
 
 // ════════════════════════════════════════════════
 //  DOM REFS
 // ════════════════════════════════════════════════
 const video        = document.getElementById("video");
 const preview      = document.getElementById("previewImg");
-const cvFull       = document.getElementById("cvFull");
 const cvCrop       = document.getElementById("cvCrop");
-const ctxFull      = cvFull.getContext("2d");
 const ctxCrop      = cvCrop.getContext("2d");
 const guideFrame   = document.getElementById("guideFrame");
 const gframeLabel  = document.getElementById("gframeLabel");
@@ -336,6 +337,7 @@ function renderStep() {
   actionRow.classList.add("hidden");
   captureBtn.disabled   = false;
   captureBtn.classList.add("pulsing");
+  // Show live camera again
   preview.style.display = "none";
   video.style.display   = "block";
 }
@@ -403,6 +405,8 @@ function resetToCamera() {
 
 // ════════════════════════════════════════════════
 //  CAPTURE BUTTON
+//  FIX: uses cropImg (guide-box only) for everything —
+//       preview, validation, server save, done-screen thumbs
 // ════════════════════════════════════════════════
 captureBtn.addEventListener("click", async () => {
   const vw = video.videoWidth, vh = video.videoHeight;
@@ -412,38 +416,43 @@ captureBtn.addEventListener("click", async () => {
   flashOverlay.classList.add("flash");
   setTimeout(() => flashOverlay.classList.remove("flash"), 200);
 
-  const box   = video.getBoundingClientRect();
-  const scale = Math.max(box.width / vw, box.height / vh);
-  const rW    = vw * scale, rH = vh * scale;
-  const ox    = (box.width  - rW) / 2;
-  const oy    = (box.height - rH) / 2;
-  const sx    = Math.max(0, Math.round(-ox / scale));
-  const sy    = Math.max(0, Math.round(-oy / scale));
-  const sw    = Math.min(Math.round(box.width  / scale), vw - sx);
-  const sh    = Math.min(Math.round(box.height / scale), vh - sy);
+  // ── Compute guide-frame crop in source video pixels ──────────
+  const box      = video.getBoundingClientRect();
+  const frameEl  = guideFrame.getBoundingClientRect();
 
-  cvFull.width = sw; cvFull.height = sh;
-  ctxFull.drawImage(video, sx, sy, sw, sh, 0, 0, sw, sh);
+  // How the video is rendered with object-fit:cover inside .cam-wrap
+  const scale    = Math.max(box.width / vw, box.height / vh);
+  const rendW    = vw * scale;
+  const rendH    = vh * scale;
+  const ox       = (box.width  - rendW) / 2;
+  const oy       = (box.height - rendH) / 2;
 
-  const fullImg = compressCanvas(cvFull, 1920, 0.82);
-
-  const frameEl = guideFrame.getBoundingClientRect();
+  // Guide frame position relative to rendered video → source video coords
   const fx = Math.max(0, Math.round((frameEl.left - box.left - ox) / scale));
   const fy = Math.max(0, Math.round((frameEl.top  - box.top  - oy) / scale));
   const fw = Math.min(Math.round(frameEl.width  / scale), vw - fx);
   const fh = Math.min(Math.round(frameEl.height / scale), vh - fy);
 
-  cvCrop.width = fw; cvCrop.height = fh;
+  // Draw only the guide-box region to canvas
+  cvCrop.width  = fw;
+  cvCrop.height = fh;
   ctxCrop.drawImage(video, fx, fy, fw, fh, 0, 0, fw, fh);
 
-  const cropImg = compressCanvas(cvCrop, 800, 0.75);
+  // ── FIX: cropImg is the ONLY image we use from here on ───────
+  //   • shown in preview (inside cam-wrap)
+  //   • sent to /validate
+  //   • sent to /phone_save (saved to disk → YOLO → PDF)
+  //   • stored in capturedImages[] for done-screen thumbs
+  const cropImg = compressCanvas(cvCrop, 1200, 0.88);
 
-  preview.src           = fullImg;
+  // Show cropped preview inside the camera area
+  preview.src           = cropImg;
   preview.style.display = "block";
   video.style.display   = "none";
-  captureBtn.disabled   = true;
+
+  captureBtn.disabled = true;
   captureBtn.classList.remove("pulsing");
-  resultRow.className   = "result-row";
+  resultRow.className = "result-row";
   valOverlay.classList.add("show");
 
   try {
@@ -463,9 +472,15 @@ captureBtn.addEventListener("click", async () => {
 
     if (result.isTeeth) {
       showResult("ok", "✅", L.ok, result.reason || "");
-      capturedImages[step] = fullImg;
-      await saveImage(fullImg, L.steps[step]);
+
+      // ── FIX: store cropImg so done-screen thumbs show teeth only ──
+      capturedImages[step] = cropImg;
+
+      // ── FIX: send cropImg to server (YOLO will run on this tight crop) ──
+      await saveImage(cropImg, L.steps[step]);
+
       actionRow.classList.remove("hidden");
+
     } else {
       showResult("err", "❌", L.fail, result.reason || "");
       setTimeout(resetToCamera, 2500);
@@ -514,7 +529,7 @@ async function saveImage(imgB64, type) {
     if (data.status !== "saved") {
       console.warn("phone_save unexpected:", data);
     } else {
-      console.log("Saved", type, "image successfully");
+      console.log("[Saved]", type, "crop image successfully");
     }
   } catch(e) {
     console.warn("phone_save network error:", e);
@@ -525,12 +540,12 @@ async function saveImage(imgB64, type) {
 //  DONE SCREEN
 // ════════════════════════════════════════════════
 function showDone() {
-  // Stop expiry polling — we're done ourselves
   if (expireCheckTimer) { clearInterval(expireCheckTimer); expireCheckTimer = null; }
 
   for (let i = 0; i < 3; i++) {
     document.getElementById("sp" + i).className = "spill done";
     const el = document.getElementById("dth" + i);
+    // FIX: capturedImages[i] is already cropImg — shows teeth-only thumbs
     if (capturedImages[i]) el.src = capturedImages[i];
   }
   if (stream) stream.getTracks().forEach(t => t.stop());
@@ -541,9 +556,8 @@ function showDone() {
 }
 
 // ════════════════════════════════════════════════
-//  BUG 3 FIX: Poll for expiry — if operator expired the session,
-//  show done screen on the phone immediately even if patient
-//  didn't complete all 3 steps (e.g. operator pressed generate early)
+//  Poll for expiry — if operator expired session,
+//  show done screen on phone immediately
 // ════════════════════════════════════════════════
 function startExpirePolling() {
   if (expireCheckTimer) return;
@@ -551,7 +565,6 @@ function startExpirePolling() {
     try {
       const r = await fetch(`/phone_status?token=${TOKEN}`);
       if (!r.ok) {
-        // Session gone from server — show done
         clearInterval(expireCheckTimer);
         expireCheckTimer = null;
         showDone();
@@ -564,7 +577,7 @@ function startExpirePolling() {
         showDone();
       }
     } catch(e) {
-      // Network error — don't clear, just wait for next tick
+      // Network error — wait for next tick
     }
   }, 4000);
 }
@@ -574,7 +587,7 @@ function startExpirePolling() {
 // ════════════════════════════════════════════════
 startCamera();
 renderStep();
-startExpirePolling();   // BUG 3 FIX: begin watching for operator expiry
+startExpirePolling();
 </script>
 </body>
 </html>
