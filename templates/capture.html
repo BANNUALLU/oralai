@@ -80,7 +80,7 @@ nav{position:fixed;top:0;left:0;right:0;z-index:100;display:flex;align-items:cen
 .guide-tip{background:rgba(26,111,255,0.08);border:1px solid rgba(26,111,255,0.2);border-radius:10px;padding:10px 12px;font-size:12px;color:var(--blue2);line-height:1.6;}
 .camera-panel{flex:1;min-width:0;display:flex;flex-direction:column;gap:14px;}
 
-/* ── CAMERA BOX: relative container, video fills it fully ── */
+/* ── CAMERA BOX ── */
 .camera-box{
   position:relative;
   width:100%;
@@ -95,7 +95,6 @@ nav{position:fixed;top:0;left:0;right:0;z-index:100;display:flex;align-items:cen
 .camera-box.valid-flash{border-color:var(--green);box-shadow:0 0 0 3px rgba(34,232,142,0.2);}
 .camera-box.invalid-flash{border-color:var(--red);box-shadow:0 0 0 3px rgba(239,68,68,0.2);}
 
-/* Video fills the box exactly, no overflow */
 #video{
   position:absolute;
   inset:0;
@@ -122,7 +121,7 @@ nav{position:fixed;top:0;left:0;right:0;z-index:100;display:flex;align-items:cen
 @keyframes spin{to{transform:rotate(360deg)}}
 .overlay-text{font-size:14px;font-weight:600;}
 
-/* Guide frame sits inside camera-box, uses % of the box */
+/* Guide frame — % of camera-box */
 .guide-frame{
   position:absolute;
   top:50%;
@@ -140,15 +139,14 @@ nav{position:fixed;top:0;left:0;right:0;z-index:100;display:flex;align-items:cen
 .guide-frame::before{top:-4px;left:-4px;border-width:3px 0 0 3px;border-radius:6px 0 0 0;}
 .guide-frame::after{bottom:-4px;right:-4px;border-width:0 3px 3px 0;border-radius:0 0 6px 0;}
 
-/* Face: 40% wide × 75% tall of the camera-box */
-.guide-frame.face{width:40%;height:75%;border-color:#f59e0b;box-shadow:0 0 20px rgba(245,158,11,0.15);}
+/* Face: 60% wide × 70% tall — bigger so whole face fits */
+.guide-frame.face{width:60%;height:70%;border-color:#f59e0b;box-shadow:0 0 20px rgba(245,158,11,0.15);}
 .guide-frame.face .frame-label{background:#f59e0b;}
 .guide-frame.face::before,.guide-frame.face::after{border-color:#f59e0b;}
-/* Upper / Lower: wide, mid-height */
-.guide-frame.upper{width:88%;height:62%;}
-/* Front: narrower, short */
-.guide-frame.front{width:58%;height:34%;}
-.guide-frame.lower{width:88%;height:62%;}
+/* Teeth frames */
+.guide-frame.upper{width:90%;height:55%;}
+.guide-frame.front{width:70%;height:38%;}
+.guide-frame.lower{width:90%;height:55%;}
 
 .frame-label{position:absolute;top:-26px;left:50%;transform:translateX(-50%);
   background:var(--cyan);color:#0a1628;font-size:10px;font-weight:800;
@@ -684,71 +682,75 @@ async function validateTeeth(b64) {
   return await res.json();
 }
 
-// ════════════════════════════════════════════════
-//  CROP HELPER — correct object-fit:cover math
+// ══════════════════════════════════════════════════════
+//  THE FIX: Correct object-fit:cover crop math
 //
-//  object-fit:cover: browser scales the video so
-//  BOTH dimensions are >= the display box, then
-//  centres and clips the overflow.
+//  object-fit:cover centers+clips the video so both
+//  dimensions are >= the container. The clip amount on
+//  each side = (renderedSize - containerSize) / 2.
 //
-//  displayScale = Math.max(boxW/vw, boxH/vh)
-//    → the axis that just fills; the other overflows.
-//  rendW = vw * displayScale  (may be > boxW)
-//  rendH = vh * displayScale  (may be > boxH)
-//  offsetX = (boxW - rendW) / 2  (negative = clipped)
-//
-//  To find where the guide-frame is in SOURCE pixels:
-//    sx = (fx - offsetX) / displayScale
-//    sw = frameW / displayScale
-//
-//  We use cameraBox for box dimensions (reliable even
-//  on mobile where getBoundingClientRect on position:
-//  absolute video can be inaccurate).
-// ════════════════════════════════════════════════
-function cropToFrame(videoElement, frameElement) {
-  const vw = videoElement.videoWidth;
-  const vh = videoElement.videoHeight;
-  if (!vw || !vh) return null;
+//  To find where the guide frame is in SOURCE pixels:
+//  1. scale = max(containerW/videoW, containerH/videoH)
+//  2. rendW = videoW * scale  (rendered size in CSS px)
+//  3. clipX = (rendW - containerW) / 2  (hidden CSS px)
+//  4. frame's x in rendered-video space = (frame.left - container.left) + clipX
+//  5. source pixel x = renderedX / scale
+// ══════════════════════════════════════════════════════
+function cropToFrame(videoElement, frameElement, containerElement) {
+  const vW = videoElement.videoWidth;
+  const vH = videoElement.videoHeight;
+  if (!vW || !vH) return null;
 
-  // Use the camera-box container as the display rect
-  // (more reliable than the absolute-positioned video itself)
-  const boxRect   = cameraBox.getBoundingClientRect();
-  const frameRect = frameElement.getBoundingClientRect();
+  const cRect = containerElement.getBoundingClientRect();
+  const fRect = frameElement.getBoundingClientRect();
 
-  const boxW = boxRect.width;
-  const boxH = boxRect.height;
+  const cW = cRect.width;
+  const cH = cRect.height;
 
-  // object-fit:cover display scale
-  // = how many CSS pixels each source pixel occupies
-  const displayScale = Math.max(boxW / vw, boxH / vh);
+  // CSS px scale factor for object-fit:cover
+  const scale = Math.max(cW / vW, cH / vH);
 
-  // Rendered video size in CSS pixels (one axis overflows)
-  const rendW = vw * displayScale;
-  const rendH = vh * displayScale;
+  // Rendered video dims in CSS px (one axis overflows container)
+  const rendW = vW * scale;
+  const rendH = vH * scale;
 
-  // How much the video overflows each edge (centred, so half each side)
-  const offsetX = (boxW - rendW) / 2;  // negative when overflowing
-  const offsetY = (boxH - rendH) / 2;
+  // How many CSS px are clipped on each side
+  const clipX = (rendW - cW) / 2;
+  const clipY = (rendH - cH) / 2;
 
-  // Frame position relative to the box top-left
-  const fx = frameRect.left - boxRect.left;
-  const fy = frameRect.top  - boxRect.top;
+  // Frame position relative to container
+  const fx = fRect.left - cRect.left;
+  const fy = fRect.top  - cRect.top;
+  const fw = fRect.width;
+  const fh = fRect.height;
 
-  // Map frame rect back to source pixel coords
-  const sx = Math.max(0, Math.round((fx - offsetX) / displayScale));
-  const sy = Math.max(0, Math.round((fy - offsetY) / displayScale));
-  const sw = Math.min(Math.round(frameRect.width  / displayScale), vw - sx);
-  const sh = Math.min(Math.round(frameRect.height / displayScale), vh - sy);
+  // Convert to source pixel coordinates
+  const sx = Math.round((fx + clipX) / scale);
+  const sy = Math.round((fy + clipY) / scale);
+  const sw = Math.round(fw / scale);
+  const sh = Math.round(fh / scale);
 
-  return { sx, sy, sw, sh };
+  // Clamp to source bounds
+  const safeSx = Math.max(0, Math.min(sx, vW - 1));
+  const safeSy = Math.max(0, Math.min(sy, vH - 1));
+  const safeSw = Math.min(sw, vW - safeSx);
+  const safeSh = Math.min(sh, vH - safeSy);
+
+  return { sx: safeSx, sy: safeSy, sw: safeSw, sh: safeSh };
 }
 
 captureBtn.onclick = async () => {
-  const vw = videoEl.videoWidth, vh = videoEl.videoHeight;
-  if (!vw || !vh) { alert("Camera not ready."); return; }
+  const vW = videoEl.videoWidth, vH = videoEl.videoHeight;
+  if (!vW || !vH) { alert("Camera not ready."); return; }
 
-  // Use fixed crop helper
-  const { sx, sy, sw, sh } = cropToFrame(videoEl, guideFrame);
+  // Wait one frame to ensure layout is settled
+  await new Promise(r => requestAnimationFrame(r));
+
+  // ✅ FIXED: pass cameraBox as container
+  const crop = cropToFrame(videoEl, guideFrame, cameraBox);
+  if (!crop) { alert("Crop failed — please try again."); return; }
+
+  const { sx, sy, sw, sh } = crop;
 
   canvasCrop.width  = sw;
   canvasCrop.height = sh;

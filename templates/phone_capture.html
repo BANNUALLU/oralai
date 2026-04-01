@@ -35,7 +35,6 @@ body{font-family:var(--font);background:#000;color:var(--white);display:flex;fle
 /* ── CAMERA AREA ── */
 .cam-wrap{flex:1;position:relative;overflow:hidden;}
 
-/* Video fills the cam-wrap exactly */
 #video{
   position:absolute;
   inset:0;
@@ -55,7 +54,7 @@ body{font-family:var(--font);background:#000;color:var(--white);display:flex;fle
   display:none;
 }
 
-/* ── GUIDE FRAMES — sized as % of cam-wrap ── */
+/* ── GUIDE FRAMES — % of cam-wrap ── */
 .gframe{
   position:absolute;
   top:50%;
@@ -73,15 +72,12 @@ body{font-family:var(--font);background:#000;color:var(--white);display:flex;fle
 .gframe::before{top:-3px;left:-3px;border-width:3px 0 0 3px;border-radius:5px 0 0 0;}
 .gframe::after{bottom:-3px;right:-3px;border-width:0 3px 3px 0;border-radius:0 0 5px 0;}
 
-/* Face: 40% wide × 75% tall */
-.gframe.face{width:40%;height:75%;border-color:var(--amber);box-shadow:0 0 24px rgba(245,158,11,0.2);}
+.gframe.face{width:60%;height:70%;border-color:var(--amber);box-shadow:0 0 24px rgba(245,158,11,0.2);}
 .gframe.face::before,.gframe.face::after{border-color:var(--amber);}
 .gframe.face .gframe-label{background:var(--amber);}
-/* Upper / Lower: wide */
-.gframe.upper{width:86%;height:58%;}
-/* Front: narrow, short */
-.gframe.front{width:56%;height:32%;}
-.gframe.lower{width:86%;height:58%;}
+.gframe.upper{width:90%;height:55%;}
+.gframe.front{width:70%;height:38%;}
+.gframe.lower{width:90%;height:55%;}
 
 .gframe-label{position:absolute;top:-24px;left:50%;transform:translateX(-50%);
   background:var(--cyan);color:#0a1628;font-size:10px;font-weight:800;
@@ -297,27 +293,95 @@ const T = {
   "Hindi": {
     steps:  ["face", "upper", "front", "lower"],
     tips: [
-      "🧑 सीधे कैमरे की तरफ देखें। चेहरा बॉक्स के अंदर रखें।",
-      "🦷 मुंह चौड़ा खोलें और कैमरे को थोड़ा नीचे झुकाएं।",
-      "😁 कैमरे को मुंह के बराबर रखें।",
-      "🦷 सिर थोड़ा पीछे झुकाएं और कैमरे को ऊपर करें।"
+      "🧑 సీधे కैमरे की तरफ देखें। చेहरా బాक్స్ के अंदर రఖें।",
+      "🦷 ముంহ చౌड़ा ఖోలేं ఔర్ కైమరే కో థోड़ా నీచే ఝుకాएं।",
+      "😁 కైమరే కో ముంహ కే బరాబర్ రఖేం।",
+      "🦷 సిర థోड़ా పీछే ఝుకాएं ఔర్ కైమరే కో ఊపర్ కరేం।"
     ],
-    labels: ["मरीज़ का चेहरा", "ऊपरी दांत", "सामने के दांत", "निचले दांत"],
+    labels: ["మరీజ్ కా చేహరా", "ఊపరీ దాంత్", "సామనే కే దాంత్", "నిచలే దాంత్"],
     frames: ["face", "upper", "front", "lower"],
-    saving:     "फ़ोटो सहेज रहे हैं...",
-    checking:   "छवि जाँच रहे हैं...",
-    face_ok:    "चेहरे की फ़ोटो सहेजी गई!",
-    ok:         "दांत पहचाने गए!",
-    fail:       "दांत नहीं मिले — कृपया दोबारा लें।",
-    next:       "अगला ➡",
-    retake:     "↩ दोबारा",
-    done_title: "सभी फ़ोटो भेज दी गई हैं!",
-    done_desc:  "4 फ़ोटो ऑपरेटर को भेज दी गई हैं।",
-    done_note:  "📋 ऑपरेटर अब आपकी AI रिपोर्ट तैयार करेगा।"
+    saving:     "ఫోటో సహేజ రహే హైం...",
+    checking:   "ఛవి జాంచ రహే హైం...",
+    face_ok:    "చేహరే కీ ఫోటో సహేజీ గయీ!",
+    ok:         "దాంత్ పహచానే గయే!",
+    fail:       "దాంత్ నహీం మిలే — కృపయా దోబారా లేం।",
+    next:       "అగలా ➡",
+    retake:     "↩ దోబారా",
+    done_title: "సభీ ఫోటో భేజ దీ గయీ హైం!",
+    done_desc:  "4 ఫోటో ఆపరేటర్ కో భేజ దీ గయీ హైం।",
+    done_note:  "📋 ఆపరేటర్ అబ ఆపకీ AI రిపోర్ట్ తైయార్ కరేగా।"
   }
 };
 
 const L = T[LANG] || T["English"];
+
+// ══════════════════════════════════════════════════════
+//  THE FIX: Ratio-based crop — no more offset math bugs
+//
+//  How object-fit:cover works:
+//    The video is scaled so BOTH dims >= container dims.
+//    One axis fills exactly; the other overflows and is
+//    centered+clipped. The guide frame (in CSS px) sits
+//    on top of the VISIBLE area of the container.
+//
+//  Key insight: the frame's position as a fraction of
+//  the container maps to the same fraction of the
+//  RENDERED video (not the source video). We then map
+//  that back to source pixels.
+//
+//  Steps:
+//  1. Find the CSS-pixel scale: displayScale = max(cW/vW, cH/vH)
+//  2. Rendered video size: rendW = vW*scale, rendH = vH*scale
+//  3. Clip offsets: clipX = (rendW - cW)/2, clipY = (rendH - cH)/2
+//     (how many CSS px of video are hidden on each side)
+//  4. Frame position in rendered-video-space:
+//     frameInRend_x = (frame.left - cont.left) + clipX
+//     frameInRend_y = (frame.top  - cont.top)  + clipY
+//  5. Convert to source pixels: sx = frameInRend_x / scale
+// ══════════════════════════════════════════════════════
+function cropToFrame(videoEl, frameEl, containerEl) {
+  const vW = videoEl.videoWidth;
+  const vH = videoEl.videoHeight;
+  if (!vW || !vH) return null;
+
+  const cRect = containerEl.getBoundingClientRect();
+  const fRect = frameEl.getBoundingClientRect();
+
+  const cW = cRect.width;
+  const cH = cRect.height;
+
+  // Scale factor for object-fit:cover
+  const scale = Math.max(cW / vW, cH / vH);
+
+  // Rendered (displayed) video dimensions in CSS px
+  const rendW = vW * scale;
+  const rendH = vH * scale;
+
+  // How much video is clipped on each side (centered)
+  const clipX = (rendW - cW) / 2;
+  const clipY = (rendH - cH) / 2;
+
+  // Frame position relative to container top-left
+  const fx = fRect.left - cRect.left;
+  const fy = fRect.top  - cRect.top;
+  const fw = fRect.width;
+  const fh = fRect.height;
+
+  // Map frame into rendered-video coordinate space
+  // then scale down to source pixels
+  const sx = Math.round((fx + clipX) / scale);
+  const sy = Math.round((fy + clipY) / scale);
+  const sw = Math.round(fw / scale);
+  const sh = Math.round(fh / scale);
+
+  // Clamp to source bounds
+  const safeSx = Math.max(0, Math.min(sx, vW - 1));
+  const safeSy = Math.max(0, Math.min(sy, vH - 1));
+  const safeSw = Math.min(sw, vW - safeSx);
+  const safeSh = Math.min(sh, vH - safeSy);
+
+  return { sx: safeSx, sy: safeSy, sw: safeSw, sh: safeSh };
+}
 
 // ── Image compression ──
 function compressCanvas(sourceCanvas, maxDim, quality) {
@@ -346,6 +410,7 @@ const videoEl      = document.getElementById("video");
 const preview      = document.getElementById("previewImg");
 const cvCrop       = document.getElementById("cvCrop");
 const ctxCrop      = cvCrop.getContext("2d");
+const camWrap      = document.getElementById("camWrap");
 const guideFrame   = document.getElementById("guideFrame");
 const gframeLabel  = document.getElementById("gframeLabel");
 const tipText      = document.getElementById("tipText");
@@ -361,7 +426,6 @@ const rmsg         = document.getElementById("rmsg");
 const flashOverlay = document.getElementById("flashOverlay");
 const switchBtn    = document.getElementById("switchBtn");
 const flashBtn     = document.getElementById("flashBtn");
-const camWrap      = document.getElementById("camWrap");
 
 retakeBtn.innerText = L.retake;
 nextBtn.innerText   = L.next;
@@ -452,72 +516,23 @@ function resetToCamera() {
   captureBtn.classList.add("pulsing");
 }
 
-// ════════════════════════════════════════════════
-//  CROP HELPER — correct object-fit:cover math
-//
-//  object-fit:cover: browser scales so BOTH dims
-//  are >= the display box (one axis fills exactly,
-//  the other overflows and is centred/clipped).
-//
-//  displayScale = Math.max(boxW/vw, boxH/vh)
-//  rendW = vw * displayScale  (>= boxW)
-//  rendH = vh * displayScale  (>= boxH)
-//  offsetX = (boxW - rendW) / 2  (negative = clipped)
-//
-//  Source pixel mapping:
-//    sx = (frameLeft_in_box - offsetX) / displayScale
-//    sw = frameWidth / displayScale
-//
-//  We use camWrap (the container) for box dims —
-//  more reliable than position:absolute video rect.
-// ════════════════════════════════════════════════
-function cropToFrame(videoElement, frameElement) {
-  const vw = videoElement.videoWidth;
-  const vh = videoElement.videoHeight;
-  if (!vw || !vh) return null;
-
-  // cam-wrap is the display container
-  const boxRect   = camWrap.getBoundingClientRect();
-  const frameRect = frameElement.getBoundingClientRect();
-
-  const boxW = boxRect.width;
-  const boxH = boxRect.height;
-
-  // object-fit:cover display scale (CSS px per source px)
-  const displayScale = Math.max(boxW / vw, boxH / vh);
-
-  // Rendered video size in CSS px (overflows on one axis)
-  const rendW  = vw * displayScale;
-  const rendH  = vh * displayScale;
-
-  // Overflow offset (negative = clipped by cover)
-  const offsetX = (boxW - rendW) / 2;
-  const offsetY = (boxH - rendH) / 2;
-
-  // Frame position relative to the container box
-  const fx = frameRect.left - boxRect.left;
-  const fy = frameRect.top  - boxRect.top;
-
-  // Map to source pixel coordinates
-  const sx = Math.max(0, Math.round((fx - offsetX) / displayScale));
-  const sy = Math.max(0, Math.round((fy - offsetY) / displayScale));
-  const sw = Math.min(Math.round(frameRect.width  / displayScale), vw - sx);
-  const sh = Math.min(Math.round(frameRect.height / displayScale), vh - sy);
-
-  return { sx, sy, sw, sh };
-}
-
 // ── Capture ──
 captureBtn.addEventListener("click", async () => {
-  const vw = videoEl.videoWidth, vh = videoEl.videoHeight;
-  if (!vw || !vh) { alert("Camera not ready. Please wait a moment."); return; }
+  const vW = videoEl.videoWidth, vH = videoEl.videoHeight;
+  if (!vW || !vH) { alert("Camera not ready. Please wait a moment."); return; }
+
+  // Wait one frame to ensure layout is settled
+  await new Promise(r => requestAnimationFrame(r));
 
   // Flash effect
   flashOverlay.classList.add("flash");
   setTimeout(() => flashOverlay.classList.remove("flash"), 200);
 
-  // Crop using fixed helper
-  const { sx, sy, sw, sh } = cropToFrame(videoEl, guideFrame);
+  // ✅ FIXED: use corrected crop helper
+  const crop = cropToFrame(videoEl, guideFrame, camWrap);
+  if (!crop) { alert("Crop failed — please try again."); return; }
+
+  const { sx, sy, sw, sh } = crop;
 
   cvCrop.width  = sw;
   cvCrop.height = sh;
