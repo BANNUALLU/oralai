@@ -453,41 +453,56 @@ function resetToCamera() {
 }
 
 // ════════════════════════════════════════════════
-//  CROP HELPER — fixed version
-//  Reference: video.getBoundingClientRect()
-//  which is the actual rendered video area.
-//  object-fit:cover crops the larger dimension,
-//  so we use min(scaleX, scaleY) for the scale.
+//  CROP HELPER — correct object-fit:cover math
+//
+//  object-fit:cover: browser scales so BOTH dims
+//  are >= the display box (one axis fills exactly,
+//  the other overflows and is centred/clipped).
+//
+//  displayScale = Math.max(boxW/vw, boxH/vh)
+//  rendW = vw * displayScale  (>= boxW)
+//  rendH = vh * displayScale  (>= boxH)
+//  offsetX = (boxW - rendW) / 2  (negative = clipped)
+//
+//  Source pixel mapping:
+//    sx = (frameLeft_in_box - offsetX) / displayScale
+//    sw = frameWidth / displayScale
+//
+//  We use camWrap (the container) for box dims —
+//  more reliable than position:absolute video rect.
 // ════════════════════════════════════════════════
 function cropToFrame(videoElement, frameElement) {
   const vw = videoElement.videoWidth;
   const vh = videoElement.videoHeight;
+  if (!vw || !vh) return null;
 
-  // Rendered rectangle of the video element in the page
-  const vidRect   = videoElement.getBoundingClientRect();
+  // cam-wrap is the display container
+  const boxRect   = camWrap.getBoundingClientRect();
   const frameRect = frameElement.getBoundingClientRect();
 
-  // object-fit:cover: scale so both dimensions are >= the box
-  // That means we use the SMALLER of the two ratios
-  const scaleX = vw / vidRect.width;
-  const scaleY = vh / vidRect.height;
-  const scale  = Math.min(scaleX, scaleY);
+  const boxW = boxRect.width;
+  const boxH = boxRect.height;
 
-  // How much of the rendered image extends beyond the box (centred)
-  const rendW  = vw / scale;
-  const rendH  = vh / scale;
-  const offsetX = (vidRect.width  - rendW) / 2;
-  const offsetY = (vidRect.height - rendH) / 2;
+  // object-fit:cover display scale (CSS px per source px)
+  const displayScale = Math.max(boxW / vw, boxH / vh);
 
-  // Frame in video-element-local coordinates
-  const fx = frameRect.left - vidRect.left;
-  const fy = frameRect.top  - vidRect.top;
+  // Rendered video size in CSS px (overflows on one axis)
+  const rendW  = vw * displayScale;
+  const rendH  = vh * displayScale;
+
+  // Overflow offset (negative = clipped by cover)
+  const offsetX = (boxW - rendW) / 2;
+  const offsetY = (boxH - rendH) / 2;
+
+  // Frame position relative to the container box
+  const fx = frameRect.left - boxRect.left;
+  const fy = frameRect.top  - boxRect.top;
 
   // Map to source pixel coordinates
-  const sx = Math.max(0, Math.round((fx - offsetX) * scale));
-  const sy = Math.max(0, Math.round((fy - offsetY) * scale));
-  const sw = Math.min(Math.round(frameRect.width  * scale), vw - sx);
-  const sh = Math.min(Math.round(frameRect.height * scale), vh - sy);
+  const sx = Math.max(0, Math.round((fx - offsetX) / displayScale));
+  const sy = Math.max(0, Math.round((fy - offsetY) / displayScale));
+  const sw = Math.min(Math.round(frameRect.width  / displayScale), vw - sx);
+  const sh = Math.min(Math.round(frameRect.height / displayScale), vh - sy);
 
   return { sx, sy, sw, sh };
 }

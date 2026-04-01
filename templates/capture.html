@@ -685,42 +685,60 @@ async function validateTeeth(b64) {
 }
 
 // ════════════════════════════════════════════════
-//  CROP HELPER — fixed version
-//  Uses video.getBoundingClientRect() as the
-//  reference, which is the actual rendered area
-//  of the video element in the page.
+//  CROP HELPER — correct object-fit:cover math
+//
+//  object-fit:cover: browser scales the video so
+//  BOTH dimensions are >= the display box, then
+//  centres and clips the overflow.
+//
+//  displayScale = Math.max(boxW/vw, boxH/vh)
+//    → the axis that just fills; the other overflows.
+//  rendW = vw * displayScale  (may be > boxW)
+//  rendH = vh * displayScale  (may be > boxH)
+//  offsetX = (boxW - rendW) / 2  (negative = clipped)
+//
+//  To find where the guide-frame is in SOURCE pixels:
+//    sx = (fx - offsetX) / displayScale
+//    sw = frameW / displayScale
+//
+//  We use cameraBox for box dimensions (reliable even
+//  on mobile where getBoundingClientRect on position:
+//  absolute video can be inaccurate).
 // ════════════════════════════════════════════════
 function cropToFrame(videoElement, frameElement) {
   const vw = videoElement.videoWidth;
   const vh = videoElement.videoHeight;
+  if (!vw || !vh) return null;
 
-  // The displayed rectangle of the video element itself
-  const vidRect   = videoElement.getBoundingClientRect();
+  // Use the camera-box container as the display rect
+  // (more reliable than the absolute-positioned video itself)
+  const boxRect   = cameraBox.getBoundingClientRect();
   const frameRect = frameElement.getBoundingClientRect();
 
-  // object-fit:cover scale factor
-  const scaleX = vw / vidRect.width;
-  const scaleY = vh / vidRect.height;
-  // cover uses the SMALLER scale so both dimensions fill the box
-  const scale  = Math.min(scaleX, scaleY);
+  const boxW = boxRect.width;
+  const boxH = boxRect.height;
 
-  // Rendered size in CSS pixels (may exceed vidRect for cover)
-  const rendW = vw / scale;
-  const rendH = vh / scale;
+  // object-fit:cover display scale
+  // = how many CSS pixels each source pixel occupies
+  const displayScale = Math.max(boxW / vw, boxH / vh);
 
-  // Offset of the rendered image inside the video box (centred)
-  const offsetX = (vidRect.width  - rendW) / 2;
-  const offsetY = (vidRect.height - rendH) / 2;
+  // Rendered video size in CSS pixels (one axis overflows)
+  const rendW = vw * displayScale;
+  const rendH = vh * displayScale;
 
-  // Frame position relative to video element top-left
-  const fx = frameRect.left - vidRect.left;
-  const fy = frameRect.top  - vidRect.top;
+  // How much the video overflows each edge (centred, so half each side)
+  const offsetX = (boxW - rendW) / 2;  // negative when overflowing
+  const offsetY = (boxH - rendH) / 2;
 
-  // Map to source pixel coordinates
-  const sx = Math.max(0, Math.round((fx - offsetX) * scale));
-  const sy = Math.max(0, Math.round((fy - offsetY) * scale));
-  const sw = Math.min(Math.round(frameRect.width  * scale), vw - sx);
-  const sh = Math.min(Math.round(frameRect.height * scale), vh - sy);
+  // Frame position relative to the box top-left
+  const fx = frameRect.left - boxRect.left;
+  const fy = frameRect.top  - boxRect.top;
+
+  // Map frame rect back to source pixel coords
+  const sx = Math.max(0, Math.round((fx - offsetX) / displayScale));
+  const sy = Math.max(0, Math.round((fy - offsetY) / displayScale));
+  const sw = Math.min(Math.round(frameRect.width  / displayScale), vw - sx);
+  const sh = Math.min(Math.round(frameRect.height / displayScale), vh - sy);
 
   return { sx, sy, sw, sh };
 }
