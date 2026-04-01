@@ -79,31 +79,77 @@ nav{position:fixed;top:0;left:0;right:0;z-index:100;display:flex;align-items:cen
 .guide-video-wrap video{width:100%;height:100%;object-fit:cover;}
 .guide-tip{background:rgba(26,111,255,0.08);border:1px solid rgba(26,111,255,0.2);border-radius:10px;padding:10px 12px;font-size:12px;color:var(--blue2);line-height:1.6;}
 .camera-panel{flex:1;min-width:0;display:flex;flex-direction:column;gap:14px;}
-.camera-box{position:relative;width:100%;aspect-ratio:4/3;border-radius:16px;overflow:hidden;
-  background:#000;border:1px solid var(--border);box-shadow:0 8px 32px rgba(0,0,0,0.4);transition:border-color .3s,box-shadow .3s;}
+
+/* ── CAMERA BOX: relative container, video fills it fully ── */
+.camera-box{
+  position:relative;
+  width:100%;
+  aspect-ratio:4/3;
+  border-radius:16px;
+  overflow:hidden;
+  background:#000;
+  border:1px solid var(--border);
+  box-shadow:0 8px 32px rgba(0,0,0,0.4);
+  transition:border-color .3s,box-shadow .3s;
+}
 .camera-box.valid-flash{border-color:var(--green);box-shadow:0 0 0 3px rgba(34,232,142,0.2);}
 .camera-box.invalid-flash{border-color:var(--red);box-shadow:0 0 0 3px rgba(239,68,68,0.2);}
-#video{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;}
-#previewImage{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;display:none;}
+
+/* Video fills the box exactly, no overflow */
+#video{
+  position:absolute;
+  inset:0;
+  width:100%;
+  height:100%;
+  object-fit:cover;
+  object-position:center;
+  display:block;
+}
+#previewImage{
+  position:absolute;
+  inset:0;
+  width:100%;
+  height:100%;
+  object-fit:cover;
+  object-position:center;
+  display:none;
+}
+
 .validation-overlay{display:none;position:absolute;inset:0;background:rgba(10,22,40,0.85);
   backdrop-filter:blur(8px);z-index:20;flex-direction:column;align-items:center;justify-content:center;gap:14px;border-radius:16px;}
 .validation-overlay.show{display:flex;}
 .spinner{width:44px;height:44px;border:3px solid rgba(255,255,255,0.1);border-top-color:var(--blue);border-radius:50%;animation:spin .7s linear infinite;}
 @keyframes spin{to{transform:rotate(360deg)}}
 .overlay-text{font-size:14px;font-weight:600;}
-.guide-frame{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);
-  border-radius:12px;pointer-events:none;z-index:10;border:2.5px dashed var(--cyan);
-  box-shadow:0 0 20px rgba(0,200,224,0.15);animation:framePulse 2s ease-in-out infinite;}
+
+/* Guide frame sits inside camera-box, uses % of the box */
+.guide-frame{
+  position:absolute;
+  top:50%;
+  left:50%;
+  transform:translate(-50%,-50%);
+  border-radius:12px;
+  pointer-events:none;
+  z-index:10;
+  border:2.5px dashed var(--cyan);
+  box-shadow:0 0 20px rgba(0,200,224,0.15);
+  animation:framePulse 2s ease-in-out infinite;
+}
 @keyframes framePulse{0%,100%{opacity:1}50%{opacity:.45}}
 .guide-frame::before,.guide-frame::after{content:'';position:absolute;width:20px;height:20px;border-color:var(--cyan);border-style:solid;}
 .guide-frame::before{top:-4px;left:-4px;border-width:3px 0 0 3px;border-radius:6px 0 0 0;}
 .guide-frame::after{bottom:-4px;right:-4px;border-width:0 3px 3px 0;border-radius:0 0 6px 0;}
+
+/* Face: 40% wide × 75% tall of the camera-box */
 .guide-frame.face{width:40%;height:75%;border-color:#f59e0b;box-shadow:0 0 20px rgba(245,158,11,0.15);}
 .guide-frame.face .frame-label{background:#f59e0b;}
 .guide-frame.face::before,.guide-frame.face::after{border-color:#f59e0b;}
+/* Upper / Lower: wide, mid-height */
 .guide-frame.upper{width:88%;height:62%;}
+/* Front: narrower, short */
 .guide-frame.front{width:58%;height:34%;}
 .guide-frame.lower{width:88%;height:62%;}
+
 .frame-label{position:absolute;top:-26px;left:50%;transform:translateX(-50%);
   background:var(--cyan);color:#0a1628;font-size:10px;font-weight:800;
   letter-spacing:.1em;text-transform:uppercase;padding:2px 10px;border-radius:999px;white-space:nowrap;}
@@ -401,7 +447,6 @@ button{display:inline-flex;align-items:center;gap:6px;padding:9px 18px;border:no
 </footer>
 <button class="scroll-top" onclick="window.scrollTo({top:0,behavior:'smooth'})" title="Back to top">↑</button>
 
-<canvas id="canvasFull" style="display:none;"></canvas>
 <canvas id="canvasCrop" style="display:none;"></canvas>
 
 <script>
@@ -409,9 +454,7 @@ const LANG = "{{session_language}}";
 const SESSION_TOKEN = "{{session_token}}";
 const BASE_URL = window.location.origin;
 
-// ════════════════════════════════════════════════
-//  INJECT QR BUTTON ON DESKTOP ONLY
-// ════════════════════════════════════════════════
+// ── Inject QR button on desktop only ──
 (function injectQRButtonIfDesktop() {
   const ua = navigator.userAgent;
   const isMobileOrTablet =
@@ -438,9 +481,7 @@ const BASE_URL = window.location.origin;
   }
 })();
 
-// ════════════════════════════════════════════════
-//  TRANSLATIONS
-// ════════════════════════════════════════════════
+// ── Translations ──
 const T = {
   "English": {
     face_title:"Capture Patient Face Photo",
@@ -484,8 +525,6 @@ const T = {
 
 const L = T[LANG] || T["English"];
 
-// Step 0 = face (skipValidate=true, front cam)
-// Steps 1-3 = teeth (validate, back cam)
 const steps = [
   { type:"face",  title:L.face_title,  sub:L.face_sub,  tip:L.face_tip,  video:"upper_demo.mp4", frameClass:"face",  label:L.face_label,  skipValidate:true  },
   { type:"upper", title:L.upper_title, sub:L.upper_sub, tip:L.upper_tip, video:"upper_demo.mp4", frameClass:"upper", label:L.upper_label, skipValidate:false },
@@ -515,7 +554,6 @@ document.getElementById("qrShotLabel1").innerText   = L.pill_upper;
 document.getElementById("qrShotLabel2").innerText   = L.pill_front;
 document.getElementById("qrShotLabel3").innerText   = L.pill_lower;
 
-// Init first step UI
 document.getElementById("titleText").innerText  = steps[0].title;
 document.getElementById("subText").innerText    = steps[0].sub;
 document.getElementById("guideTip").innerText   = steps[0].tip;
@@ -542,10 +580,8 @@ function setMode(mode) {
   }
 }
 
-// ════════════════════════════════════════════════
-//  DOM REFS
-// ════════════════════════════════════════════════
-const video             = document.getElementById("video");
+// ── DOM refs ──
+const videoEl           = document.getElementById("video");
 const preview           = document.getElementById("previewImage");
 const canvasCrop        = document.getElementById("canvasCrop");
 const ctxCrop           = canvasCrop.getContext("2d");
@@ -572,73 +608,47 @@ const bannerMsg         = document.getElementById("bannerMsg");
 const capturedThumbs = [];
 let currentStep = 0;
 let stream = null;
-let facingMode = "user"; // Step 0 is face → front cam
+let facingMode = "user";
 let flash = false;
 
-// ════════════════════════════════════════════════
-//  PILLS
-// ════════════════════════════════════════════════
 function updatePills() {
   for (let i = 0; i < 4; i++) {
     const p = document.getElementById("pill" + i);
     p.className = "step-pill";
-    if (i < currentStep)      p.classList.add("done");
+    if (i < currentStep)        p.classList.add("done");
     else if (i === currentStep) p.classList.add("active");
   }
 }
 
-// ════════════════════════════════════════════════
-//  CAMERA — FIXED: always stop old stream first,
-//  then start new with correct facingMode.
-//  Reset flash state on every camera start.
-// ════════════════════════════════════════════════
 async function startCamera() {
-  // Always stop existing stream before starting a new one
-  if (stream) {
-    stream.getTracks().forEach(t => t.stop());
-    stream = null;
-  }
-  // Reset flash whenever camera changes
+  if (stream) { stream.getTracks().forEach(t => t.stop()); stream = null; }
   flash = false;
   flashBtn.textContent = "⚡";
   flashBtn.style.opacity = "1";
-
   try {
     stream = await navigator.mediaDevices.getUserMedia({
       video: { facingMode, width: { ideal: 1920 }, height: { ideal: 1080 } }
     });
-    video.srcObject = stream;
+    videoEl.srcObject = stream;
   } catch (e) {
-    // Fallback without resolution hints
     try {
       stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode } });
-      video.srcObject = stream;
+      videoEl.srcObject = stream;
     } catch (e2) {
-      // Final fallback: any camera
       try {
         stream = await navigator.mediaDevices.getUserMedia({ video: true });
-        video.srcObject = stream;
-      } catch (e3) {
-        console.warn("Camera access denied:", e3);
-      }
+        videoEl.srcObject = stream;
+      } catch (e3) { console.warn("Camera access denied:", e3); }
     }
   }
 }
 
 function stopCamera() {
-  if (stream) {
-    stream.getTracks().forEach(t => t.stop());
-    stream = null;
-  }
+  if (stream) { stream.getTracks().forEach(t => t.stop()); stream = null; }
 }
 
-// Switch camera
-switchBtn.onclick = () => {
-  facingMode = facingMode === "environment" ? "user" : "environment";
-  startCamera();
-};
+switchBtn.onclick = () => { facingMode = facingMode === "environment" ? "user" : "environment"; startCamera(); };
 
-// Flash / torch
 flashBtn.onclick = async () => {
   if (!stream) return;
   const track = stream.getVideoTracks()[0];
@@ -649,21 +659,14 @@ flashBtn.onclick = async () => {
       flash = !flash;
       await track.applyConstraints({ advanced: [{ torch: flash }] });
       flashBtn.textContent = flash ? "🔦" : "⚡";
-    } catch (e) {
-      flash = false;
-      flashBtn.textContent = "⚡";
-    }
+    } catch (e) { flash = false; flashBtn.textContent = "⚡"; }
   } else {
-    // Torch not supported (normal on front cam)
     flashBtn.textContent = "🚫";
     flashBtn.style.opacity = "0.4";
     setTimeout(() => { flashBtn.textContent = "⚡"; flashBtn.style.opacity = "1"; }, 2000);
   }
 };
 
-// ════════════════════════════════════════════════
-//  BANNER HELPERS
-// ════════════════════════════════════════════════
 function showBanner(type, icon, message, sub) {
   resultBanner.className = "result-banner show " + type;
   bannerIcon.textContent = icon;
@@ -671,9 +674,6 @@ function showBanner(type, icon, message, sub) {
 }
 function hideBanner() { resultBanner.className = "result-banner"; }
 
-// ════════════════════════════════════════════════
-//  VALIDATE TEETH
-// ════════════════════════════════════════════════
 async function validateTeeth(b64) {
   const res = await fetch("/validate", {
     method: "POST",
@@ -685,32 +685,61 @@ async function validateTeeth(b64) {
 }
 
 // ════════════════════════════════════════════════
-//  CAPTURE BUTTON
+//  CROP HELPER — fixed version
+//  Uses video.getBoundingClientRect() as the
+//  reference, which is the actual rendered area
+//  of the video element in the page.
 // ════════════════════════════════════════════════
+function cropToFrame(videoElement, frameElement) {
+  const vw = videoElement.videoWidth;
+  const vh = videoElement.videoHeight;
+
+  // The displayed rectangle of the video element itself
+  const vidRect   = videoElement.getBoundingClientRect();
+  const frameRect = frameElement.getBoundingClientRect();
+
+  // object-fit:cover scale factor
+  const scaleX = vw / vidRect.width;
+  const scaleY = vh / vidRect.height;
+  // cover uses the SMALLER scale so both dimensions fill the box
+  const scale  = Math.min(scaleX, scaleY);
+
+  // Rendered size in CSS pixels (may exceed vidRect for cover)
+  const rendW = vw / scale;
+  const rendH = vh / scale;
+
+  // Offset of the rendered image inside the video box (centred)
+  const offsetX = (vidRect.width  - rendW) / 2;
+  const offsetY = (vidRect.height - rendH) / 2;
+
+  // Frame position relative to video element top-left
+  const fx = frameRect.left - vidRect.left;
+  const fy = frameRect.top  - vidRect.top;
+
+  // Map to source pixel coordinates
+  const sx = Math.max(0, Math.round((fx - offsetX) * scale));
+  const sy = Math.max(0, Math.round((fy - offsetY) * scale));
+  const sw = Math.min(Math.round(frameRect.width  * scale), vw - sx);
+  const sh = Math.min(Math.round(frameRect.height * scale), vh - sy);
+
+  return { sx, sy, sw, sh };
+}
+
 captureBtn.onclick = async () => {
-  const vw = video.videoWidth, vh = video.videoHeight;
+  const vw = videoEl.videoWidth, vh = videoEl.videoHeight;
   if (!vw || !vh) { alert("Camera not ready."); return; }
 
-  const boxRect   = cameraBox.getBoundingClientRect();
-  const frameRect = guideFrame.getBoundingClientRect();
-  const boxW = boxRect.width, boxH = boxRect.height;
-  const scale     = Math.max(boxW / vw, boxH / vh);
-  const renderedW = vw * scale, renderedH = vh * scale;
-  const offsetX   = (boxW - renderedW) / 2, offsetY = (boxH - renderedH) / 2;
-  const fx = frameRect.left - boxRect.left;
-  const fy = frameRect.top  - boxRect.top;
-  const sx = Math.max(0, Math.round((fx - offsetX) / scale));
-  const sy = Math.max(0, Math.round((fy - offsetY) / scale));
-  const sw = Math.min(Math.round(frameRect.width  / scale), vw - sx);
-  const sh = Math.min(Math.round(frameRect.height / scale), vh - sy);
+  // Use fixed crop helper
+  const { sx, sy, sw, sh } = cropToFrame(videoEl, guideFrame);
 
-  canvasCrop.width = sw; canvasCrop.height = sh;
-  ctxCrop.drawImage(video, sx, sy, sw, sh, 0, 0, sw, sh);
+  canvasCrop.width  = sw;
+  canvasCrop.height = sh;
+  ctxCrop.drawImage(videoEl, sx, sy, sw, sh, 0, 0, sw, sh);
   const cropImg = canvasCrop.toDataURL("image/jpeg", 0.92);
 
-  preview.src = cropImg;
+  preview.src           = cropImg;
   preview.style.display = "block";
-  video.style.display   = "none";
+  videoEl.style.display = "none";
   captureBtn.disabled   = true;
   hideBanner();
   validationOverlay.classList.add("show");
@@ -718,7 +747,6 @@ captureBtn.onclick = async () => {
   const isFaceStep = steps[currentStep].skipValidate;
 
   if (isFaceStep) {
-    // Face step: save directly, no teeth validation
     fetch("/capture", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -736,7 +764,6 @@ captureBtn.onclick = async () => {
     captureBtn.disabled = false;
 
   } else {
-    // Teeth steps: validate first
     try {
       const result = await validateTeeth(cropImg);
       validationOverlay.classList.remove("show");
@@ -761,7 +788,7 @@ captureBtn.onclick = async () => {
         showBanner("error", "❌", L.no_teeth, (result.reason || "") + " " + L.retake_msg);
         setTimeout(() => {
           preview.style.display = "none";
-          video.style.display   = "block";
+          videoEl.style.display = "block";
           hideBanner();
           captureBtn.disabled = false;
         }, 2500);
@@ -770,18 +797,15 @@ captureBtn.onclick = async () => {
       validationOverlay.classList.remove("show");
       showBanner("error", "❌", "Validation failed — " + err.message, "");
       preview.style.display = "none";
-      video.style.display   = "block";
+      videoEl.style.display = "block";
       captureBtn.disabled   = false;
     }
   }
 };
 
-// ════════════════════════════════════════════════
-//  RETAKE / NEXT
-// ════════════════════════════════════════════════
 retakeBtn.onclick = () => {
   preview.style.display = "none";
-  video.style.display   = "block";
+  videoEl.style.display = "block";
   hideBanner();
   captureBtn.classList.remove("hidden");
   retakeBtn.classList.add("hidden");
@@ -794,27 +818,24 @@ nextBtn.onclick = () => {
 
   if (currentStep < steps.length) {
     const s = steps[currentStep];
-    titleText.innerText  = s.title;
-    subText.innerText    = s.sub;
-    guideTip.innerText   = s.tip;
-    refVideo.src         = "/static/" + s.video;
+    titleText.innerText   = s.title;
+    subText.innerText     = s.sub;
+    guideTip.innerText    = s.tip;
+    refVideo.src          = "/static/" + s.video;
     refVideo.load();
-    frameLabel.innerText = s.label;
-    guideFrame.className = "guide-frame " + s.frameClass;
+    frameLabel.innerText  = s.label;
+    guideFrame.className  = "guide-frame " + s.frameClass;
     preview.style.display = "none";
-    video.style.display   = "block";
+    videoEl.style.display = "block";
     updatePills();
     captureBtn.classList.remove("hidden");
     retakeBtn.classList.add("hidden");
     nextBtn.classList.add("hidden");
 
-    // FIXED: always switch to correct camera for every step
-    // Face step → front cam, all teeth steps → back cam
     const newFacing = (s.type === "face") ? "user" : "environment";
     facingMode = newFacing;
-    startCamera(); // always restart camera to ensure correct facing
+    startCamera();
   } else {
-    // All done
     for (let i = 0; i < 4; i++) document.getElementById("pill" + i).className = "step-pill done";
     stopCamera();
     titleBar.style.display    = "none";
@@ -828,9 +849,7 @@ nextBtn.onclick = () => {
   }
 };
 
-// ════════════════════════════════════════════════
-//  QR MODE
-// ════════════════════════════════════════════════
+// ── QR MODE ──
 let qrGenerated = false;
 let qrReceivedCount = 0;
 
@@ -909,12 +928,12 @@ function startGenerating(formEl) {
     ? formEl.querySelector("button")
     : (document.getElementById("generateBtn") || document.getElementById("qrProceedBtn"));
   if (btn) { btn.disabled = true; btn.innerText = "⏳ Generating..."; }
-  const status       = document.getElementById("genStatus");
+  const status        = document.getElementById("genStatus");
   const qrGenProgress = document.getElementById("qrGenProgress");
-  const qrGenText    = document.getElementById("qrGenText");
-  const genTitle     = document.getElementById("genTitle");
-  const genDesc      = document.getElementById("genDesc");
-  if (status)       status.classList.add("show");
+  const qrGenText     = document.getElementById("qrGenText");
+  const genTitle      = document.getElementById("genTitle");
+  const genDesc       = document.getElementById("genDesc");
+  if (status)        status.classList.add("show");
   if (qrGenProgress) qrGenProgress.classList.add("show");
   const s = [
     { t:0,     title:"Generating AI Report...",     desc:"Running YOLO detection on your images...",   qr:"Generating AI Report..." },
@@ -931,12 +950,7 @@ function startGenerating(formEl) {
   }, x.t));
 }
 
-// ════════════════════════════════════════════════
-//  INIT
-//  Step 0 = face → front cam ("user")
-//  Steps 1-3 = teeth → back cam ("environment")
-// ════════════════════════════════════════════════
-facingMode = "user"; // face step = front camera
+facingMode = "user";
 startCamera();
 
 function toggleMenu() { document.getElementById("mobileMenu").classList.toggle("open"); }
