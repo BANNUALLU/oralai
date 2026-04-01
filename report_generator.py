@@ -156,36 +156,39 @@ def draw_section_bar_rl(c, W, y, title, color=None):
     return y - 26
 
 
-# ── Helper: get face photo path from session/screening ──────────
+# ── FIX: get face photo — checks uploads dir first, then results ──
 def get_face_photo_path(screening_id, report_id):
     """
     Returns the file path of the saved face photo.
-    Face photo is saved as: static/results/{screening_id}_face.jpg
-    Falls back to static/results/{report_id}_face.jpg
+    Checks static/uploads first (where phone_save stores it),
+    then static/results as fallback.
     """
     if screening_id:
+        # Primary location — phone_save saves here
+        path = os.path.join("static", "uploads", f"{screening_id}_face.jpg")
+        if os.path.exists(path):
+            print(f"[Face] Found in uploads: {path}")
+            return path
+        # Fallback — results dir
         path = os.path.join("static", "results", f"{screening_id}_face.jpg")
         if os.path.exists(path):
+            print(f"[Face] Found in results: {path}")
             return path
+
+    # Last resort — report_id based
     path = os.path.join("static", "results", f"{report_id}_face.jpg")
     if os.path.exists(path):
+        print(f"[Face] Found by report_id: {path}")
         return path
-    # Also try generic face.jpg
-    path = os.path.join("static", "results", "face.jpg")
-    if os.path.exists(path):
-        return path
+
+    print("[Face] No face photo found — placeholder will be used.")
     return None
 
 
 # ── Draw patient info bar WITH face photo ───────────────────────
 def draw_patient_info_bar(c, W, H, header_h, name, age, gender, phone, now, face_photo_path=None):
-    """
-    Draws the patient info bar below the header.
-    ── CHANGED: adds face photo box on the RIGHT side of the bar ──
-    Layout: Name | Phone | Date | [Face Photo]
-    """
     bar_top = H - header_h
-    bar_h = 54  # ── CHANGED: increased height to fit photo ──
+    bar_h   = 54
 
     c.setFillColor(C_SURFACE2)
     c.rect(0, bar_top - bar_h, W, bar_h, fill=1, stroke=0)
@@ -193,18 +196,15 @@ def draw_patient_info_bar(c, W, H, header_h, name, age, gender, phone, now, face
     c.setLineWidth(0.8)
     c.line(0, bar_top - bar_h, W, bar_top - bar_h)
 
-    # ── CHANGED: face photo on right ──
     photo_w = 40
     photo_h = 44
     photo_x = W - photo_w - 14
     photo_y = bar_top - bar_h + 5
 
     if face_photo_path and os.path.exists(face_photo_path):
-        # Draw photo border box
         c.setStrokeColor(C_BORDER)
         c.setLineWidth(1)
         c.roundRect(photo_x - 2, photo_y - 2, photo_w + 4, photo_h + 4, 4, fill=0, stroke=1)
-        # Draw face photo
         try:
             c.drawImage(
                 face_photo_path,
@@ -217,11 +217,7 @@ def draw_patient_info_bar(c, W, H, header_h, name, age, gender, phone, now, face
             print(f"Face photo draw error: {e}")
             _draw_face_placeholder(c, photo_x, photo_y, photo_w, photo_h)
     else:
-        # No photo — draw placeholder box
         _draw_face_placeholder(c, photo_x, photo_y, photo_w, photo_h)
-
-    # ── CHANGED: text area is now narrower to leave room for photo ──
-    text_area_width = W - photo_w - 40
 
     def info_pair(label, value, x, y):
         c.setFillColor(C_MUTED)
@@ -232,24 +228,22 @@ def draw_patient_info_bar(c, W, H, header_h, name, age, gender, phone, now, face
         c.setFont("Helvetica-Bold", 10)
         c.drawString(x + lw + 3, y, value)
 
-    # Info text — two rows to fit nicely
-    iy1 = bar_top - 22  # first row
-    iy2 = bar_top - 38  # second row
+    iy1 = bar_top - 22
+    iy2 = bar_top - 38
 
     info_pair("Name:",  f"{name}  ({age} / {gender})", 28, iy1)
     info_pair("Phone:", phone, 28, iy2)
     info_pair("Date:",  now,   220, iy2)
 
-    return bar_top - bar_h  # return bottom of bar
+    return bar_top - bar_h
 
 
 def _draw_face_placeholder(c, x, y, w, h):
-    """Draw a grey placeholder box when no face photo available."""
     c.setFillColor(colors.HexColor("#e2e8f0"))
     c.roundRect(x, y, w, h, 4, fill=1, stroke=0)
     c.setFillColor(colors.HexColor("#94a3b8"))
     c.setFont("Helvetica", 7)
-    c.drawCentredString(x + w / 2, y + h / 2 - 3, "No")
+    c.drawCentredString(x + w / 2, y + h / 2 - 3,  "No")
     c.drawCentredString(x + w / 2, y + h / 2 - 11, "Photo")
 
 
@@ -272,9 +266,17 @@ class AnalysisPDF(FPDF):
         self.page_num    = 2
 
         self.font_name = "NotoUni"
-        if os.path.exists(font_path):
-            self.add_font(self.font_name, style="", fname=font_path)
+
+        # ── FIX: only register font if the file actually exists ──
+        if font_path and os.path.exists(font_path):
+            try:
+                self.add_font(self.font_name, style="", fname=font_path)
+                print(f"[Font] Loaded: {font_path}")
+            except Exception as e:
+                print(f"[Font] Failed to load {font_path}: {e}")
+                self.font_name = None
         else:
+            print(f"[Font] NOT FOUND: {font_path} — falling back to Helvetica (Telugu/Indian scripts will show as boxes)")
             self.font_name = None
 
     def get_font(self, bold=False, size=10):
@@ -396,6 +398,13 @@ def generate_analysis_pages_fpdf2(claude_analysis, language, name, age, gender,
     font_file = LANG_FONT_MAP.get(language, "NotoSans-Regular.ttf")
     font_path = os.path.join(FONTS_DIR, font_file)
 
+    # ── FIX: warn clearly if font is missing ──
+    if not os.path.exists(font_path):
+        print(f"[Font] WARNING: {font_path} not found!")
+        print(f"[Font] Telugu/Indian script text will render as boxes/dots.")
+        print(f"[Font] Download fonts: https://fonts.google.com/noto")
+        print(f"[Font] Place them in: {FONTS_DIR}/")
+
     pdf = AnalysisPDF(
         language=language,
         font_path=font_path,
@@ -487,12 +496,8 @@ def generate_pdf(user_data, detected_labels, report_id,
     report_path = f"static/reports/{report_id}.pdf"
     logo_path   = "static/logo.png"
 
-    # ── CHANGED: get face photo path ──
+    # ── FIX: use corrected face photo lookup ──
     face_photo_path = get_face_photo_path(screening_id, report_id)
-    if face_photo_path:
-        print(f"Face photo found: {face_photo_path}")
-    else:
-        print("No face photo found — placeholder will be used.")
 
     page1_total = 2
 
@@ -527,14 +532,12 @@ def generate_pdf(user_data, detected_labels, report_id,
         c.setFont("Helvetica-Bold", 22)
         c.drawString(30, H - header_h + 44, "Oral Health Screening Report")
 
-    # ── CHANGED: patient info bar now includes face photo ──
     bar_bottom = draw_patient_info_bar(
         c, W, H, header_h,
         name, age, gender, phone, now,
         face_photo_path=face_photo_path
     )
 
-    # Screening section — starts below the (now taller) info bar
     cur_y = bar_bottom
     cur_y = draw_section_bar_rl(c, W, cur_y, "  AI SCREENING REPORT")
 
@@ -698,7 +701,6 @@ def generate_pdf(user_data, detected_labels, report_id,
             )
 
             from pypdf import PdfWriter, PdfReader
-            import io
 
             writer = PdfWriter()
 
@@ -741,7 +743,6 @@ def generate_pdf(user_data, detected_labels, report_id,
                 c2.setFont("Helvetica-Bold", 22)
                 c2.drawString(30, H2 - header_h + 44, "Oral Health Screening Report")
 
-            # ── CHANGED: redraw info bar with face photo ──
             bar_bottom2 = draw_patient_info_bar(
                 c2, W2, H2, header_h,
                 name, age, gender, phone, now,

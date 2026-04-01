@@ -94,7 +94,6 @@ def delete_phone_session(token):
 
 # ── HTML error page helper ────────────────────────────────────
 def html_error(title, message, status=400):
-    """Return a styled HTML error page instead of plain text."""
     html = f"""<!DOCTYPE html>
 <html>
 <head>
@@ -126,9 +125,7 @@ def html_error(title, message, status=400):
     return html, status
 
 
-# ── HTML success page helper (for QR session complete) ────────
 def html_done(title, message):
-    """Return a styled HTML done page when QR session is complete."""
     html = f"""<!DOCTYPE html>
 <html>
 <head>
@@ -163,17 +160,13 @@ def html_done(title, message):
 
 # ════════════════════════════════════════════════════════════
 #  HELPER — Delete uploaded + YOLO result images for a screening
-#  (called AFTER the PDF is fully generated so images are no longer needed)
 # ════════════════════════════════════════════════════════════
 def cleanup_old_files(screening_id):
-    """Delete all uploaded and YOLO-result images for a given screening_id.
-    The final PDF in static/reports/ is intentionally kept for download.
-    """
     if not screening_id:
         return
     patterns = [
-        os.path.join(UPLOAD_DIR, f"{screening_id}_*.jpg"),   # raw captures
-        os.path.join(RESULT_DIR, f"{screening_id}_*.jpg"),   # YOLO annotated
+        os.path.join(UPLOAD_DIR, f"{screening_id}_*.jpg"),
+        os.path.join(RESULT_DIR, f"{screening_id}_*.jpg"),
     ]
     deleted = 0
     for pattern in patterns:
@@ -212,7 +205,7 @@ def start():
 
 
 # ════════════════════════════════════════════════════════════
-#  PRIVACY POLICY  ✅ NEW
+#  PRIVACY POLICY
 # ════════════════════════════════════════════════════════════
 @app.route("/privacy")
 def privacy():
@@ -220,7 +213,7 @@ def privacy():
 
 
 # ════════════════════════════════════════════════════════════
-#  TERMS OF USE  ✅ NEW
+#  TERMS OF USE
 # ════════════════════════════════════════════════════════════
 @app.route("/terms")
 def terms():
@@ -233,7 +226,6 @@ def terms():
 @app.route("/details", methods=["GET", "POST"])
 def details():
     if request.method == "POST":
-        # Clean up any images from a previous session BEFORE clearing it
         old_screening_id = session.get("screening_id")
         if old_screening_id:
             cleanup_old_files(old_screening_id)
@@ -253,12 +245,16 @@ def details():
         session.modified  = True
 
         token = session["session_token"]
+
+        # ── FIX: added face + face_thumb to phone session ──
         save_phone_session(token, {
             "screening_id": session["screening_id"],
             "language":     session["language"],
+            "face":         False,
             "upper":        False,
             "front":        False,
             "lower":        False,
+            "face_thumb":   "",
             "upper_thumb":  "",
             "front_thumb":  "",
             "lower_thumb":  "",
@@ -309,7 +305,7 @@ def phone_capture():
         print(f"phone_capture: session already expired for token {token[:8]}...")
         return html_done(
             "All Photos Received!",
-            "All 3 dental photos have been successfully sent to the operator. You can return the phone."
+            "All 4 photos have been successfully sent to the operator. You can return the phone."
         )
 
     language = ps.get("language", "English")
@@ -330,19 +326,22 @@ def phone_status():
     if not ps:
         return jsonify({"error": "session not found"}), 404
 
+    # ── FIX: return face status too ──
     return jsonify({
-        "upper":       ps["upper"],
-        "front":       ps["front"],
-        "lower":       ps["lower"],
-        "upper_thumb": ps["upper_thumb"],
-        "front_thumb": ps["front_thumb"],
-        "lower_thumb": ps["lower_thumb"],
+        "face":        ps.get("face", False),
+        "upper":       ps.get("upper", False),
+        "front":       ps.get("front", False),
+        "lower":       ps.get("lower", False),
+        "face_thumb":  ps.get("face_thumb", ""),
+        "upper_thumb": ps.get("upper_thumb", ""),
+        "front_thumb": ps.get("front_thumb", ""),
+        "lower_thumb": ps.get("lower_thumb", ""),
         "expired":     ps.get("expired", False),
     })
 
 
 # ════════════════════════════════════════════════════════════
-#  PHONE EXPIRE  (operator calls this when all 3 photos received)
+#  PHONE EXPIRE  (operator calls this when all 4 photos received)
 # ════════════════════════════════════════════════════════════
 @app.route("/phone_expire", methods=["POST"])
 def phone_expire():
@@ -377,7 +376,8 @@ def phone_save():
         image_type = data.get("type", "")
         image_b64  = data.get("image", "")
 
-        if not token or image_type not in ("upper", "front", "lower") or not image_b64:
+        # ── FIX: added "face" to accepted image types ──
+        if not token or image_type not in ("face", "upper", "front", "lower") or not image_b64:
             return jsonify({"status": "error", "msg": "bad params"}), 400
 
         ps = get_phone_session(token)
@@ -468,12 +468,12 @@ def validate():
 
 
 # ════════════════════════════════════════════════════════════
-#  SAVE CAPTURED IMAGE  (local camera mode)
+#  SAVE CAPTURED IMAGE  (local camera mode — face + teeth)
 # ════════════════════════════════════════════════════════════
 @app.route("/capture", methods=["POST"])
 def capture_image():
     data         = request.get_json()
-    image_type   = data["type"]
+    image_type   = data["type"]   # "face", "upper", "front", "lower"
     image_base64 = data["image"].split(",")[1]
     image_bytes  = base64.b64decode(image_base64)
 
@@ -636,7 +636,7 @@ def generate():
     with report_semaphore:
         print(f"[Generate] Slot acquired for: {name}")
 
-        # ── Step 1: Run YOLO on all 3 images ──────────────────
+        # ── Step 1: Run YOLO on all 3 teeth images ─────────────
         all_detections  = []
         detected_labels = []
         yolo_paths      = {}
