@@ -63,7 +63,6 @@ nav{position:fixed;top:0;left:0;right:0;z-index:100;display:flex;align-items:cen
 
 .header{display:flex;align-items:center;justify-content:flex-end;margin-bottom:20px;flex-wrap:wrap;gap:10px;}
 .steps{display:flex;gap:8px;}
-/* ── CHANGED: 4 step pills (Face + Upper + Front + Lower) ── */
 .step-pill{display:flex;align-items:center;gap:6px;padding:5px 12px;border-radius:999px;
   font-size:12px;font-weight:600;background:rgba(255,255,255,0.05);color:var(--muted);border:1px solid var(--border);transition:all .3s;}
 .step-pill .dot{width:7px;height:7px;border-radius:50%;background:currentColor;}
@@ -99,7 +98,6 @@ nav{position:fixed;top:0;left:0;right:0;z-index:100;display:flex;align-items:cen
 .guide-frame::before,.guide-frame::after{content:'';position:absolute;width:20px;height:20px;border-color:var(--cyan);border-style:solid;}
 .guide-frame::before{top:-4px;left:-4px;border-width:3px 0 0 3px;border-radius:6px 0 0 0;}
 .guide-frame::after{bottom:-4px;right:-4px;border-width:0 3px 3px 0;border-radius:0 0 6px 0;}
-/* ── ADDED: face frame style ── */
 .guide-frame.face{width:40%;height:75%;border-color:#f59e0b;box-shadow:0 0 20px rgba(245,158,11,0.15);}
 .guide-frame.face .frame-label{background:#f59e0b;}
 .guide-frame.face::before,.guide-frame.face::after{border-color:#f59e0b;}
@@ -154,7 +152,6 @@ button{display:inline-flex;align-items:center;gap:6px;padding:9px 18px;border:no
 .qr-progress-title{font-size:13px;font-weight:700;margin-bottom:14px;display:flex;align-items:center;gap:8px;}
 .qr-progress-title .live-dot{width:8px;height:8px;border-radius:50%;background:var(--green);animation:livePulse 1.2s ease-in-out infinite;}
 @keyframes livePulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.4;transform:scale(.7)}}
-/* ── CHANGED: 4 shots in QR progress ── */
 .qr-shots{display:flex;gap:10px;}
 .qr-shot{flex:1;border-radius:10px;overflow:hidden;border:1px solid var(--border);background:rgba(255,255,255,0.03);
   aspect-ratio:4/3;position:relative;transition:border-color .3s;}
@@ -282,7 +279,6 @@ button{display:inline-flex;align-items:center;gap:6px;padding:9px 18px;border:no
 
     <div class="header">
       <div class="steps">
-        <!-- ── CHANGED: 4 pills — Face, Upper, Front, Lower ── -->
         <div class="step-pill active" id="pill0"><div class="dot"></div><span id="pill0txt">Face</span></div>
         <div class="step-pill" id="pill1"><div class="dot"></div><span id="pill1txt">Upper</span></div>
         <div class="step-pill" id="pill2"><div class="dot"></div><span id="pill2txt">Front</span></div>
@@ -313,7 +309,6 @@ button{display:inline-flex;align-items:center;gap:6px;padding:9px 18px;border:no
               <div class="spinner"></div>
               <div class="overlay-text" id="checkingText">Saving photo...</div>
             </div>
-            <!-- ── CHANGED: starts with face frame ── -->
             <div class="guide-frame face" id="guideFrame">
               <div class="frame-label" id="frameLabel">Patient Face</div>
             </div>
@@ -359,7 +354,6 @@ button{display:inline-flex;align-items:center;gap:6px;padding:9px 18px;border:no
         </div>
         <div class="qr-progress-wrap">
           <div class="qr-progress-title"><div class="live-dot"></div>Live Photo Progress</div>
-          <!-- ── CHANGED: 4 shots — Face, Upper, Front, Lower ── -->
           <div class="qr-shots">
             <div class="qr-shot" id="qrShot0"><img id="qrThumb0" src="" alt=""><div class="qr-shot-placeholder"><div class="qr-shot-icon">🧑</div><div class="qr-shot-label" id="qrShotLabel0">Face</div></div><div class="qr-shot-badge">✓</div></div>
             <div class="qr-shot" id="qrShot1"><img id="qrThumb1" src="" alt=""><div class="qr-shot-placeholder"><div class="qr-shot-icon">🦷</div><div class="qr-shot-label" id="qrShotLabel1">Upper</div></div><div class="qr-shot-badge">✓</div></div>
@@ -381,7 +375,6 @@ button{display:inline-flex;align-items:center;gap:6px;padding:9px 18px;border:no
       <div class="final-icon">✅</div>
       <h3 id="finalTitle">All Photos Captured!</h3>
       <p id="finalDesc">Face + 3 dental views saved. Generate your AI dental report now.</p>
-      <!-- ── CHANGED: 4 thumbs — Face, Upper, Front, Lower ── -->
       <div class="thumb-row">
         <div class="thumb"><img id="thumb0" src=""><div class="thumb-label" id="thumbLabel0">Face</div></div>
         <div class="thumb"><img id="thumb1" src=""><div class="thumb-label" id="thumbLabel1">Upper</div></div>
@@ -416,6 +409,9 @@ const LANG = "{{session_language}}";
 const SESSION_TOKEN = "{{session_token}}";
 const BASE_URL = window.location.origin;
 
+// ════════════════════════════════════════════════
+//  INJECT QR BUTTON ON DESKTOP ONLY
+// ════════════════════════════════════════════════
 (function injectQRButtonIfDesktop() {
   const ua = navigator.userAgent;
   const isMobileOrTablet =
@@ -442,9 +438,11 @@ const BASE_URL = window.location.origin;
   }
 })();
 
-const T={
-  "English":{
-    // ── CHANGED: step 0 = face, steps 1-3 = teeth ──
+// ════════════════════════════════════════════════
+//  TRANSLATIONS
+// ════════════════════════════════════════════════
+const T = {
+  "English": {
     face_title:"Capture Patient Face Photo",
     face_sub:"Position the patient's face inside the guide box, then tap Capture.",
     face_tip:"🧑 Ask the patient to look straight at the camera. Face should be clearly visible.",
@@ -458,8 +456,9 @@ const T={
     capture:"📸 Capture",retake:"↩ Retake",next:"Next ➡",
     pill_face:"Face",pill_upper:"Upper",pill_front:"Front",pill_lower:"Lower",
     final_title:"All Photos Captured!",final_desc:"Face + 3 dental views saved. Generate your AI dental report now.",generate:"🤖 Generate AI Report",
-    thumb_face:"Face",thumb_upper:"Upper",thumb_front:"Front",thumb_lower:"Lower"},
-  "Telugu":{
+    thumb_face:"Face",thumb_upper:"Upper",thumb_front:"Front",thumb_lower:"Lower"
+  },
+  "Telugu": {
     face_title:"రోగి ముఖ ఫోటో తీయండి",face_sub:"రోగి ముఖాన్ని గైడ్ బాక్స్ లో సరిచేసి, Capture నొక్కండి.",face_tip:"🧑 రోగిని నేరుగా కెమెరా వైపు చూడమని చెప్పండి.",face_label:"రోగి ముఖం",
     upper_title:"పై దంతాలు తీయండి",upper_sub:"మీ పై దంతాలను గైడ్ బాక్స్ లో సరిచేసి, Capture నొక్కండి.",upper_tip:"🦷 నోరు బాగా తెరచి, కెమెరాను కొంచెం కిందకి వంచండి.",upper_label:"పై దంతాలు",
     front_title:"ముందు దంతాలు తీయండి",front_sub:"మీ ముందు దంతాలను గైడ్ బాక్స్ లో చూపించండి.",front_tip:"😁 కెమెరాను నోటికి సమాంతరంగా ఉంచండి.",front_label:"ముందు దంతాలు",
@@ -468,8 +467,9 @@ const T={
     capture:"📸 తీయండి",retake:"↩ మళ్ళీ",next:"తదుపరి ➡",
     pill_face:"ముఖం",pill_upper:"పై",pill_front:"ముందు",pill_lower:"కింది",
     final_title:"అన్ని ఫోటోలు తీయబడ్డాయి!",final_desc:"ముఖం + 3 వ్యూలు సేవ్ చేయబడ్డాయి.",generate:"🤖 AI నివేదిక రూపొందించండి",
-    thumb_face:"ముఖం",thumb_upper:"పై",thumb_front:"ముందు",thumb_lower:"కింది"},
-  "Hindi":{
+    thumb_face:"ముఖం",thumb_upper:"పై",thumb_front:"ముందు",thumb_lower:"కింది"
+  },
+  "Hindi": {
     face_title:"मरीज़ की फ़ोटो कैप्चर करें",face_sub:"मरीज़ का चेहरा गाइड बॉक्स में रखें, फिर Capture दबाएं।",face_tip:"🧑 मरीज़ को सीधे कैमरे की तरफ देखने को कहें।",face_label:"मरीज़ का चेहरा",
     upper_title:"ऊपरी दांत कैप्चर करें",upper_sub:"अपने ऊपरी दांतों को गाइड बॉक्स में संरेखित करें।",upper_tip:"🦷 मुंह चौड़ा खोलें और कैमरे को थोड़ा नीचे झुकाएं।",upper_label:"ऊपरी दांत",
     front_title:"सामने के दांत कैप्चर करें",front_sub:"अपने सामने के दांत गाइड बॉक्स में सीधे दिखाएं।",front_tip:"😁 कैमरे को मुंह के बराबर रखें।",front_label:"सामने के दांत",
@@ -478,46 +478,47 @@ const T={
     capture:"📸 कैप्चर करें",retake:"↩ दोबारा",next:"अगला ➡",
     pill_face:"चेहरा",pill_upper:"ऊपरी",pill_front:"सामने",pill_lower:"निचले",
     final_title:"सभी फ़ोटो ले ली गई हैं!",final_desc:"चेहरा + 3 व्यू सहेजे गए।",generate:"🤖 AI रिपोर्ट बनाएं",
-    thumb_face:"चेहरा",thumb_upper:"ऊपरी",thumb_front:"सामने",thumb_lower:"निचले"}
+    thumb_face:"चेहरा",thumb_upper:"ऊपरी",thumb_front:"सामने",thumb_lower:"निचले"
+  }
 };
 
 const L = T[LANG] || T["English"];
 
-// ── CHANGED: steps array — index 0 is face, 1-3 are teeth ──
-// Face step has no validation (just save directly), teeth steps validate
-const steps=[
-  {type:"face",  title:L.face_title,  sub:L.face_sub,  tip:L.face_tip,  video:"upper_demo.mp4", frameClass:"face",  label:L.face_label,  skipValidate:true},
-  {type:"upper", title:L.upper_title, sub:L.upper_sub, tip:L.upper_tip, video:"upper_demo.mp4", frameClass:"upper", label:L.upper_label, skipValidate:false},
-  {type:"front", title:L.front_title, sub:L.front_sub, tip:L.front_tip, video:"front_demo.mp4", frameClass:"front", label:L.front_label, skipValidate:false},
-  {type:"lower", title:L.lower_title, sub:L.lower_sub, tip:L.lower_tip, video:"lower_demo.mp4", frameClass:"lower", label:L.lower_label, skipValidate:false}
+// Step 0 = face (skipValidate=true, front cam)
+// Steps 1-3 = teeth (validate, back cam)
+const steps = [
+  { type:"face",  title:L.face_title,  sub:L.face_sub,  tip:L.face_tip,  video:"upper_demo.mp4", frameClass:"face",  label:L.face_label,  skipValidate:true  },
+  { type:"upper", title:L.upper_title, sub:L.upper_sub, tip:L.upper_tip, video:"upper_demo.mp4", frameClass:"upper", label:L.upper_label, skipValidate:false },
+  { type:"front", title:L.front_title, sub:L.front_sub, tip:L.front_tip, video:"front_demo.mp4", frameClass:"front", label:L.front_label, skipValidate:false },
+  { type:"lower", title:L.lower_title, sub:L.lower_sub, tip:L.lower_tip, video:"lower_demo.mp4", frameClass:"lower", label:L.lower_label, skipValidate:false }
 ];
 
-// Apply translations to pills and labels
-document.getElementById("refLabel").innerText = L.reference;
-document.getElementById("checkingText").innerText = L.checking;
-document.getElementById("captureBtn").innerText = L.capture;
-document.getElementById("retakeBtn").innerText = L.retake;
-document.getElementById("nextBtn").innerText = L.next;
-document.getElementById("pill0txt").innerText = L.pill_face;
-document.getElementById("pill1txt").innerText = L.pill_upper;
-document.getElementById("pill2txt").innerText = L.pill_front;
-document.getElementById("pill3txt").innerText = L.pill_lower;
-document.getElementById("finalTitle").innerText = L.final_title;
-document.getElementById("finalDesc").innerText = L.final_desc;
-document.getElementById("generateBtn").innerText = L.generate;
-document.getElementById("thumbLabel0").innerText = L.thumb_face;
-document.getElementById("thumbLabel1").innerText = L.thumb_upper;
-document.getElementById("thumbLabel2").innerText = L.thumb_front;
-document.getElementById("thumbLabel3").innerText = L.thumb_lower;
-document.getElementById("qrShotLabel0").innerText = L.pill_face;
-document.getElementById("qrShotLabel1").innerText = L.pill_upper;
-document.getElementById("qrShotLabel2").innerText = L.pill_front;
-document.getElementById("qrShotLabel3").innerText = L.pill_lower;
+// Apply translations
+document.getElementById("refLabel").innerText       = L.reference;
+document.getElementById("checkingText").innerText   = L.checking;
+document.getElementById("captureBtn").innerText     = L.capture;
+document.getElementById("retakeBtn").innerText      = L.retake;
+document.getElementById("nextBtn").innerText        = L.next;
+document.getElementById("pill0txt").innerText       = L.pill_face;
+document.getElementById("pill1txt").innerText       = L.pill_upper;
+document.getElementById("pill2txt").innerText       = L.pill_front;
+document.getElementById("pill3txt").innerText       = L.pill_lower;
+document.getElementById("finalTitle").innerText     = L.final_title;
+document.getElementById("finalDesc").innerText      = L.final_desc;
+document.getElementById("generateBtn").innerText    = L.generate;
+document.getElementById("thumbLabel0").innerText    = L.thumb_face;
+document.getElementById("thumbLabel1").innerText    = L.thumb_upper;
+document.getElementById("thumbLabel2").innerText    = L.thumb_front;
+document.getElementById("thumbLabel3").innerText    = L.thumb_lower;
+document.getElementById("qrShotLabel0").innerText   = L.pill_face;
+document.getElementById("qrShotLabel1").innerText   = L.pill_upper;
+document.getElementById("qrShotLabel2").innerText   = L.pill_front;
+document.getElementById("qrShotLabel3").innerText   = L.pill_lower;
 
 // Init first step UI
-document.getElementById("titleText").innerText = steps[0].title;
-document.getElementById("subText").innerText = steps[0].sub;
-document.getElementById("guideTip").innerText = steps[0].tip;
+document.getElementById("titleText").innerText  = steps[0].title;
+document.getElementById("subText").innerText    = steps[0].sub;
+document.getElementById("guideTip").innerText   = steps[0].tip;
 document.getElementById("frameLabel").innerText = steps[0].label;
 
 let currentMode = "cam";
@@ -530,78 +531,139 @@ function setMode(mode) {
   if (btnQR) { btnQR.classList.toggle("active", mode === "qr"); btnQR.classList.toggle("qr-mode", mode === "qr"); }
   document.getElementById("camSection").classList.toggle("hidden", mode !== "cam");
   document.getElementById("qrSection").classList.toggle("hidden", mode !== "qr");
-  if (mode === "cam") { stopQrPolling(); startCamera(); document.getElementById("titleText").innerText = steps[currentStep].title; document.getElementById("subText").innerText = steps[currentStep].sub; }
-  else { stopCamera(); initQrMode(); }
+  if (mode === "cam") {
+    stopQrPolling();
+    startCamera();
+    document.getElementById("titleText").innerText = steps[currentStep].title;
+    document.getElementById("subText").innerText   = steps[currentStep].sub;
+  } else {
+    stopCamera();
+    initQrMode();
+  }
 }
 
-const video = document.getElementById("video");
-const preview = document.getElementById("previewImage");
-const canvasFull = document.getElementById("canvasFull");
-const canvasCrop = document.getElementById("canvasCrop");
-const ctxFull = canvasFull.getContext("2d");
-const ctxCrop = canvasCrop.getContext("2d");
-const captureBtn = document.getElementById("captureBtn");
-const retakeBtn = document.getElementById("retakeBtn");
-const nextBtn = document.getElementById("nextBtn");
-const flashBtn = document.getElementById("flashBtn");
-const switchBtn = document.getElementById("switchBtn");
-const guideFrame = document.getElementById("guideFrame");
-const frameLabel = document.getElementById("frameLabel");
-const cameraBox = document.getElementById("cameraBox");
-const titleText = document.getElementById("titleText");
-const subText = document.getElementById("subText");
-const guideTip = document.getElementById("guideTip");
-const refVideo = document.getElementById("refVideo");
-const finalCard = document.getElementById("finalCard");
-const splitLayout = document.getElementById("splitLayout");
-const titleBar = document.getElementById("titleBar");
+// ════════════════════════════════════════════════
+//  DOM REFS
+// ════════════════════════════════════════════════
+const video             = document.getElementById("video");
+const preview           = document.getElementById("previewImage");
+const canvasCrop        = document.getElementById("canvasCrop");
+const ctxCrop           = canvasCrop.getContext("2d");
+const captureBtn        = document.getElementById("captureBtn");
+const retakeBtn         = document.getElementById("retakeBtn");
+const nextBtn           = document.getElementById("nextBtn");
+const flashBtn          = document.getElementById("flashBtn");
+const switchBtn         = document.getElementById("switchBtn");
+const guideFrame        = document.getElementById("guideFrame");
+const frameLabel        = document.getElementById("frameLabel");
+const cameraBox         = document.getElementById("cameraBox");
+const titleText         = document.getElementById("titleText");
+const subText           = document.getElementById("subText");
+const guideTip          = document.getElementById("guideTip");
+const refVideo          = document.getElementById("refVideo");
+const finalCard         = document.getElementById("finalCard");
+const splitLayout       = document.getElementById("splitLayout");
+const titleBar          = document.getElementById("titleBar");
 const validationOverlay = document.getElementById("validationOverlay");
-const resultBanner = document.getElementById("resultBanner");
-const bannerIcon = document.getElementById("bannerIcon");
-const bannerMsg = document.getElementById("bannerMsg");
+const resultBanner      = document.getElementById("resultBanner");
+const bannerIcon        = document.getElementById("bannerIcon");
+const bannerMsg         = document.getElementById("bannerMsg");
 
 const capturedThumbs = [];
 let currentStep = 0;
-let stream, facingMode = "environment", flash = false;
+let stream = null;
+let facingMode = "user"; // Step 0 is face → front cam
+let flash = false;
 
-// ── CHANGED: 4 pills now ──
+// ════════════════════════════════════════════════
+//  PILLS
+// ════════════════════════════════════════════════
 function updatePills() {
   for (let i = 0; i < 4; i++) {
     const p = document.getElementById("pill" + i);
     p.className = "step-pill";
-    if (i < currentStep) p.classList.add("done");
+    if (i < currentStep)      p.classList.add("done");
     else if (i === currentStep) p.classList.add("active");
   }
 }
 
+// ════════════════════════════════════════════════
+//  CAMERA — FIXED: always stop old stream first,
+//  then start new with correct facingMode.
+//  Reset flash state on every camera start.
+// ════════════════════════════════════════════════
 async function startCamera() {
-  if (stream) stream.getTracks().forEach(t => t.stop());
+  // Always stop existing stream before starting a new one
+  if (stream) {
+    stream.getTracks().forEach(t => t.stop());
+    stream = null;
+  }
+  // Reset flash whenever camera changes
+  flash = false;
+  flashBtn.textContent = "⚡";
+  flashBtn.style.opacity = "1";
+
   try {
-    stream = await navigator.mediaDevices.getUserMedia({video:{facingMode,width:{ideal:1920},height:{ideal:1080}}});
+    stream = await navigator.mediaDevices.getUserMedia({
+      video: { facingMode, width: { ideal: 1920 }, height: { ideal: 1080 } }
+    });
     video.srcObject = stream;
-  } catch(e) { console.warn("Camera error:", e); }
+  } catch (e) {
+    // Fallback without resolution hints
+    try {
+      stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode } });
+      video.srcObject = stream;
+    } catch (e2) {
+      // Final fallback: any camera
+      try {
+        stream = await navigator.mediaDevices.getUserMedia({ video: true });
+        video.srcObject = stream;
+      } catch (e3) {
+        console.warn("Camera access denied:", e3);
+      }
+    }
+  }
 }
 
 function stopCamera() {
-  if (stream) { stream.getTracks().forEach(t => t.stop()); stream = null; }
+  if (stream) {
+    stream.getTracks().forEach(t => t.stop());
+    stream = null;
+  }
 }
 
-startCamera();
+// Switch camera
+switchBtn.onclick = () => {
+  facingMode = facingMode === "environment" ? "user" : "environment";
+  startCamera();
+};
 
-switchBtn.onclick = () => { facingMode = facingMode === "environment" ? "user" : "environment"; startCamera(); };
+// Flash / torch
 flashBtn.onclick = async () => {
   if (!stream) return;
   const track = stream.getVideoTracks()[0];
+  if (!track) return;
   const cap = track.getCapabilities ? track.getCapabilities() : {};
   if (cap && cap.torch) {
-    try { flash = !flash; await track.applyConstraints({advanced:[{torch:flash}]}); flashBtn.textContent = flash ? "🔦" : "⚡"; }
-    catch(e) { flash = false; flashBtn.textContent = "⚡"; }
+    try {
+      flash = !flash;
+      await track.applyConstraints({ advanced: [{ torch: flash }] });
+      flashBtn.textContent = flash ? "🔦" : "⚡";
+    } catch (e) {
+      flash = false;
+      flashBtn.textContent = "⚡";
+    }
   } else {
-    flashBtn.textContent = "🚫"; flashBtn.style.opacity = "0.4";
+    // Torch not supported (normal on front cam)
+    flashBtn.textContent = "🚫";
+    flashBtn.style.opacity = "0.4";
     setTimeout(() => { flashBtn.textContent = "⚡"; flashBtn.style.opacity = "1"; }, 2000);
   }
 };
 
+// ════════════════════════════════════════════════
+//  BANNER HELPERS
+// ════════════════════════════════════════════════
 function showBanner(type, icon, message, sub) {
   resultBanner.className = "result-banner show " + type;
   bannerIcon.textContent = icon;
@@ -609,108 +671,166 @@ function showBanner(type, icon, message, sub) {
 }
 function hideBanner() { resultBanner.className = "result-banner"; }
 
+// ════════════════════════════════════════════════
+//  VALIDATE TEETH
+// ════════════════════════════════════════════════
 async function validateTeeth(b64) {
-  const res = await fetch("/validate", {method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify({image:b64})});
+  const res = await fetch("/validate", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ image: b64 })
+  });
   if (!res.ok) throw new Error("Server error: " + res.status);
   return await res.json();
 }
 
+// ════════════════════════════════════════════════
+//  CAPTURE BUTTON
+// ════════════════════════════════════════════════
 captureBtn.onclick = async () => {
   const vw = video.videoWidth, vh = video.videoHeight;
   if (!vw || !vh) { alert("Camera not ready."); return; }
-  const boxRect = cameraBox.getBoundingClientRect();
+
+  const boxRect   = cameraBox.getBoundingClientRect();
   const frameRect = guideFrame.getBoundingClientRect();
   const boxW = boxRect.width, boxH = boxRect.height;
-  const scale = Math.max(boxW / vw, boxH / vh);
+  const scale     = Math.max(boxW / vw, boxH / vh);
   const renderedW = vw * scale, renderedH = vh * scale;
-  const offsetX = (boxW - renderedW) / 2, offsetY = (boxH - renderedH) / 2;
+  const offsetX   = (boxW - renderedW) / 2, offsetY = (boxH - renderedH) / 2;
   const fx = frameRect.left - boxRect.left;
   const fy = frameRect.top  - boxRect.top;
   const sx = Math.max(0, Math.round((fx - offsetX) / scale));
   const sy = Math.max(0, Math.round((fy - offsetY) / scale));
   const sw = Math.min(Math.round(frameRect.width  / scale), vw - sx);
   const sh = Math.min(Math.round(frameRect.height / scale), vh - sy);
-  canvasCrop.width  = sw; canvasCrop.height = sh;
+
+  canvasCrop.width = sw; canvasCrop.height = sh;
   ctxCrop.drawImage(video, sx, sy, sw, sh, 0, 0, sw, sh);
   const cropImg = canvasCrop.toDataURL("image/jpeg", 0.92);
-  preview.src = cropImg; preview.style.display = "block"; video.style.display = "none";
-  captureBtn.disabled = true; hideBanner(); validationOverlay.classList.add("show");
 
-  // ── CHANGED: face step skips teeth validation, just saves directly ──
+  preview.src = cropImg;
+  preview.style.display = "block";
+  video.style.display   = "none";
+  captureBtn.disabled   = true;
+  hideBanner();
+  validationOverlay.classList.add("show");
+
   const isFaceStep = steps[currentStep].skipValidate;
 
   if (isFaceStep) {
-    // Save face photo directly — no teeth validation needed
+    // Face step: save directly, no teeth validation
     fetch("/capture", {
-      method:"POST",
-      headers:{"Content-Type":"application/json"},
-      body:JSON.stringify({image:cropImg, type:"face"})
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ image: cropImg, type: "face" })
     }).catch(console.error);
+
     validationOverlay.classList.remove("show");
     cameraBox.classList.add("valid-flash");
     setTimeout(() => cameraBox.classList.remove("valid-flash"), 1500);
     showBanner("success", "✅", L.face_ok, "");
     capturedThumbs[currentStep] = cropImg;
-    captureBtn.classList.add("hidden"); retakeBtn.classList.remove("hidden"); nextBtn.classList.remove("hidden");
+    captureBtn.classList.add("hidden");
+    retakeBtn.classList.remove("hidden");
+    nextBtn.classList.remove("hidden");
     captureBtn.disabled = false;
+
   } else {
-    // Normal teeth validation
+    // Teeth steps: validate first
     try {
       const result = await validateTeeth(cropImg);
       validationOverlay.classList.remove("show");
+
       if (result.isTeeth) {
         cameraBox.classList.add("valid-flash");
         setTimeout(() => cameraBox.classList.remove("valid-flash"), 1500);
-        showBanner("success", "✅", L.teeth_ok, result.reason);
+        showBanner("success", "✅", L.teeth_ok, result.reason || "");
         capturedThumbs[currentStep] = cropImg;
-        fetch("/capture", {method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify({image:cropImg, type:steps[currentStep].type})}).catch(console.error);
-        captureBtn.classList.add("hidden"); retakeBtn.classList.remove("hidden"); nextBtn.classList.remove("hidden");
+        fetch("/capture", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ image: cropImg, type: steps[currentStep].type })
+        }).catch(console.error);
+        captureBtn.classList.add("hidden");
+        retakeBtn.classList.remove("hidden");
+        nextBtn.classList.remove("hidden");
         captureBtn.disabled = false;
       } else {
         cameraBox.classList.add("invalid-flash");
         setTimeout(() => cameraBox.classList.remove("invalid-flash"), 1500);
-        showBanner("error", "❌", L.no_teeth, result.reason + " " + L.retake_msg);
-        setTimeout(() => { preview.style.display = "none"; video.style.display = "block"; hideBanner(); captureBtn.disabled = false; }, 2500);
+        showBanner("error", "❌", L.no_teeth, (result.reason || "") + " " + L.retake_msg);
+        setTimeout(() => {
+          preview.style.display = "none";
+          video.style.display   = "block";
+          hideBanner();
+          captureBtn.disabled = false;
+        }, 2500);
       }
-    } catch(err) {
+    } catch (err) {
       validationOverlay.classList.remove("show");
       showBanner("error", "❌", "Validation failed — " + err.message, "");
-      preview.style.display = "none"; video.style.display = "block"; captureBtn.disabled = false;
+      preview.style.display = "none";
+      video.style.display   = "block";
+      captureBtn.disabled   = false;
     }
   }
 };
 
+// ════════════════════════════════════════════════
+//  RETAKE / NEXT
+// ════════════════════════════════════════════════
 retakeBtn.onclick = () => {
-  preview.style.display = "none"; video.style.display = "block"; hideBanner();
-  captureBtn.classList.remove("hidden"); retakeBtn.classList.add("hidden"); nextBtn.classList.add("hidden");
+  preview.style.display = "none";
+  video.style.display   = "block";
+  hideBanner();
+  captureBtn.classList.remove("hidden");
+  retakeBtn.classList.add("hidden");
+  nextBtn.classList.add("hidden");
 };
 
 nextBtn.onclick = () => {
-  currentStep++; hideBanner();
-  // ── CHANGED: 4 steps total now ──
+  currentStep++;
+  hideBanner();
+
   if (currentStep < steps.length) {
     const s = steps[currentStep];
-    titleText.innerText = s.title; subText.innerText = s.sub; guideTip.innerText = s.tip;
-    refVideo.src = "/static/" + s.video; refVideo.load();
-    frameLabel.innerText = s.label; guideFrame.className = "guide-frame " + s.frameClass;
-    preview.style.display = "none"; video.style.display = "block"; updatePills();
-    captureBtn.classList.remove("hidden"); retakeBtn.classList.add("hidden"); nextBtn.classList.add("hidden");
-    // Switch to front camera for face step, back for teeth
-    if (s.type === "face") {
-      facingMode = "user"; startCamera();
-    } else if (currentStep === 1) {
-      facingMode = "environment"; startCamera();
-    }
+    titleText.innerText  = s.title;
+    subText.innerText    = s.sub;
+    guideTip.innerText   = s.tip;
+    refVideo.src         = "/static/" + s.video;
+    refVideo.load();
+    frameLabel.innerText = s.label;
+    guideFrame.className = "guide-frame " + s.frameClass;
+    preview.style.display = "none";
+    video.style.display   = "block";
+    updatePills();
+    captureBtn.classList.remove("hidden");
+    retakeBtn.classList.add("hidden");
+    nextBtn.classList.add("hidden");
+
+    // FIXED: always switch to correct camera for every step
+    // Face step → front cam, all teeth steps → back cam
+    const newFacing = (s.type === "face") ? "user" : "environment";
+    facingMode = newFacing;
+    startCamera(); // always restart camera to ensure correct facing
   } else {
+    // All done
     for (let i = 0; i < 4; i++) document.getElementById("pill" + i).className = "step-pill done";
     stopCamera();
-    titleBar.style.display = "none"; splitLayout.style.display = "none";
-    for (let i = 0; i < 4; i++) { const t = document.getElementById("thumb" + i); if (capturedThumbs[i]) t.src = capturedThumbs[i]; }
+    titleBar.style.display    = "none";
+    splitLayout.style.display = "none";
+    for (let i = 0; i < 4; i++) {
+      const t = document.getElementById("thumb" + i);
+      if (capturedThumbs[i]) t.src = capturedThumbs[i];
+    }
     finalCard.style.display = "flex";
     document.getElementById("modeSelector").style.display = "none";
   }
 };
 
+// ════════════════════════════════════════════════
+//  QR MODE
+// ════════════════════════════════════════════════
 let qrGenerated = false;
 let qrReceivedCount = 0;
 
@@ -719,7 +839,11 @@ function initQrMode() {
   qrGenerated = true;
   const phoneUrl = `${BASE_URL}/phone_capture?token=${SESSION_TOKEN}`;
   document.getElementById("qrUrlText").innerText = phoneUrl;
-  new QRCode(document.getElementById("qrCodeEl"), {text:phoneUrl, width:160, height:160, colorDark:"#000000", colorLight:"#ffffff", correctLevel:QRCode.CorrectLevel.M});
+  new QRCode(document.getElementById("qrCodeEl"), {
+    text: phoneUrl, width: 160, height: 160,
+    colorDark: "#000000", colorLight: "#ffffff",
+    correctLevel: QRCode.CorrectLevel.M
+  });
   startQrPolling();
 }
 
@@ -727,21 +851,22 @@ function copyQrUrl() {
   const url = document.getElementById("qrUrlText").innerText;
   navigator.clipboard.writeText(url).then(() => {
     const btn = document.querySelector(".btn-copy");
-    btn.innerText = "Copied!"; btn.style.background = "rgba(34,232,142,0.15)"; btn.style.color = "var(--green)";
+    btn.innerText = "Copied!";
+    btn.style.background = "rgba(34,232,142,0.15)";
+    btn.style.color = "var(--green)";
     setTimeout(() => { btn.innerText = "Copy"; btn.style.background = ""; btn.style.color = ""; }, 2000);
   });
 }
 
 function startQrPolling() { if (qrPollTimer) return; qrPollTimer = setInterval(pollQrStatus, 3000); }
-function stopQrPolling() { if (qrPollTimer) { clearInterval(qrPollTimer); qrPollTimer = null; } }
+function stopQrPolling()  { if (qrPollTimer) { clearInterval(qrPollTimer); qrPollTimer = null; } }
 
 async function pollQrStatus() {
   try {
     const res = await fetch(`/phone_status?token=${SESSION_TOKEN}`);
     if (!res.ok) return;
     const data = await res.json();
-    // ── CHANGED: poll for face + 3 teeth ──
-    const parts = ["face","upper","front","lower"];
+    const parts = ["face", "upper", "front", "lower"];
     let count = 0;
     parts.forEach((part, i) => {
       if (data[part]) {
@@ -755,21 +880,28 @@ async function pollQrStatus() {
       }
     });
     qrReceivedCount = count;
-    const waitEl = document.getElementById("qrWaiting");
-    const doneEl = document.getElementById("qrAllDone");
+    const waitEl     = document.getElementById("qrWaiting");
+    const doneEl     = document.getElementById("qrAllDone");
     const proceedBtn = document.getElementById("qrProceedBtn");
-    // ── CHANGED: need 4 photos now ──
     if (count === 4) {
-      waitEl.style.display = "none"; doneEl.classList.add("show");
+      waitEl.style.display = "none";
+      doneEl.classList.add("show");
       if (proceedBtn) proceedBtn.style.display = "block";
       stopQrPolling();
       for (let i = 0; i < 4; i++) document.getElementById("pill" + i).className = "step-pill done";
-      fetch("/phone_expire", {method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify({token:SESSION_TOKEN})}).catch(e => console.warn("Expire call failed:", e));
+      fetch("/phone_expire", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ token: SESSION_TOKEN })
+      }).catch(e => console.warn("Expire call failed:", e));
     } else {
       const remaining = 4 - count;
-      document.getElementById("qrWaitText").innerText = count === 0 ? "Waiting for patient to capture photos on phone..." : `${count}/4 received — waiting for ${remaining} more photo${remaining > 1 ? "s" : ""}...`;
+      document.getElementById("qrWaitText").innerText =
+        count === 0
+          ? "Waiting for patient to capture photos on phone..."
+          : `${count}/4 received — waiting for ${remaining} more photo${remaining > 1 ? "s" : ""}...`;
     }
-  } catch(e) { console.warn("Poll error:", e); }
+  } catch (e) { console.warn("Poll error:", e); }
 }
 
 function startGenerating(formEl) {
@@ -777,20 +909,20 @@ function startGenerating(formEl) {
     ? formEl.querySelector("button")
     : (document.getElementById("generateBtn") || document.getElementById("qrProceedBtn"));
   if (btn) { btn.disabled = true; btn.innerText = "⏳ Generating..."; }
-  const status = document.getElementById("genStatus");
-  if (status) status.classList.add("show");
+  const status       = document.getElementById("genStatus");
   const qrGenProgress = document.getElementById("qrGenProgress");
+  const qrGenText    = document.getElementById("qrGenText");
+  const genTitle     = document.getElementById("genTitle");
+  const genDesc      = document.getElementById("genDesc");
+  if (status)       status.classList.add("show");
   if (qrGenProgress) qrGenProgress.classList.add("show");
-  const qrGenText = document.getElementById("qrGenText");
-  const genTitle  = document.getElementById("genTitle");
-  const genDesc   = document.getElementById("genDesc");
   const s = [
-    {t:0,     title:"Generating AI Report...",       desc:"Running YOLO detection on your images...",      qr:"Generating AI Report..."},
-    {t:5000,  title:"Analysing Detections...",        desc:"Processing detected dental conditions...",      qr:"Analysing dental detections..."},
-    {t:12000, title:"AI Analysing Images...",         desc:"AI is reviewing all 3 dental images...",        qr:"AI reviewing images..."},
-    {t:25000, title:"Writing Detailed Analysis...",   desc:"AI is writing your personalised report...",     qr:"Writing detailed analysis..."},
-    {t:40000, title:"Generating PDF Report...",       desc:"Building your multi-page dental report...",     qr:"Building PDF report..."},
-    {t:55000, title:"Almost Ready...",                desc:"Finalising your report. Please wait...",        qr:"Almost ready — finalising report..."}
+    { t:0,     title:"Generating AI Report...",     desc:"Running YOLO detection on your images...",   qr:"Generating AI Report..." },
+    { t:5000,  title:"Analysing Detections...",      desc:"Processing detected dental conditions...",   qr:"Analysing dental detections..." },
+    { t:12000, title:"AI Analysing Images...",       desc:"AI is reviewing all 4 dental images...",     qr:"AI reviewing images..." },
+    { t:25000, title:"Writing Detailed Analysis...", desc:"AI is writing your personalised report...",  qr:"Writing detailed analysis..." },
+    { t:40000, title:"Generating PDF Report...",     desc:"Building your multi-page dental report...",  qr:"Building PDF report..." },
+    { t:55000, title:"Almost Ready...",              desc:"Finalising your report. Please wait...",     qr:"Almost ready — finalising report..." }
   ];
   s.forEach(x => setTimeout(() => {
     if (genTitle)  genTitle.innerText  = x.title;
@@ -799,8 +931,12 @@ function startGenerating(formEl) {
   }, x.t));
 }
 
-// ── Auto switch to front camera on page load for face step ──
-facingMode = "user";
+// ════════════════════════════════════════════════
+//  INIT
+//  Step 0 = face → front cam ("user")
+//  Steps 1-3 = teeth → back cam ("environment")
+// ════════════════════════════════════════════════
+facingMode = "user"; // face step = front camera
 startCamera();
 
 function toggleMenu() { document.getElementById("mobileMenu").classList.toggle("open"); }
