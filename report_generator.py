@@ -7,6 +7,8 @@ from fpdf import FPDF
 from datetime import datetime
 import os
 import re
+import base64
+import tempfile
 
 
 # ── Colour palette ───────────────────────────────────────────────
@@ -152,6 +154,103 @@ def draw_section_bar_rl(c, W, y, title, color=None):
     c.setFont("Helvetica-Bold", 11)
     c.drawString(28, y - 17, title)
     return y - 26
+
+
+# ── Helper: get face photo path from session/screening ──────────
+def get_face_photo_path(screening_id, report_id):
+    """
+    Returns the file path of the saved face photo.
+    Face photo is saved as: static/results/{screening_id}_face.jpg
+    Falls back to static/results/{report_id}_face.jpg
+    """
+    if screening_id:
+        path = os.path.join("static", "results", f"{screening_id}_face.jpg")
+        if os.path.exists(path):
+            return path
+    path = os.path.join("static", "results", f"{report_id}_face.jpg")
+    if os.path.exists(path):
+        return path
+    # Also try generic face.jpg
+    path = os.path.join("static", "results", "face.jpg")
+    if os.path.exists(path):
+        return path
+    return None
+
+
+# ── Draw patient info bar WITH face photo ───────────────────────
+def draw_patient_info_bar(c, W, H, header_h, name, age, gender, phone, now, face_photo_path=None):
+    """
+    Draws the patient info bar below the header.
+    ── CHANGED: adds face photo box on the RIGHT side of the bar ──
+    Layout: Name | Phone | Date | [Face Photo]
+    """
+    bar_top = H - header_h
+    bar_h = 54  # ── CHANGED: increased height to fit photo ──
+
+    c.setFillColor(C_SURFACE2)
+    c.rect(0, bar_top - bar_h, W, bar_h, fill=1, stroke=0)
+    c.setStrokeColor(C_BORDER)
+    c.setLineWidth(0.8)
+    c.line(0, bar_top - bar_h, W, bar_top - bar_h)
+
+    # ── CHANGED: face photo on right ──
+    photo_w = 40
+    photo_h = 44
+    photo_x = W - photo_w - 14
+    photo_y = bar_top - bar_h + 5
+
+    if face_photo_path and os.path.exists(face_photo_path):
+        # Draw photo border box
+        c.setStrokeColor(C_BORDER)
+        c.setLineWidth(1)
+        c.roundRect(photo_x - 2, photo_y - 2, photo_w + 4, photo_h + 4, 4, fill=0, stroke=1)
+        # Draw face photo
+        try:
+            c.drawImage(
+                face_photo_path,
+                photo_x, photo_y,
+                width=photo_w, height=photo_h,
+                preserveAspectRatio=True,
+                mask="auto"
+            )
+        except Exception as e:
+            print(f"Face photo draw error: {e}")
+            _draw_face_placeholder(c, photo_x, photo_y, photo_w, photo_h)
+    else:
+        # No photo — draw placeholder box
+        _draw_face_placeholder(c, photo_x, photo_y, photo_w, photo_h)
+
+    # ── CHANGED: text area is now narrower to leave room for photo ──
+    text_area_width = W - photo_w - 40
+
+    def info_pair(label, value, x, y):
+        c.setFillColor(C_MUTED)
+        c.setFont("Helvetica", 9)
+        lw = c.stringWidth(label, "Helvetica", 9)
+        c.drawString(x, y, label)
+        c.setFillColor(C_TEXT)
+        c.setFont("Helvetica-Bold", 10)
+        c.drawString(x + lw + 3, y, value)
+
+    # Info text — two rows to fit nicely
+    iy1 = bar_top - 22  # first row
+    iy2 = bar_top - 38  # second row
+
+    info_pair("Name:",  f"{name}  ({age} / {gender})", 28, iy1)
+    info_pair("Phone:", phone, 28, iy2)
+    info_pair("Date:",  now,   220, iy2)
+
+    return bar_top - bar_h  # return bottom of bar
+
+
+def _draw_face_placeholder(c, x, y, w, h):
+    """Draw a grey placeholder box when no face photo available."""
+    c.setFillColor(colors.HexColor("#e2e8f0"))
+    c.roundRect(x, y, w, h, 4, fill=1, stroke=0)
+    c.setFillColor(colors.HexColor("#94a3b8"))
+    c.setFont("Helvetica", 7)
+    c.drawCentredString(x + w / 2, y + h / 2 - 3, "No")
+    c.drawCentredString(x + w / 2, y + h / 2 - 11, "Photo")
 
 
 # ══════════════════════════════════════════════════════════════
@@ -312,7 +411,7 @@ def generate_analysis_pages_fpdf2(claude_analysis, language, name, age, gender,
     cleaned   = clean_markdown(sanitize(claude_analysis))
     lines_raw = cleaned.split("\n")
 
-    BOTTOM_LIMIT = 252  # leave room for disclaimer (8mm) + footer (14mm) + margin
+    BOTTOM_LIMIT = 252
 
     render_items = []
     for raw_line in lines_raw:
@@ -330,11 +429,9 @@ def generate_analysis_pages_fpdf2(claude_analysis, language, name, age, gender,
     for item_type, item_text in render_items:
 
         if pdf.get_y() > BOTTOM_LIMIT:
-            # ✅ NO disclaimer on middle pages — just footer
             pdf.draw_footer()
             pdf.page_num += 1
             pdf.add_page()
-            # Continuation header
             pdf.set_fill_color(15, 23, 42)
             pdf.rect(0, 0, 210, 14, "F")
             pdf.set_fill_color(8, 145, 178)
@@ -366,13 +463,12 @@ def generate_analysis_pages_fpdf2(claude_analysis, language, name, age, gender,
                 pdf.draw_body_text(item_text)
                 pdf.ln(1)
 
-    # ✅ ONLY on LAST page: disclaimer then footer
     pdf.draw_disclaimer()
     pdf.draw_footer()
 
     temp_path = f"static/reports/temp_analysis_{report_id}.pdf"
     pdf.output(temp_path)
-    return temp_path, pdf.page_num  # ✅ return actual last page number
+    return temp_path, pdf.page_num
 
 
 def generate_pdf(user_data, detected_labels, report_id,
@@ -391,8 +487,13 @@ def generate_pdf(user_data, detected_labels, report_id,
     report_path = f"static/reports/{report_id}.pdf"
     logo_path   = "static/logo.png"
 
-    # ── PAGE 1 using ReportLab ───────────────────────────────────
-    # Use placeholder total_pages=2 for page 1 — will be overwritten after merge
+    # ── CHANGED: get face photo path ──
+    face_photo_path = get_face_photo_path(screening_id, report_id)
+    if face_photo_path:
+        print(f"Face photo found: {face_photo_path}")
+    else:
+        print("No face photo found — placeholder will be used.")
+
     page1_total = 2
 
     c = rl_canvas.Canvas(report_path, pagesize=A4)
@@ -426,30 +527,15 @@ def generate_pdf(user_data, detected_labels, report_id,
         c.setFont("Helvetica-Bold", 22)
         c.drawString(30, H - header_h + 44, "Oral Health Screening Report")
 
-    # Patient info bar
-    bar_top = H - header_h
-    c.setFillColor(C_SURFACE2)
-    c.rect(0, bar_top - 30, W, 30, fill=1, stroke=0)
-    c.setStrokeColor(C_BORDER)
-    c.setLineWidth(0.8)
-    c.line(0, bar_top - 30, W, bar_top - 30)
+    # ── CHANGED: patient info bar now includes face photo ──
+    bar_bottom = draw_patient_info_bar(
+        c, W, H, header_h,
+        name, age, gender, phone, now,
+        face_photo_path=face_photo_path
+    )
 
-    def info_pair(label, value, x, y):
-        c.setFillColor(C_MUTED)
-        c.setFont("Helvetica", 9)
-        lw = c.stringWidth(label, "Helvetica", 9)
-        c.drawString(x, y, label)
-        c.setFillColor(C_TEXT)
-        c.setFont("Helvetica-Bold", 10)
-        c.drawString(x + lw + 3, y, value)
-
-    iy = bar_top - 19
-    info_pair("Name:",  f"{name}  ({age} / {gender})", 28, iy)
-    info_pair("Phone:", phone, 240, iy)
-    info_pair("Date:",  now,   380, iy)
-
-    # Screening section
-    cur_y = bar_top - 30
+    # Screening section — starts below the (now taller) info bar
+    cur_y = bar_bottom
     cur_y = draw_section_bar_rl(c, W, cur_y, "  AI SCREENING REPORT")
 
     img_h  = 152
@@ -595,7 +681,6 @@ def generate_pdf(user_data, detected_labels, report_id,
                 ty -= 13
         cur_y -= 8
 
-    # ✅ NO disclaimer on page 1 — only footer
     draw_footer_rl(c, W, report_id, 1, page1_total)
     c.save()
 
@@ -609,7 +694,7 @@ def generate_pdf(user_data, detected_labels, report_id,
                 report_id=report_id,
                 logo_path=logo_path,
                 start_page=2,
-                total_pages=99  # placeholder, will fix below
+                total_pages=99
             )
 
             from pypdf import PdfWriter, PdfReader
@@ -625,15 +710,12 @@ def generate_pdf(user_data, detected_labels, report_id,
             for page in reader2.pages:
                 writer.add_page(page)
 
-            # ✅ Get real total page count
             actual_pages = len(writer.pages)
 
-            # ✅ SECOND PASS: rewrite both PDFs with real page count
-            # Re-generate page 1 with correct total
+            # Second pass — redraw page 1 with correct total page count
             c2 = rl_canvas.Canvas(report_path, pagesize=A4)
             W2, H2 = A4
 
-            # --- Redraw page 1 fully with actual_pages ---
             header_h = 90
             c2.setFillColor(C_HEADER)
             c2.rect(0, H2 - header_h, W2, header_h, fill=1, stroke=0)
@@ -659,28 +741,14 @@ def generate_pdf(user_data, detected_labels, report_id,
                 c2.setFont("Helvetica-Bold", 22)
                 c2.drawString(30, H2 - header_h + 44, "Oral Health Screening Report")
 
-            bar_top2 = H2 - header_h
-            c2.setFillColor(C_SURFACE2)
-            c2.rect(0, bar_top2 - 30, W2, 30, fill=1, stroke=0)
-            c2.setStrokeColor(C_BORDER)
-            c2.setLineWidth(0.8)
-            c2.line(0, bar_top2 - 30, W2, bar_top2 - 30)
+            # ── CHANGED: redraw info bar with face photo ──
+            bar_bottom2 = draw_patient_info_bar(
+                c2, W2, H2, header_h,
+                name, age, gender, phone, now,
+                face_photo_path=face_photo_path
+            )
 
-            def info_pair2(label, value, x, y):
-                c2.setFillColor(C_MUTED)
-                c2.setFont("Helvetica", 9)
-                lw2 = c2.stringWidth(label, "Helvetica", 9)
-                c2.drawString(x, y, label)
-                c2.setFillColor(C_TEXT)
-                c2.setFont("Helvetica-Bold", 10)
-                c2.drawString(x + lw2 + 3, y, value)
-
-            iy2b = bar_top2 - 19
-            info_pair2("Name:",  f"{name}  ({age} / {gender})", 28, iy2b)
-            info_pair2("Phone:", phone, 240, iy2b)
-            info_pair2("Date:",  now,   380, iy2b)
-
-            cur_y2 = bar_top2 - 30
+            cur_y2 = bar_bottom2
             cur_y2 = draw_section_bar_rl(c2, W2, cur_y2, "  AI SCREENING REPORT")
 
             card_y2 = cur_y2 - 14 - card_h
@@ -799,11 +867,9 @@ def generate_pdf(user_data, detected_labels, report_id,
                         c2.drawString(68, ty2, ln2)
                         ty2 -= 13
 
-            # ✅ Page 1 footer with REAL total pages — NO disclaimer
             draw_footer_rl(c2, W2, report_id, 1, actual_pages)
             c2.save()
 
-            # ── Re-merge with corrected page 1 ──────────────────
             writer2 = PdfWriter()
             reader_p1 = PdfReader(report_path)
             for page in reader_p1.pages:

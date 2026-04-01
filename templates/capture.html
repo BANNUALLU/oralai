@@ -5,7 +5,6 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-<!-- QR Code library -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
 <style>
 *{box-sizing:border-box;margin:0;padding:0;}
@@ -26,7 +25,6 @@ body::after{content:'';position:fixed;inset:0;z-index:0;
   linear-gradient(90deg,rgba(26,111,255,0.04) 1px,transparent 1px);
   background-size:60px 60px;pointer-events:none;}
 
-/* NAV */
 nav{position:fixed;top:0;left:0;right:0;z-index:100;display:flex;align-items:center;
   justify-content:space-between;padding:0 60px;height:72px;
   background:rgba(10,22,40,0.9);backdrop-filter:blur(20px);
@@ -50,12 +48,10 @@ nav{position:fixed;top:0;left:0;right:0;z-index:100;display:flex;align-items:cen
 .mobile-menu a{font-size:15px;font-weight:500;color:var(--muted);padding:4px 0;text-decoration:none;}
 .mobile-menu a:hover{color:var(--white);}
 
-/* MAIN */
 .main{flex:1;display:flex;justify-content:center;align-items:center;padding:16px;position:relative;z-index:1;}
 .container{width:100%;max-width:1040px;background:var(--card);backdrop-filter:blur(20px);
   border-radius:24px;padding:24px 28px;border:1px solid var(--border);box-shadow:0 40px 80px rgba(0,0,0,0.5);}
 
-/* ── MODE SELECTOR ── */
 .mode-selector{display:flex;gap:10px;margin-bottom:22px;background:rgba(255,255,255,0.03);border:1px solid var(--border);border-radius:14px;padding:5px;}
 .mode-btn{flex:1;display:flex;align-items:center;justify-content:center;gap:8px;padding:10px 14px;border-radius:10px;
   font-family:var(--font);font-size:13px;font-weight:700;cursor:pointer;border:none;
@@ -65,9 +61,9 @@ nav{position:fixed;top:0;left:0;right:0;z-index:100;display:flex;align-items:cen
 .mode-btn.active.qr-mode{background:var(--purple-bg);color:var(--purple);border-color:var(--purple-bd);box-shadow:0 2px 12px rgba(168,85,247,0.2);}
 .mode-icon{font-size:16px;}
 
-/* HEADER / STEPS / TITLES */
 .header{display:flex;align-items:center;justify-content:flex-end;margin-bottom:20px;flex-wrap:wrap;gap:10px;}
 .steps{display:flex;gap:8px;}
+/* ── CHANGED: 4 step pills (Face + Upper + Front + Lower) ── */
 .step-pill{display:flex;align-items:center;gap:6px;padding:5px 12px;border-radius:999px;
   font-size:12px;font-weight:600;background:rgba(255,255,255,0.05);color:var(--muted);border:1px solid var(--border);transition:all .3s;}
 .step-pill .dot{width:7px;height:7px;border-radius:50%;background:currentColor;}
@@ -77,7 +73,6 @@ nav{position:fixed;top:0;left:0;right:0;z-index:100;display:flex;align-items:cen
 .title-bar h2{font-size:20px;font-weight:800;letter-spacing:-0.5px;}
 .title-bar p{font-size:13px;color:var(--muted);margin-top:4px;}
 
-/* SPLIT / GUIDE / CAMERA */
 .split{display:flex;gap:20px;}
 .guide-panel{flex:0 0 190px;display:flex;flex-direction:column;gap:10px;}
 .guide-label{font-size:11px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);}
@@ -104,6 +99,10 @@ nav{position:fixed;top:0;left:0;right:0;z-index:100;display:flex;align-items:cen
 .guide-frame::before,.guide-frame::after{content:'';position:absolute;width:20px;height:20px;border-color:var(--cyan);border-style:solid;}
 .guide-frame::before{top:-4px;left:-4px;border-width:3px 0 0 3px;border-radius:6px 0 0 0;}
 .guide-frame::after{bottom:-4px;right:-4px;border-width:0 3px 3px 0;border-radius:0 0 6px 0;}
+/* ── ADDED: face frame style ── */
+.guide-frame.face{width:40%;height:75%;border-color:#f59e0b;box-shadow:0 0 20px rgba(245,158,11,0.15);}
+.guide-frame.face .frame-label{background:#f59e0b;}
+.guide-frame.face::before,.guide-frame.face::after{border-color:#f59e0b;}
 .guide-frame.upper{width:88%;height:62%;}
 .guide-frame.front{width:58%;height:34%;}
 .guide-frame.lower{width:88%;height:62%;}
@@ -130,7 +129,6 @@ button{display:inline-flex;align-items:center;gap:6px;padding:9px 18px;border:no
 .btn-icon:hover{color:var(--white);background:rgba(255,255,255,0.1);}
 .hidden{display:none!important;}
 
-/* ── QR PANEL ── */
 .qr-panel{display:flex;flex-direction:column;gap:20px;}
 .qr-top{display:flex;gap:24px;align-items:flex-start;}
 .qr-left{display:flex;flex-direction:column;gap:14px;flex:1;}
@@ -152,11 +150,11 @@ button{display:inline-flex;align-items:center;gap:6px;padding:9px 18px;border:no
   border:1px solid rgba(26,111,255,0.3);border-radius:7px;}
 .btn-copy:hover{background:rgba(26,111,255,0.25);}
 
-/* ── QR PROGRESS ── */
 .qr-progress-wrap{background:rgba(255,255,255,0.03);border:1px solid var(--border);border-radius:16px;padding:18px 20px;}
 .qr-progress-title{font-size:13px;font-weight:700;margin-bottom:14px;display:flex;align-items:center;gap:8px;}
 .qr-progress-title .live-dot{width:8px;height:8px;border-radius:50%;background:var(--green);animation:livePulse 1.2s ease-in-out infinite;}
 @keyframes livePulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.4;transform:scale(.7)}}
+/* ── CHANGED: 4 shots in QR progress ── */
 .qr-shots{display:flex;gap:10px;}
 .qr-shot{flex:1;border-radius:10px;overflow:hidden;border:1px solid var(--border);background:rgba(255,255,255,0.03);
   aspect-ratio:4/3;position:relative;transition:border-color .3s;}
@@ -185,7 +183,6 @@ button{display:inline-flex;align-items:center;gap:6px;padding:9px 18px;border:no
 .btn-proceed:hover{background:#1fd47d;transform:translateY(-2px);}
 .btn-proceed:disabled{opacity:.5;cursor:not-allowed;transform:none;}
 
-/* ── FINAL CARD ── */
 .final-card{display:none;flex-direction:column;align-items:center;text-align:center;padding:48px 32px;gap:18px;}
 .final-icon{width:84px;height:84px;background:var(--green-bg);border:2px solid var(--green-bd);
   border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:38px;
@@ -212,7 +209,6 @@ button{display:inline-flex;align-items:center;gap:6px;padding:9px 18px;border:no
 .gen-text h4{font-size:13px;font-weight:700;margin-bottom:2px;}
 .gen-text p{font-size:12px;color:var(--muted);}
 
-/* FOOTER */
 .site-footer{position:relative;z-index:1;border-top:1px solid var(--border);
   background:rgba(8,18,34,0.95);padding:18px 40px;}
 .footer-inner{max-width:1400px;margin:0 auto;display:flex;align-items:center;
@@ -227,7 +223,6 @@ button{display:inline-flex;align-items:center;gap:6px;padding:9px 18px;border:no
   box-shadow:0 4px 16px rgba(26,111,255,0.5);transition:all .2s;font-size:18px;color:var(--white);}
 .scroll-top:hover{background:var(--blue2);transform:translateY(-3px);}
 
-/* RESPONSIVE */
 @media(max-width:768px){
   nav{padding:0 20px;height:60px;}.mobile-menu{top:60px;}
   .nav-links,.nav-cta{display:none;}.hamburger{display:flex;}
@@ -287,15 +282,17 @@ button{display:inline-flex;align-items:center;gap:6px;padding:9px 18px;border:no
 
     <div class="header">
       <div class="steps">
-        <div class="step-pill active" id="pill0"><div class="dot"></div><span id="pill0txt">Upper</span></div>
-        <div class="step-pill" id="pill1"><div class="dot"></div><span id="pill1txt">Front</span></div>
-        <div class="step-pill" id="pill2"><div class="dot"></div><span id="pill2txt">Lower</span></div>
+        <!-- ── CHANGED: 4 pills — Face, Upper, Front, Lower ── -->
+        <div class="step-pill active" id="pill0"><div class="dot"></div><span id="pill0txt">Face</span></div>
+        <div class="step-pill" id="pill1"><div class="dot"></div><span id="pill1txt">Upper</span></div>
+        <div class="step-pill" id="pill2"><div class="dot"></div><span id="pill2txt">Front</span></div>
+        <div class="step-pill" id="pill3"><div class="dot"></div><span id="pill3txt">Lower</span></div>
       </div>
     </div>
 
     <div class="title-bar" id="titleBar">
-      <h2 id="titleText">Capture Upper Teeth</h2>
-      <p id="subText">Align your upper teeth inside the guide box, then tap Capture.</p>
+      <h2 id="titleText">Capture Patient Face Photo</h2>
+      <p id="subText">Position the patient's face inside the guide box, then tap Capture.</p>
     </div>
 
     <!-- CAM MODE -->
@@ -306,7 +303,7 @@ button{display:inline-flex;align-items:center;gap:6px;padding:9px 18px;border:no
           <div class="guide-video-wrap">
             <video id="refVideo" autoplay loop muted playsinline><source src="/static/upper_demo.mp4" type="video/mp4"></video>
           </div>
-          <div class="guide-tip" id="guideTip">🦷 Open wide and angle the camera slightly downward to show your upper teeth clearly.</div>
+          <div class="guide-tip" id="guideTip">🧑 Ask the patient to look straight at the camera. Face should be clearly visible inside the box.</div>
         </div>
         <div class="camera-panel">
           <div class="camera-box" id="cameraBox">
@@ -314,10 +311,11 @@ button{display:inline-flex;align-items:center;gap:6px;padding:9px 18px;border:no
             <img id="previewImage" alt="Captured">
             <div class="validation-overlay" id="validationOverlay">
               <div class="spinner"></div>
-              <div class="overlay-text" id="checkingText">Checking image...</div>
+              <div class="overlay-text" id="checkingText">Saving photo...</div>
             </div>
-            <div class="guide-frame upper" id="guideFrame">
-              <div class="frame-label" id="frameLabel">Upper Teeth</div>
+            <!-- ── CHANGED: starts with face frame ── -->
+            <div class="guide-frame face" id="guideFrame">
+              <div class="frame-label" id="frameLabel">Patient Face</div>
             </div>
           </div>
           <div class="result-banner" id="resultBanner">
@@ -345,9 +343,9 @@ button{display:inline-flex;align-items:center;gap:6px;padding:9px 18px;border:no
               <p>Scan the QR code with the patient's phone. The phone browser opens directly to the capture page — no app needed.</p>
               <div class="qr-steps">
                 <div class="qr-step"><div class="qr-step-num">1</div><div class="qr-step-text"><strong>Scan</strong> the QR code with any phone camera or WhatsApp</div></div>
-                <div class="qr-step"><div class="qr-step-num">2</div><div class="qr-step-text"><strong>Patient captures</strong> all 3 dental photos on their phone</div></div>
+                <div class="qr-step"><div class="qr-step-num">2</div><div class="qr-step-text"><strong>Patient captures</strong> face photo + 3 dental photos on their phone</div></div>
                 <div class="qr-step"><div class="qr-step-num">3</div><div class="qr-step-text"><strong>This screen updates</strong> automatically as each photo is received</div></div>
-                <div class="qr-step"><div class="qr-step-num">4</div><div class="qr-step-text"><strong>Click Generate</strong> once all 3 photos are confirmed below</div></div>
+                <div class="qr-step"><div class="qr-step-num">4</div><div class="qr-step-text"><strong>Click Generate</strong> once all 4 photos are confirmed below</div></div>
               </div>
             </div>
             <div class="qr-url-box">
@@ -361,13 +359,15 @@ button{display:inline-flex;align-items:center;gap:6px;padding:9px 18px;border:no
         </div>
         <div class="qr-progress-wrap">
           <div class="qr-progress-title"><div class="live-dot"></div>Live Photo Progress</div>
+          <!-- ── CHANGED: 4 shots — Face, Upper, Front, Lower ── -->
           <div class="qr-shots">
-            <div class="qr-shot" id="qrShot0"><img id="qrThumb0" src="" alt=""><div class="qr-shot-placeholder"><div class="qr-shot-icon">🦷</div><div class="qr-shot-label" id="qrShotLabel0">Upper</div></div><div class="qr-shot-badge">✓</div></div>
-            <div class="qr-shot" id="qrShot1"><img id="qrThumb1" src="" alt=""><div class="qr-shot-placeholder"><div class="qr-shot-icon">😁</div><div class="qr-shot-label" id="qrShotLabel1">Front</div></div><div class="qr-shot-badge">✓</div></div>
-            <div class="qr-shot" id="qrShot2"><img id="qrThumb2" src="" alt=""><div class="qr-shot-placeholder"><div class="qr-shot-icon">🦷</div><div class="qr-shot-label" id="qrShotLabel2">Lower</div></div><div class="qr-shot-badge">✓</div></div>
+            <div class="qr-shot" id="qrShot0"><img id="qrThumb0" src="" alt=""><div class="qr-shot-placeholder"><div class="qr-shot-icon">🧑</div><div class="qr-shot-label" id="qrShotLabel0">Face</div></div><div class="qr-shot-badge">✓</div></div>
+            <div class="qr-shot" id="qrShot1"><img id="qrThumb1" src="" alt=""><div class="qr-shot-placeholder"><div class="qr-shot-icon">🦷</div><div class="qr-shot-label" id="qrShotLabel1">Upper</div></div><div class="qr-shot-badge">✓</div></div>
+            <div class="qr-shot" id="qrShot2"><img id="qrThumb2" src="" alt=""><div class="qr-shot-placeholder"><div class="qr-shot-icon">😁</div><div class="qr-shot-label" id="qrShotLabel2">Front</div></div><div class="qr-shot-badge">✓</div></div>
+            <div class="qr-shot" id="qrShot3"><img id="qrThumb3" src="" alt=""><div class="qr-shot-placeholder"><div class="qr-shot-icon">🦷</div><div class="qr-shot-label" id="qrShotLabel3">Lower</div></div><div class="qr-shot-badge">✓</div></div>
           </div>
           <div class="qr-waiting" id="qrWaiting"><div class="qr-wait-spinner"></div><span id="qrWaitText">Waiting for patient to capture photos on phone...</span></div>
-          <div class="qr-all-done" id="qrAllDone">✅ All 3 photos received!</div>
+          <div class="qr-all-done" id="qrAllDone">✅ All 4 photos received!</div>
           <div class="qr-gen-progress" id="qrGenProgress"><div class="qr-gen-spinner"></div><span class="qr-gen-text" id="qrGenText">Generating AI Report...</span></div>
           <form action="/generate" method="post" onsubmit="startGenerating(this)" id="qrGenerateForm">
             <button class="btn-proceed" id="qrProceedBtn" style="display:none;">🤖 Generate AI Report</button>
@@ -380,11 +380,13 @@ button{display:inline-flex;align-items:center;gap:6px;padding:9px 18px;border:no
     <div class="final-card" id="finalCard">
       <div class="final-icon">✅</div>
       <h3 id="finalTitle">All Photos Captured!</h3>
-      <p id="finalDesc">All 3 dental views saved. Generate your AI dental report now.</p>
+      <p id="finalDesc">Face + 3 dental views saved. Generate your AI dental report now.</p>
+      <!-- ── CHANGED: 4 thumbs — Face, Upper, Front, Lower ── -->
       <div class="thumb-row">
-        <div class="thumb"><img id="thumb0" src=""><div class="thumb-label" id="thumbLabel0">Upper</div></div>
-        <div class="thumb"><img id="thumb1" src=""><div class="thumb-label" id="thumbLabel1">Front</div></div>
-        <div class="thumb"><img id="thumb2" src=""><div class="thumb-label" id="thumbLabel2">Lower</div></div>
+        <div class="thumb"><img id="thumb0" src=""><div class="thumb-label" id="thumbLabel0">Face</div></div>
+        <div class="thumb"><img id="thumb1" src=""><div class="thumb-label" id="thumbLabel1">Upper</div></div>
+        <div class="thumb"><img id="thumb2" src=""><div class="thumb-label" id="thumbLabel2">Front</div></div>
+        <div class="thumb"><img id="thumb3" src=""><div class="thumb-label" id="thumbLabel3">Lower</div></div>
       </div>
       <form action="/generate" method="post" onsubmit="startGenerating(this)">
         <button class="btn-generate" id="generateBtn">🤖 Generate AI Report</button>
@@ -441,40 +443,82 @@ const BASE_URL = window.location.origin;
 })();
 
 const T={
-  "English":{upper_title:"Capture Upper Teeth",upper_sub:"Align your upper teeth inside the guide box, then tap Capture.",upper_tip:"🦷 Open wide and angle the camera slightly downward to show your upper teeth clearly.",upper_label:"Upper Teeth",front_title:"Capture Front Teeth",front_sub:"Show your front teeth straight-on inside the guide box.",front_tip:"😁 Keep the camera level with your mouth. Show both top and bottom front teeth.",front_label:"Front Teeth",lower_title:"Capture Lower Teeth",lower_sub:"Tilt the camera slightly upward to show your lower teeth inside the box.",lower_tip:"🦷 Tilt your head back slightly and angle the camera up to expose your lower row.",lower_label:"Lower Teeth",reference:"Reference",checking:"Checking image...",teeth_ok:"Teeth detected!",no_teeth:"Invalid image — no teeth detected.",retake_msg:"Please retake the photo.",capture:"📸 Capture",retake:"↩ Retake",next:"Next ➡",pill_upper:"Upper",pill_front:"Front",pill_lower:"Lower",final_title:"All Photos Captured!",final_desc:"All 3 dental views saved. Generate your AI dental report now.",generate:"🤖 Generate AI Report",thumb_upper:"Upper",thumb_front:"Front",thumb_lower:"Lower"},
-  "Telugu":{upper_title:"పై దంతాలు తీయండి",upper_sub:"మీ పై దంతాలను గైడ్ బాక్స్ లో సరిచేసి, Capture నొక్కండి.",upper_tip:"🦷 నోరు బాగా తెరచి, కెమెరాను కొంచెం కిందకి వంచండి.",upper_label:"పై దంతాలు",front_title:"ముందు దంతాలు తీయండి",front_sub:"మీ ముందు దంతాలను గైడ్ బాక్స్ లో చూపించండి.",front_tip:"😁 కెమెరాను నోటికి సమాంతరంగా ఉంచండి.",front_label:"ముందు దంతాలు",lower_title:"కింది దంతాలు తీయండి",lower_sub:"కింది దంతాలు చూపించేందుకు కెమెరాను పైకి వంచండి.",lower_tip:"🦷 తల వెనక్కి వాల్చి కెమెరాను పైకి వంచండి.",lower_label:"కింది దంతాలు",reference:"మాదిరి",checking:"చిత్రం తనిఖీ చేస్తున్నాం...",teeth_ok:"దంతాలు గుర్తించబడ్డాయి!",no_teeth:"చెల్లని చిత్రం — దంతాలు కనుగొనబడలేదు.",retake_msg:"దయచేసి మళ్ళీ తీయండి.",capture:"📸 తీయండి",retake:"↩ మళ్ళీ",next:"తదుపరి ➡",pill_upper:"పై",pill_front:"ముందు",pill_lower:"కింది",final_title:"అన్ని ఫోటోలు తీయబడ్డాయి!",final_desc:"3 వ్యూలు సేవ్ చేయబడ్డాయి.",generate:"🤖 AI నివేదిక రూపొందించండి",thumb_upper:"పై",thumb_front:"ముందు",thumb_lower:"కింది"},
-  "Hindi":{upper_title:"ऊपरी दांत कैप्चर करें",upper_sub:"अपने ऊपरी दांतों को गाइड बॉक्स में संरेखित करें, फिर Capture दबाएं।",upper_tip:"🦷 मुंह चौड़ा खोलें और कैमरे को थोड़ा नीचे झुकाएं।",upper_label:"ऊपरी दांत",front_title:"सामने के दांत कैप्चर करें",front_sub:"अपने सामने के दांत गाइड बॉक्स में सीधे दिखाएं।",front_tip:"😁 कैमरे को मुंह के बराबर रखें।",front_label:"सामने के दांत",lower_title:"निचले दांत कैप्चर करें",lower_sub:"निचले दांत दिखाने के लिए कैमरे को थोड़ा ऊपर झुकाएं।",lower_tip:"🦷 सिर थोड़ा पीछे झुकाएं और कैमरे को ऊपर की ओर करें।",lower_label:"निचले दांत",reference:"संदर्भ",checking:"छवि जाँच रहे हैं...",teeth_ok:"दांत पहचाने गए!",no_teeth:"अमान्य छवि — दांत नहीं मिले।",retake_msg:"कृपया दोबारा लें।",capture:"📸 कैप्चर करें",retake:"↩ दोबारा",next:"अगला ➡",pill_upper:"ऊपरी",pill_front:"सामने",pill_lower:"निचले",final_title:"सभी फ़ोटो ले ली गई हैं!",final_desc:"3 व्यू सहेजे गए।",generate:"🤖 AI रिपोर्ट बनाएं",thumb_upper:"ऊपरी",thumb_front:"सामने",thumb_lower:"निचले"}
+  "English":{
+    // ── CHANGED: step 0 = face, steps 1-3 = teeth ──
+    face_title:"Capture Patient Face Photo",
+    face_sub:"Position the patient's face inside the guide box, then tap Capture.",
+    face_tip:"🧑 Ask the patient to look straight at the camera. Face should be clearly visible.",
+    face_label:"Patient Face",
+    upper_title:"Capture Upper Teeth",upper_sub:"Align your upper teeth inside the guide box, then tap Capture.",upper_tip:"🦷 Open wide and angle the camera slightly downward to show your upper teeth clearly.",upper_label:"Upper Teeth",
+    front_title:"Capture Front Teeth",front_sub:"Show your front teeth straight-on inside the guide box.",front_tip:"😁 Keep the camera level with your mouth. Show both top and bottom front teeth.",front_label:"Front Teeth",
+    lower_title:"Capture Lower Teeth",lower_sub:"Tilt the camera slightly upward to show your lower teeth inside the box.",lower_tip:"🦷 Tilt your head back slightly and angle the camera up to expose your lower row.",lower_label:"Lower Teeth",
+    reference:"Reference",checking:"Saving photo...",
+    face_ok:"Face photo saved!",
+    teeth_ok:"Teeth detected!",no_teeth:"Invalid image — no teeth detected.",retake_msg:"Please retake the photo.",
+    capture:"📸 Capture",retake:"↩ Retake",next:"Next ➡",
+    pill_face:"Face",pill_upper:"Upper",pill_front:"Front",pill_lower:"Lower",
+    final_title:"All Photos Captured!",final_desc:"Face + 3 dental views saved. Generate your AI dental report now.",generate:"🤖 Generate AI Report",
+    thumb_face:"Face",thumb_upper:"Upper",thumb_front:"Front",thumb_lower:"Lower"},
+  "Telugu":{
+    face_title:"రోగి ముఖ ఫోటో తీయండి",face_sub:"రోగి ముఖాన్ని గైడ్ బాక్స్ లో సరిచేసి, Capture నొక్కండి.",face_tip:"🧑 రోగిని నేరుగా కెమెరా వైపు చూడమని చెప్పండి.",face_label:"రోగి ముఖం",
+    upper_title:"పై దంతాలు తీయండి",upper_sub:"మీ పై దంతాలను గైడ్ బాక్స్ లో సరిచేసి, Capture నొక్కండి.",upper_tip:"🦷 నోరు బాగా తెరచి, కెమెరాను కొంచెం కిందకి వంచండి.",upper_label:"పై దంతాలు",
+    front_title:"ముందు దంతాలు తీయండి",front_sub:"మీ ముందు దంతాలను గైడ్ బాక్స్ లో చూపించండి.",front_tip:"😁 కెమెరాను నోటికి సమాంతరంగా ఉంచండి.",front_label:"ముందు దంతాలు",
+    lower_title:"కింది దంతాలు తీయండి",lower_sub:"కింది దంతాలు చూపించేందుకు కెమెరాను పైకి వంచండి.",lower_tip:"🦷 తల వెనక్కి వాల్చి కెమెరాను పైకి వంచండి.",lower_label:"కింది దంతాలు",
+    reference:"మాదిరి",checking:"ఫోటో సేవ్ చేస్తున్నాం...",face_ok:"ముఖ ఫోటో సేవ్ అయింది!",teeth_ok:"దంతాలు గుర్తించబడ్డాయి!",no_teeth:"చెల్లని చిత్రం — దంతాలు కనుగొనబడలేదు.",retake_msg:"దయచేసి మళ్ళీ తీయండి.",
+    capture:"📸 తీయండి",retake:"↩ మళ్ళీ",next:"తదుపరి ➡",
+    pill_face:"ముఖం",pill_upper:"పై",pill_front:"ముందు",pill_lower:"కింది",
+    final_title:"అన్ని ఫోటోలు తీయబడ్డాయి!",final_desc:"ముఖం + 3 వ్యూలు సేవ్ చేయబడ్డాయి.",generate:"🤖 AI నివేదిక రూపొందించండి",
+    thumb_face:"ముఖం",thumb_upper:"పై",thumb_front:"ముందు",thumb_lower:"కింది"},
+  "Hindi":{
+    face_title:"मरीज़ की फ़ोटो कैप्चर करें",face_sub:"मरीज़ का चेहरा गाइड बॉक्स में रखें, फिर Capture दबाएं।",face_tip:"🧑 मरीज़ को सीधे कैमरे की तरफ देखने को कहें।",face_label:"मरीज़ का चेहरा",
+    upper_title:"ऊपरी दांत कैप्चर करें",upper_sub:"अपने ऊपरी दांतों को गाइड बॉक्स में संरेखित करें।",upper_tip:"🦷 मुंह चौड़ा खोलें और कैमरे को थोड़ा नीचे झुकाएं।",upper_label:"ऊपरी दांत",
+    front_title:"सामने के दांत कैप्चर करें",front_sub:"अपने सामने के दांत गाइड बॉक्स में सीधे दिखाएं।",front_tip:"😁 कैमरे को मुंह के बराबर रखें।",front_label:"सामने के दांत",
+    lower_title:"निचले दांत कैप्चर करें",lower_sub:"निचले दांत दिखाने के लिए कैमरे को थोड़ा ऊपर झुकाएं।",lower_tip:"🦷 सिर थोड़ा पीछे झुकाएं और कैमरे को ऊपर की ओर करें।",lower_label:"निचले दांत",
+    reference:"संदर्भ",checking:"फ़ोटो सहेज रहे हैं...",face_ok:"चेहरे की फ़ोटो सहेजी गई!",teeth_ok:"दांत पहचाने गए!",no_teeth:"अमान्य छवि — दांत नहीं मिले।",retake_msg:"कृपया दोबारा लें।",
+    capture:"📸 कैप्चर करें",retake:"↩ दोबारा",next:"अगला ➡",
+    pill_face:"चेहरा",pill_upper:"ऊपरी",pill_front:"सामने",pill_lower:"निचले",
+    final_title:"सभी फ़ोटो ले ली गई हैं!",final_desc:"चेहरा + 3 व्यू सहेजे गए।",generate:"🤖 AI रिपोर्ट बनाएं",
+    thumb_face:"चेहरा",thumb_upper:"ऊपरी",thumb_front:"सामने",thumb_lower:"निचले"}
 };
 
 const L = T[LANG] || T["English"];
 
-document.getElementById("refLabel").innerText=L.reference;
-document.getElementById("checkingText").innerText=L.checking;
-document.getElementById("captureBtn").innerText=L.capture;
-document.getElementById("retakeBtn").innerText=L.retake;
-document.getElementById("nextBtn").innerText=L.next;
-document.getElementById("pill0txt").innerText=L.pill_upper;
-document.getElementById("pill1txt").innerText=L.pill_front;
-document.getElementById("pill2txt").innerText=L.pill_lower;
-document.getElementById("finalTitle").innerText=L.final_title;
-document.getElementById("finalDesc").innerText=L.final_desc;
-document.getElementById("generateBtn").innerText=L.generate;
-document.getElementById("thumbLabel0").innerText=L.thumb_upper;
-document.getElementById("thumbLabel1").innerText=L.thumb_front;
-document.getElementById("thumbLabel2").innerText=L.thumb_lower;
-document.getElementById("qrShotLabel0").innerText=L.pill_upper;
-document.getElementById("qrShotLabel1").innerText=L.pill_front;
-document.getElementById("qrShotLabel2").innerText=L.pill_lower;
-
+// ── CHANGED: steps array — index 0 is face, 1-3 are teeth ──
+// Face step has no validation (just save directly), teeth steps validate
 const steps=[
-  {type:"upper",title:L.upper_title,sub:L.upper_sub,tip:L.upper_tip,video:"upper_demo.mp4",frameClass:"upper",label:L.upper_label},
-  {type:"front",title:L.front_title,sub:L.front_sub,tip:L.front_tip,video:"front_demo.mp4",frameClass:"front",label:L.front_label},
-  {type:"lower",title:L.lower_title,sub:L.lower_sub,tip:L.lower_tip,video:"lower_demo.mp4",frameClass:"lower",label:L.lower_label}
+  {type:"face",  title:L.face_title,  sub:L.face_sub,  tip:L.face_tip,  video:"upper_demo.mp4", frameClass:"face",  label:L.face_label,  skipValidate:true},
+  {type:"upper", title:L.upper_title, sub:L.upper_sub, tip:L.upper_tip, video:"upper_demo.mp4", frameClass:"upper", label:L.upper_label, skipValidate:false},
+  {type:"front", title:L.front_title, sub:L.front_sub, tip:L.front_tip, video:"front_demo.mp4", frameClass:"front", label:L.front_label, skipValidate:false},
+  {type:"lower", title:L.lower_title, sub:L.lower_sub, tip:L.lower_tip, video:"lower_demo.mp4", frameClass:"lower", label:L.lower_label, skipValidate:false}
 ];
-document.getElementById("titleText").innerText=steps[0].title;
-document.getElementById("subText").innerText=steps[0].sub;
-document.getElementById("guideTip").innerText=steps[0].tip;
-document.getElementById("frameLabel").innerText=steps[0].label;
+
+// Apply translations to pills and labels
+document.getElementById("refLabel").innerText = L.reference;
+document.getElementById("checkingText").innerText = L.checking;
+document.getElementById("captureBtn").innerText = L.capture;
+document.getElementById("retakeBtn").innerText = L.retake;
+document.getElementById("nextBtn").innerText = L.next;
+document.getElementById("pill0txt").innerText = L.pill_face;
+document.getElementById("pill1txt").innerText = L.pill_upper;
+document.getElementById("pill2txt").innerText = L.pill_front;
+document.getElementById("pill3txt").innerText = L.pill_lower;
+document.getElementById("finalTitle").innerText = L.final_title;
+document.getElementById("finalDesc").innerText = L.final_desc;
+document.getElementById("generateBtn").innerText = L.generate;
+document.getElementById("thumbLabel0").innerText = L.thumb_face;
+document.getElementById("thumbLabel1").innerText = L.thumb_upper;
+document.getElementById("thumbLabel2").innerText = L.thumb_front;
+document.getElementById("thumbLabel3").innerText = L.thumb_lower;
+document.getElementById("qrShotLabel0").innerText = L.pill_face;
+document.getElementById("qrShotLabel1").innerText = L.pill_upper;
+document.getElementById("qrShotLabel2").innerText = L.pill_front;
+document.getElementById("qrShotLabel3").innerText = L.pill_lower;
+
+// Init first step UI
+document.getElementById("titleText").innerText = steps[0].title;
+document.getElementById("subText").innerText = steps[0].sub;
+document.getElementById("guideTip").innerText = steps[0].tip;
+document.getElementById("frameLabel").innerText = steps[0].label;
 
 let currentMode = "cam";
 let qrPollTimer = null;
@@ -520,8 +564,9 @@ const capturedThumbs = [];
 let currentStep = 0;
 let stream, facingMode = "environment", flash = false;
 
+// ── CHANGED: 4 pills now ──
 function updatePills() {
-  for (let i = 0; i < 3; i++) {
+  for (let i = 0; i < 4; i++) {
     const p = document.getElementById("pill" + i);
     p.className = "step-pill";
     if (i < currentStep) p.classList.add("done");
@@ -590,27 +635,48 @@ captureBtn.onclick = async () => {
   const cropImg = canvasCrop.toDataURL("image/jpeg", 0.92);
   preview.src = cropImg; preview.style.display = "block"; video.style.display = "none";
   captureBtn.disabled = true; hideBanner(); validationOverlay.classList.add("show");
-  try {
-    const result = await validateTeeth(cropImg);
+
+  // ── CHANGED: face step skips teeth validation, just saves directly ──
+  const isFaceStep = steps[currentStep].skipValidate;
+
+  if (isFaceStep) {
+    // Save face photo directly — no teeth validation needed
+    fetch("/capture", {
+      method:"POST",
+      headers:{"Content-Type":"application/json"},
+      body:JSON.stringify({image:cropImg, type:"face"})
+    }).catch(console.error);
     validationOverlay.classList.remove("show");
-    if (result.isTeeth) {
-      cameraBox.classList.add("valid-flash");
-      setTimeout(() => cameraBox.classList.remove("valid-flash"), 1500);
-      showBanner("success", "✅", L.teeth_ok, result.reason);
-      capturedThumbs[currentStep] = cropImg;
-      fetch("/capture", {method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify({image:cropImg, type:steps[currentStep].type})}).catch(console.error);
-      captureBtn.classList.add("hidden"); retakeBtn.classList.remove("hidden"); nextBtn.classList.remove("hidden");
-      captureBtn.disabled = false;
-    } else {
-      cameraBox.classList.add("invalid-flash");
-      setTimeout(() => cameraBox.classList.remove("invalid-flash"), 1500);
-      showBanner("error", "❌", L.no_teeth, result.reason + " " + L.retake_msg);
-      setTimeout(() => { preview.style.display = "none"; video.style.display = "block"; hideBanner(); captureBtn.disabled = false; }, 2500);
+    cameraBox.classList.add("valid-flash");
+    setTimeout(() => cameraBox.classList.remove("valid-flash"), 1500);
+    showBanner("success", "✅", L.face_ok, "");
+    capturedThumbs[currentStep] = cropImg;
+    captureBtn.classList.add("hidden"); retakeBtn.classList.remove("hidden"); nextBtn.classList.remove("hidden");
+    captureBtn.disabled = false;
+  } else {
+    // Normal teeth validation
+    try {
+      const result = await validateTeeth(cropImg);
+      validationOverlay.classList.remove("show");
+      if (result.isTeeth) {
+        cameraBox.classList.add("valid-flash");
+        setTimeout(() => cameraBox.classList.remove("valid-flash"), 1500);
+        showBanner("success", "✅", L.teeth_ok, result.reason);
+        capturedThumbs[currentStep] = cropImg;
+        fetch("/capture", {method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify({image:cropImg, type:steps[currentStep].type})}).catch(console.error);
+        captureBtn.classList.add("hidden"); retakeBtn.classList.remove("hidden"); nextBtn.classList.remove("hidden");
+        captureBtn.disabled = false;
+      } else {
+        cameraBox.classList.add("invalid-flash");
+        setTimeout(() => cameraBox.classList.remove("invalid-flash"), 1500);
+        showBanner("error", "❌", L.no_teeth, result.reason + " " + L.retake_msg);
+        setTimeout(() => { preview.style.display = "none"; video.style.display = "block"; hideBanner(); captureBtn.disabled = false; }, 2500);
+      }
+    } catch(err) {
+      validationOverlay.classList.remove("show");
+      showBanner("error", "❌", "Validation failed — " + err.message, "");
+      preview.style.display = "none"; video.style.display = "block"; captureBtn.disabled = false;
     }
-  } catch(err) {
-    validationOverlay.classList.remove("show");
-    showBanner("error", "❌", "Validation failed — " + err.message, "");
-    preview.style.display = "none"; video.style.display = "block"; captureBtn.disabled = false;
   }
 };
 
@@ -621,6 +687,7 @@ retakeBtn.onclick = () => {
 
 nextBtn.onclick = () => {
   currentStep++; hideBanner();
+  // ── CHANGED: 4 steps total now ──
   if (currentStep < steps.length) {
     const s = steps[currentStep];
     titleText.innerText = s.title; subText.innerText = s.sub; guideTip.innerText = s.tip;
@@ -628,11 +695,17 @@ nextBtn.onclick = () => {
     frameLabel.innerText = s.label; guideFrame.className = "guide-frame " + s.frameClass;
     preview.style.display = "none"; video.style.display = "block"; updatePills();
     captureBtn.classList.remove("hidden"); retakeBtn.classList.add("hidden"); nextBtn.classList.add("hidden");
+    // Switch to front camera for face step, back for teeth
+    if (s.type === "face") {
+      facingMode = "user"; startCamera();
+    } else if (currentStep === 1) {
+      facingMode = "environment"; startCamera();
+    }
   } else {
-    for (let i = 0; i < 3; i++) document.getElementById("pill" + i).className = "step-pill done";
+    for (let i = 0; i < 4; i++) document.getElementById("pill" + i).className = "step-pill done";
     stopCamera();
     titleBar.style.display = "none"; splitLayout.style.display = "none";
-    for (let i = 0; i < 3; i++) { const t = document.getElementById("thumb" + i); if (capturedThumbs[i]) t.src = capturedThumbs[i]; }
+    for (let i = 0; i < 4; i++) { const t = document.getElementById("thumb" + i); if (capturedThumbs[i]) t.src = capturedThumbs[i]; }
     finalCard.style.display = "flex";
     document.getElementById("modeSelector").style.display = "none";
   }
@@ -667,7 +740,8 @@ async function pollQrStatus() {
     const res = await fetch(`/phone_status?token=${SESSION_TOKEN}`);
     if (!res.ok) return;
     const data = await res.json();
-    const parts = ["upper","front","lower"];
+    // ── CHANGED: poll for face + 3 teeth ──
+    const parts = ["face","upper","front","lower"];
     let count = 0;
     parts.forEach((part, i) => {
       if (data[part]) {
@@ -684,20 +758,20 @@ async function pollQrStatus() {
     const waitEl = document.getElementById("qrWaiting");
     const doneEl = document.getElementById("qrAllDone");
     const proceedBtn = document.getElementById("qrProceedBtn");
-    if (count === 3) {
+    // ── CHANGED: need 4 photos now ──
+    if (count === 4) {
       waitEl.style.display = "none"; doneEl.classList.add("show");
       if (proceedBtn) proceedBtn.style.display = "block";
       stopQrPolling();
-      for (let i = 0; i < 3; i++) document.getElementById("pill" + i).className = "step-pill done";
+      for (let i = 0; i < 4; i++) document.getElementById("pill" + i).className = "step-pill done";
       fetch("/phone_expire", {method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify({token:SESSION_TOKEN})}).catch(e => console.warn("Expire call failed:", e));
     } else {
-      const remaining = 3 - count;
-      document.getElementById("qrWaitText").innerText = count === 0 ? "Waiting for patient to capture photos on phone..." : `${count}/3 received — waiting for ${remaining} more photo${remaining > 1 ? "s" : ""}...`;
+      const remaining = 4 - count;
+      document.getElementById("qrWaitText").innerText = count === 0 ? "Waiting for patient to capture photos on phone..." : `${count}/4 received — waiting for ${remaining} more photo${remaining > 1 ? "s" : ""}...`;
     }
   } catch(e) { console.warn("Poll error:", e); }
 }
 
-// CHANGE: "Claude AI" → "AI" in all status messages
 function startGenerating(formEl) {
   const btn = formEl
     ? formEl.querySelector("button")
@@ -724,6 +798,10 @@ function startGenerating(formEl) {
     if (qrGenText) qrGenText.innerText = x.qr;
   }, x.t));
 }
+
+// ── Auto switch to front camera on page load for face step ──
+facingMode = "user";
+startCamera();
 
 function toggleMenu() { document.getElementById("mobileMenu").classList.toggle("open"); }
 function closeMenu()  { document.getElementById("mobileMenu").classList.remove("open"); }
