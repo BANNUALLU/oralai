@@ -5,6 +5,7 @@ from reportlab.pdfbase import pdfmetrics
 from reportlab.pdfbase.ttfonts import TTFont
 from fpdf import FPDF
 from datetime import datetime
+from PIL import Image, ImageDraw, ImageFont
 import os
 import re
 import base64
@@ -72,7 +73,7 @@ LANG_FONT_MAP = {
     "Arabic":    "NotoSansArabic-Regular.ttf",
 }
 
-# Languages that use non-Latin scripts — DO NOT sanitize their content
+# Languages that use non-Latin scripts — rendered via Pillow image method
 NON_LATIN_LANGUAGES = {
     "Hindi", "Marathi", "Telugu", "Tamil",
     "Kannada", "Malayalam", "Bengali", "Arabic"
@@ -95,36 +96,21 @@ def sanitize(text):
 
 
 def sanitize_structural(text):
-    """
-    For structural/label text (always ASCII) — same as sanitize().
-    Use this for headers, footers, labels — never for body content in Indian languages.
-    """
     return sanitize(text)
 
 
 def clean_markdown(text, language="English"):
-    """
-    Clean markdown formatting.
-    For non-Latin languages: only strip markdown symbols, preserve all Unicode characters.
-    """
-    # Strip markdown heading markers
     text = re.sub(r'^#{1,6}\s*', '', text, flags=re.MULTILINE)
-    # Strip bold/italic markers
     text = re.sub(r'\*{1,3}(.*?)\*{1,3}', r'\1', text)
     text = re.sub(r'_{1,2}(.*?)_{1,2}', r'\1', text)
-    # Strip horizontal rules (ASCII only)
     text = re.sub(r'^[-=]{2,}\s*$', '', text, flags=re.MULTILINE)
-    # Strip markdown links
     text = re.sub(r'\[([^\]]+)\]\([^\)]+\)', r'\1', text)
-    # Strip backticks
     text = text.replace('`', '')
 
     if language not in NON_LATIN_LANGUAGES:
-        # For English only: strip lines that are nothing but punctuation/symbols
         text = re.sub(r'\?{2,}', '', text)
         text = re.sub(r'^[-_=?#*]+$', '', text, flags=re.MULTILINE)
 
-    # Collapse multiple spaces (safe for all languages)
     text = re.sub(r'  +', ' ', text)
     return text.strip()
 
@@ -189,19 +175,13 @@ def get_face_photo_path(screening_id, report_id):
     if screening_id:
         path = os.path.join("static", "uploads", f"{screening_id}_face.jpg")
         if os.path.exists(path):
-            print(f"[Face] Found in uploads: {path}")
             return path
         path = os.path.join("static", "results", f"{screening_id}_face.jpg")
         if os.path.exists(path):
-            print(f"[Face] Found in results: {path}")
             return path
-
     path = os.path.join("static", "results", f"{report_id}_face.jpg")
     if os.path.exists(path):
-        print(f"[Face] Found by report_id: {path}")
         return path
-
-    print("[Face] No face photo found — placeholder will be used.")
     return None
 
 
@@ -225,15 +205,10 @@ def draw_patient_info_bar(c, W, H, header_h, name, age, gender, phone, now, face
         c.setLineWidth(1)
         c.roundRect(photo_x - 2, photo_y - 2, photo_w + 4, photo_h + 4, 4, fill=0, stroke=1)
         try:
-            c.drawImage(
-                face_photo_path,
-                photo_x, photo_y,
-                width=photo_w, height=photo_h,
-                preserveAspectRatio=True,
-                mask="auto"
-            )
+            c.drawImage(face_photo_path, photo_x, photo_y,
+                        width=photo_w, height=photo_h,
+                        preserveAspectRatio=True, mask="auto")
         except Exception as e:
-            print(f"Face photo draw error: {e}")
             _draw_face_placeholder(c, photo_x, photo_y, photo_w, photo_h)
     else:
         _draw_face_placeholder(c, photo_x, photo_y, photo_w, photo_h)
@@ -267,6 +242,86 @@ def _draw_face_placeholder(c, x, y, w, h):
 
 
 # ══════════════════════════════════════════════════════════════
+#  PILLOW TEXT IMAGE RENDERER — handles Telugu & all Indian scripts
+# ══════════════════════════════════════════════════════════════
+
+def render_text_to_image(text, font_path, font_size_pt=9,
+                          text_color=(15, 23, 42),
+                          bg_color=None,
+                          max_width_mm=183,
+                          dpi=200):
+    """
+    Renders text using Pillow + FreeType (which correctly shapes Telugu,
+    Hindi, Tamil, Kannada etc. via HarfBuzz on Windows).
+
+    Returns: (tmp_png_path, height_mm, width_mm)  or  None on failure
+    """
+    try:
+        px_per_mm = dpi / 25.4
+        max_w_px  = int(max_width_mm * px_per_mm)
+
+        # Convert pt → px  (1 pt = 1/72 inch)
+        font_px = max(int(font_size_pt * dpi / 72), 10)
+
+        pil_font = ImageFont.truetype(font_path, font_px)
+
+        # ── Word-wrap ──
+        words = text.split()
+        lines   = []
+        current = ""
+
+        # measure on a tiny dummy image
+        dummy = ImageDraw.Draw(Image.new("RGBA", (1, 1)))
+        for word in words:
+            test = (current + " " + word).strip() if current else word
+            w    = dummy.textlength(test, font=pil_font)
+            if w <= max_w_px:
+                current = test
+            else:
+                if current:
+                    lines.append(current)
+                current = word
+        if current:
+            lines.append(current)
+        if not lines:
+            return None
+
+        # ── Measure actual rendered heights per line ──
+        line_heights = []
+        for ln in lines:
+            bbox = dummy.textbbox((0, 0), ln, font=pil_font)
+            line_heights.append(bbox[3] - bbox[1])
+
+        line_gap   = max(int(font_px * 0.3), 4)
+        total_h    = sum(line_heights) + line_gap * (len(lines) - 1) + int(font_px * 0.4)
+        total_h    = max(total_h, font_px + 4)
+
+        # ── Render ──
+        bg = bg_color if bg_color else (255, 255, 255, 0)
+        mode = "RGBA" if bg_color is None else "RGB"
+        img  = Image.new(mode, (max_w_px, total_h), bg)
+        draw = ImageDraw.Draw(img)
+
+        y = int(font_px * 0.1)
+        for i, ln in enumerate(lines):
+            draw.text((0, y), ln, font=pil_font, fill=text_color)
+            y += line_heights[i] + line_gap
+
+        tmp  = tempfile.NamedTemporaryFile(suffix=".png", delete=False)
+        img.save(tmp.name, "PNG")
+        tmp.close()
+
+        h_mm = total_h  / px_per_mm
+        w_mm = max_w_px / px_per_mm
+
+        return tmp.name, h_mm, w_mm
+
+    except Exception as e:
+        print(f"[TextImg] render failed: {e}")
+        return None
+
+
+# ══════════════════════════════════════════════════════════════
 #  PAGE 2+ GENERATOR using fpdf2
 # ══════════════════════════════════════════════════════════════
 
@@ -284,31 +339,34 @@ class AnalysisPDF(FPDF):
         self.total_pages = total_pages
         self.page_num    = 2
         self.is_non_latin = language in NON_LATIN_LANGUAGES
+        self._tmp_images  = []   # track temp files for cleanup
 
         self.font_name = "NotoUni"
 
         if font_path and os.path.exists(font_path):
             try:
-                # ── KEY FIX: fpdf2 requires uni=True removed (it's default in fpdf2)
-                # but the font MUST be loaded correctly for Unicode rendering
                 self.add_font(self.font_name, style="", fname=font_path)
                 print(f"[Font] Loaded: {font_path}")
             except Exception as e:
                 print(f"[Font] Failed to load {font_path}: {e}")
                 self.font_name = None
         else:
-            print(f"[Font] NOT FOUND: {font_path} — falling back to Helvetica")
+            print(f"[Font] NOT FOUND: {font_path}")
             self.font_name = None
 
+    # ── cleanup all temp PNG files created during rendering ──
+    def cleanup_tmp(self):
+        for p in self._tmp_images:
+            try:
+                os.remove(p)
+            except:
+                pass
+        self._tmp_images = []
+
     def _safe_text(self, text):
-        """
-        For non-Latin languages: preserve original Unicode text as-is.
-        For English/Latin: apply sanitization to handle special chars.
-        """
         if not isinstance(text, str):
             text = str(text)
         if self.is_non_latin:
-            # Only remove control characters, keep all Unicode
             text = re.sub(r'[\x00-\x08\x0b\x0c\x0e-\x1f]', '', text)
             return text
         else:
@@ -319,6 +377,37 @@ class AnalysisPDF(FPDF):
             self.set_font(self.font_name, size=size)
         else:
             self.set_font("Helvetica", style="B" if bold else "", size=size)
+
+    # ── Core image-embed helper for non-Latin text ──────────────
+    def _embed_text_image(self, text, font_size_pt=9,
+                          text_color=(15, 23, 42),
+                          bg_color=None,
+                          x_mm=10, max_width_mm=183):
+        """
+        Renders `text` via Pillow (correct Telugu/Hindi shaping),
+        embeds the PNG into the PDF at current Y position.
+        Returns the height_mm consumed, or 0 on failure.
+        """
+        if not self.font_path or not os.path.exists(self.font_path):
+            return 0
+
+        result = render_text_to_image(
+            text, self.font_path,
+            font_size_pt=font_size_pt,
+            text_color=text_color,
+            bg_color=bg_color,
+            max_width_mm=max_width_mm,
+            dpi=200
+        )
+        if result is None:
+            return 0
+
+        tmp_path, h_mm, w_mm = result
+        self._tmp_images.append(tmp_path)
+
+        self.image(tmp_path, x=x_mm, y=self.get_y(), w=max_width_mm, h=h_mm)
+        self.set_y(self.get_y() + h_mm + 1)
+        return h_mm
 
     def draw_header(self):
         self.set_fill_color(15, 23, 42)
@@ -347,14 +436,9 @@ class AnalysisPDF(FPDF):
 
         self.set_xy(110, 5)
         self.set_text_color(148, 163, 184)
-        # Patient name in header — use Noto font if available so it renders correctly
-        if self.font_name:
-            self.set_font(self.font_name, size=7)
-        else:
-            self.set_font("Helvetica", "", 7)
-        # Patient name: render with safe_text so non-Latin names display correctly
-        pat_display = self._safe_text(f"{self.pat_name} ({self.pat_age}/{self.pat_gender})")
-        self.cell(95, 5, pat_display, ln=0, align="R")
+        self.set_font("Helvetica", "", 7)
+        pat_display = f"{self.pat_name} ({self.pat_age}/{self.pat_gender})"
+        self.cell(95, 5, pat_display if not self.is_non_latin else "(see report)", ln=0, align="R")
 
         self.set_fill_color(124, 58, 237)
         self.rect(0, 22, 210, 1.5, "F")
@@ -370,8 +454,7 @@ class AnalysisPDF(FPDF):
         self.set_xy(5, self.get_y() + 3)
         self.set_text_color(255, 255, 255)
         self.set_font("Helvetica", "B", 8)
-        self.cell(100, 5,
-            sanitize_structural("OralAI  -  AI Oral Health Screening  |  www.oralai.site"), ln=0)
+        self.cell(100, 5, sanitize_structural("OralAI  -  AI Oral Health Screening  |  www.oralai.site"), ln=0)
 
         self.set_x(110)
         self.set_text_color(148, 163, 184)
@@ -396,12 +479,36 @@ class AnalysisPDF(FPDF):
 
     def draw_section_heading(self, text):
         """
-        Section headings: use _safe_text so Telugu/Hindi headings render correctly.
+        Blue bar heading. For non-Latin: renders text as white-on-blue PNG image.
+        For English: standard fpdf2 cell.
         """
         text = self._safe_text(text)
+        bar_y = self.get_y()
+
         self.set_fill_color(37, 99, 235)
-        self.rect(0, self.get_y(), 210, 8, "F")
-        self.set_xy(10, self.get_y() + 1)
+        self.rect(0, bar_y, 210, 9, "F")
+
+        if self.is_non_latin and self.font_path and os.path.exists(self.font_path):
+            # Render white text image
+            result = render_text_to_image(
+                text, self.font_path,
+                font_size_pt=10,
+                text_color=(255, 255, 255),
+                bg_color=None,   # transparent bg
+                max_width_mm=190,
+                dpi=200
+            )
+            if result:
+                tmp_path, h_mm, w_mm = result
+                self._tmp_images.append(tmp_path)
+                img_y = bar_y + max(0, (9 - h_mm) / 2)
+                self.image(tmp_path, x=10, y=img_y, w=190, h=h_mm)
+                self.set_y(bar_y + 9)
+                self.ln(3)
+                return
+
+        # Fallback: standard text
+        self.set_xy(10, bar_y + 1.5)
         self.set_text_color(255, 255, 255)
         self.get_font(bold=True, size=10)
         self.cell(0, 6, text, ln=1)
@@ -409,12 +516,29 @@ class AnalysisPDF(FPDF):
 
     def draw_bullet(self, text):
         """
-        Bullet text: use _safe_text to preserve Telugu/other script characters.
+        Bullet point. For non-Latin: embeds Pillow-rendered PNG.
+        For English: standard fpdf2 multi_cell.
         """
         text = self._safe_text(text)
         y = self.get_y()
+
+        # Draw bullet dot
         self.set_fill_color(37, 99, 235)
         self.ellipse(12, y + 2.5, 2, 2, "F")
+
+        if self.is_non_latin and self.font_path and os.path.exists(self.font_path):
+            h = self._embed_text_image(
+                text,
+                font_size_pt=9,
+                text_color=(15, 23, 42),
+                x_mm=17,
+                max_width_mm=176
+            )
+            if h > 0:
+                self.set_x(10)
+                return
+
+        # Fallback: standard text
         self.set_xy(17, y)
         self.set_text_color(15, 23, 42)
         self.get_font(size=9)
@@ -423,24 +547,33 @@ class AnalysisPDF(FPDF):
 
     def draw_body_text(self, text):
         """
-        Body text: use _safe_text to preserve Telugu/other script characters.
+        Body paragraph. For non-Latin: embeds Pillow-rendered PNG.
+        For English: standard fpdf2 multi_cell.
         """
         text = self._safe_text(text)
+
+        if self.is_non_latin and self.font_path and os.path.exists(self.font_path):
+            h = self._embed_text_image(
+                text,
+                font_size_pt=9,
+                text_color=(15, 23, 42),
+                x_mm=10,
+                max_width_mm=183
+            )
+            if h > 0:
+                return
+
+        # Fallback: standard text
         self.set_x(10)
         self.set_text_color(15, 23, 42)
         self.get_font(size=9)
         self.multi_cell(190, 5, text, ln=1)
 
     def _start_new_page_mgmt(self):
-        """
-        Start a new page during management section rendering.
-        Draws a minimal continuation header so the page is not blank.
-        """
         self.draw_footer()
         self.page_num += 1
         self.add_page()
 
-        # Slim dark header bar for continuation page
         self.set_fill_color(15, 23, 42)
         self.rect(0, 0, 210, 14, "F")
         self.set_fill_color(8, 145, 178)
@@ -456,15 +589,13 @@ class AnalysisPDF(FPDF):
     def draw_management_section(self):
         import json
         try:
-            from PIL import Image, ImageDraw
+            from PIL import Image as PilImage, ImageDraw as PilDraw
             PIL_AVAILABLE = True
         except ImportError:
             PIL_AVAILABLE = False
-            print("[Mgmt] Pillow not installed — circular crop disabled, using square photos")
 
         config_path = "static/management/config.json"
         if not os.path.exists(config_path):
-            print("[Mgmt] config.json not found — skipping management section")
             return
 
         with open(config_path) as f:
@@ -473,27 +604,21 @@ class AnalysisPDF(FPDF):
         if not members:
             return
 
-        # ── Page dimensions ──
-        PAGE_H      = 297          # A4 height in mm
-        FOOTER_H    = 16           # reserved for footer at bottom
-        SAFE_BOTTOM = PAGE_H - FOOTER_H   # = 281 mm — never draw below this
+        PAGE_H      = 297
+        FOOTER_H    = 16
+        SAFE_BOTTOM = PAGE_H - FOOTER_H
+        per_row     = 3
+        photo_d     = 28
+        col_w       = 190 / per_row
+        ROW_H       = photo_d + 20
+        HEADING_H   = 9 + 5
 
-        per_row   = 3
-        photo_d   = 28             # circle diameter in mm
-        col_w     = 190 / per_row
-        # Height one full row occupies: photo + name + title + gap
-        ROW_H     = photo_d + 20   # 48 mm per row (generous)
-        # Height needed for heading bar + first row
-        HEADING_H = 9 + 5          # bar + ln(5)
-
-        # ── Check if we have room for heading + at least one row ──
         space_needed = HEADING_H + ROW_H + 5
         if self.get_y() + space_needed > SAFE_BOTTOM:
             self._start_new_page_mgmt()
         else:
             self.ln(5)
 
-        # ── Section heading bar ──
         self.set_fill_color(15, 23, 42)
         self.rect(0, self.get_y(), 210, 9, "F")
         self.set_fill_color(8, 145, 178)
@@ -505,22 +630,18 @@ class AnalysisPDF(FPDF):
         self.ln(5)
 
         def make_circle_img(src_path):
-            """Crops image to circle, returns temp PNG path."""
             try:
-                img = Image.open(src_path).convert("RGBA")
+                img  = PilImage.open(src_path).convert("RGBA")
                 size = min(img.size)
                 left = (img.width  - size) // 2
                 top  = (img.height - size) // 2
                 img  = img.crop((left, top, left + size, top + size))
-                img  = img.resize((220, 220), Image.LANCZOS)
-
-                mask = Image.new("L", (220, 220), 0)
-                draw = ImageDraw.Draw(mask)
+                img  = img.resize((220, 220), PilImage.LANCZOS)
+                mask = PilImage.new("L", (220, 220), 0)
+                draw = PilDraw.Draw(mask)
                 draw.ellipse((0, 0, 220, 220), fill=255)
-
-                result = Image.new("RGBA", (220, 220), (255, 255, 255, 0))
+                result = PilImage.new("RGBA", (220, 220), (255, 255, 255, 0))
                 result.paste(img, (0, 0), mask)
-
                 tmp = tempfile.NamedTemporaryFile(suffix=".png", delete=False)
                 result.save(tmp.name, "PNG")
                 return tmp.name
@@ -531,10 +652,8 @@ class AnalysisPDF(FPDF):
         temp_files = []
 
         for row_start in range(0, len(members), per_row):
-            row_members = members[row_start : row_start + per_row]
+            row_members = members[row_start: row_start + per_row]
 
-            # ── KEY FIX: check space before drawing each row ──
-            # If this row won't fit, start a new continuation page
             if self.get_y() + ROW_H > SAFE_BOTTOM:
                 self._start_new_page_mgmt()
 
@@ -547,7 +666,6 @@ class AnalysisPDF(FPDF):
 
                 img_path = os.path.join("static", "management", member.get("file", ""))
 
-                # Blue circle border
                 self.set_draw_color(37, 99, 235)
                 self.set_line_width(0.7)
                 self.ellipse(px - 1, py - 1, photo_d + 2, photo_d + 2, "D")
@@ -570,7 +688,6 @@ class AnalysisPDF(FPDF):
                         except Exception as e:
                             print(f"[Mgmt] Fallback image draw error: {e}")
                 else:
-                    # Grey placeholder circle
                     self.set_fill_color(226, 232, 240)
                     self.ellipse(px, py, photo_d, photo_d, "F")
                     self.set_xy(px, py + photo_d / 2 - 2)
@@ -578,26 +695,18 @@ class AnalysisPDF(FPDF):
                     self.set_font("Helvetica", "", 6)
                     self.cell(photo_d, 4, "No Photo", align="C", ln=0)
 
-                # Name
                 self.set_xy(10 + i * col_w, py + photo_d + 2)
                 self.set_text_color(15, 23, 42)
                 self.set_font("Helvetica", "B", 8)
-                self.cell(col_w, 4.5,
-                          sanitize_structural(member.get("name", "")),
-                          align="C", ln=0)
+                self.cell(col_w, 4.5, sanitize_structural(member.get("name", "")), align="C", ln=0)
 
-                # Title
                 self.set_xy(10 + i * col_w, py + photo_d + 7)
                 self.set_text_color(100, 116, 139)
                 self.set_font("Helvetica", "", 6.5)
-                self.multi_cell(col_w, 3.5,
-                                sanitize_structural(member.get("title", "")),
-                                align="C")
+                self.multi_cell(col_w, 3.5, sanitize_structural(member.get("title", "")), align="C")
 
-            # Move Y past this row
             self.set_y(row_y + ROW_H)
 
-        # ── Clean up temp circle PNGs ──
         for tmp in temp_files:
             try:
                 os.remove(tmp)
@@ -618,8 +727,6 @@ def generate_analysis_pages_fpdf2(claude_analysis, language, name, age, gender,
 
     if not os.path.exists(font_path):
         print(f"[Font] WARNING: {font_path} not found!")
-        print(f"[Font] Download NotoSans fonts from: https://fonts.google.com/noto")
-        print(f"[Font] Place the .ttf file in: {FONTS_DIR}/")
 
     pdf = AnalysisPDF(
         language=language,
@@ -633,7 +740,6 @@ def generate_analysis_pages_fpdf2(claude_analysis, language, name, age, gender,
     pdf.add_page()
     pdf.draw_header()
 
-    # ── KEY FIX: pass language to clean_markdown so non-Latin text is preserved ──
     cleaned   = clean_markdown(claude_analysis, language=language)
     lines_raw = cleaned.split("\n")
 
@@ -666,14 +772,6 @@ def generate_analysis_pages_fpdf2(claude_analysis, language, name, age, gender,
             pdf.set_text_color(255, 255, 255)
             pdf.set_font("Helvetica", "B", 11)
             pdf.cell(130, 8, sanitize_structural("AI Detailed Analysis (continued)"))
-            pdf.set_text_color(148, 163, 184)
-            if pdf.font_name:
-                pdf.set_font(pdf.font_name, size=7)
-            else:
-                pdf.set_font("Helvetica", "", 7)
-            # Patient name in continuation header
-            cont_name = pdf._safe_text(f"{name} ({age}/{gender})")
-            pdf.cell(65, 8, cont_name, align="R")
             pdf.set_fill_color(124, 58, 237)
             pdf.rect(0, 14, 210, 1.5, "F")
             pdf.set_y(18)
@@ -691,10 +789,12 @@ def generate_analysis_pages_fpdf2(claude_analysis, language, name, age, gender,
                 pdf.draw_body_text(item_text)
                 pdf.ln(1)
 
-    # ── Disclaimer then Management photos ──
     pdf.draw_disclaimer()
     pdf.draw_management_section()
     pdf.draw_footer()
+
+    # cleanup all temp images
+    pdf.cleanup_tmp()
 
     temp_path = f"static/reports/temp_analysis_{report_id}.pdf"
     pdf.output(temp_path)
@@ -705,10 +805,7 @@ def _build_page1(c, W, H, header_h, name, age, gender, phone, now,
                  logo_path, face_photo_path, img_parts, img_w, img_h,
                  card_h, gap, pill_colors, detected_labels,
                  recommendations, no_issues, report_id, total_pages):
-    """
-    Draw all page-1 content onto canvas `c`.
-    Extracted to avoid duplicating the massive page-1 drawing block.
-    """
+
     # Header
     c.setFillColor(C_HEADER)
     c.rect(0, H - header_h, W, header_h, fill=1, stroke=0)
@@ -773,7 +870,7 @@ def _build_page1(c, W, H, header_h, name, age, gender, phone, now,
 
     cur_y = card_y - 18
 
-    # ── Legend ──
+    # Legend
     detected = [k for k in ["malaligned", "stains", "caries", "pit_fissure"]
                 if k in detected_labels]
     if detected:
@@ -794,7 +891,7 @@ def _build_page1(c, W, H, header_h, name, age, gender, phone, now,
             lx += c.stringWidth(text, "Helvetica", 9) + 34
         cur_y -= 24
 
-    # ── Treatment Recommendations ──
+    # Treatment Recommendations
     cur_y -= 4
     cur_y = draw_section_bar_rl(c, W, cur_y, "  TREATMENT RECOMMENDATIONS")
     cur_y -= 8
@@ -821,7 +918,6 @@ def _build_page1(c, W, H, header_h, name, age, gender, phone, now,
         for ln in lines:
             c.drawString(42, ty, ln)
             ty -= 13
-
     else:
         for rec in recommendations:
             if rec["label"] == "none":
@@ -886,7 +982,7 @@ def generate_pdf(user_data, detected_labels, report_id,
 
     img_h    = 152
     img_w    = 152
-    gap      = (595.27 - 56 - img_w * 3) / 4   # A4 width approx
+    gap      = (595.27 - 56 - img_w * 3) / 4
     card_h   = img_h + 34
     pill_colors = [C_ACCENT, C_TEAL, C_PURPLE]
 
@@ -906,7 +1002,7 @@ def generate_pdf(user_data, detected_labels, report_id,
     no_issues = (not recommendations or
                  (len(recommendations) == 1 and recommendations[0]["label"] == "none"))
 
-    # ── Draw page 1 with placeholder total (will redraw after merge) ──
+    # Draw page 1 with placeholder total
     c = rl_canvas.Canvas(report_path, pagesize=A4)
     W, H = A4
     header_h = 90
@@ -916,10 +1012,10 @@ def generate_pdf(user_data, detected_labels, report_id,
         logo_path, face_photo_path, img_parts,
         img_w, img_h, card_h, gap, pill_colors,
         detected_labels, recommendations, no_issues,
-        report_id, total_pages=99  # placeholder — will be corrected below
+        report_id, total_pages=99
     )
 
-    # ── Pages 2+ using fpdf2 ──
+    # Pages 2+ using fpdf2
     if claude_analysis:
         try:
             temp_path, last_fpdf_page = generate_analysis_pages_fpdf2(
@@ -929,12 +1025,12 @@ def generate_pdf(user_data, detected_labels, report_id,
                 report_id=report_id,
                 logo_path=logo_path,
                 start_page=2,
-                total_pages=99   # placeholder — corrected after merge
+                total_pages=99
             )
 
             from pypdf import PdfWriter, PdfReader
 
-            # ── First merge to count actual pages ──
+            # First merge to count actual pages
             writer = PdfWriter()
             for page in PdfReader(report_path).pages:
                 writer.add_page(page)
@@ -944,7 +1040,7 @@ def generate_pdf(user_data, detected_labels, report_id,
             actual_pages = len(writer.pages)
             print(f"[PDF] Total pages: {actual_pages}, language={language}")
 
-            # ── Redraw page 1 with correct total_pages ──
+            # Redraw page 1 with correct total_pages
             c2 = rl_canvas.Canvas(report_path, pagesize=A4)
             _build_page1(
                 c2, W, H, header_h, name, age, gender, phone, now,
@@ -954,7 +1050,7 @@ def generate_pdf(user_data, detected_labels, report_id,
                 report_id, total_pages=actual_pages
             )
 
-            # ── Regenerate analysis pages with correct total_pages ──
+            # Regenerate analysis pages with correct total_pages
             os.remove(temp_path)
             temp_path2, _ = generate_analysis_pages_fpdf2(
                 claude_analysis=claude_analysis,
@@ -963,10 +1059,10 @@ def generate_pdf(user_data, detected_labels, report_id,
                 report_id=report_id,
                 logo_path=logo_path,
                 start_page=2,
-                total_pages=actual_pages   # ← correct total now
+                total_pages=actual_pages
             )
 
-            # ── Final merge ──
+            # Final merge
             writer2 = PdfWriter()
             for page in PdfReader(report_path).pages:
                 writer2.add_page(page)
