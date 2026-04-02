@@ -156,26 +156,17 @@ def draw_section_bar_rl(c, W, y, title, color=None):
     return y - 26
 
 
-# ── FIX: get face photo — checks uploads dir first, then results ──
 def get_face_photo_path(screening_id, report_id):
-    """
-    Returns the file path of the saved face photo.
-    Checks static/uploads first (where phone_save stores it),
-    then static/results as fallback.
-    """
     if screening_id:
-        # Primary location — phone_save saves here
         path = os.path.join("static", "uploads", f"{screening_id}_face.jpg")
         if os.path.exists(path):
             print(f"[Face] Found in uploads: {path}")
             return path
-        # Fallback — results dir
         path = os.path.join("static", "results", f"{screening_id}_face.jpg")
         if os.path.exists(path):
             print(f"[Face] Found in results: {path}")
             return path
 
-    # Last resort — report_id based
     path = os.path.join("static", "results", f"{report_id}_face.jpg")
     if os.path.exists(path):
         print(f"[Face] Found by report_id: {path}")
@@ -185,7 +176,6 @@ def get_face_photo_path(screening_id, report_id):
     return None
 
 
-# ── Draw patient info bar WITH face photo ───────────────────────
 def draw_patient_info_bar(c, W, H, header_h, name, age, gender, phone, now, face_photo_path=None):
     bar_top = H - header_h
     bar_h   = 54
@@ -267,7 +257,6 @@ class AnalysisPDF(FPDF):
 
         self.font_name = "NotoUni"
 
-        # ── FIX: only register font if the file actually exists ──
         if font_path and os.path.exists(font_path):
             try:
                 self.add_font(self.font_name, style="", fname=font_path)
@@ -276,7 +265,7 @@ class AnalysisPDF(FPDF):
                 print(f"[Font] Failed to load {font_path}: {e}")
                 self.font_name = None
         else:
-            print(f"[Font] NOT FOUND: {font_path} — falling back to Helvetica (Telugu/Indian scripts will show as boxes)")
+            print(f"[Font] NOT FOUND: {font_path} — falling back to Helvetica")
             self.font_name = None
 
     def get_font(self, bold=False, size=10):
@@ -386,6 +375,140 @@ class AnalysisPDF(FPDF):
         self.get_font(size=9)
         self.multi_cell(190, 5, text, ln=1)
 
+    def draw_management_section(self):
+        import json
+        try:
+            from PIL import Image, ImageDraw
+            PIL_AVAILABLE = True
+        except ImportError:
+            PIL_AVAILABLE = False
+            print("[Mgmt] Pillow not installed — circular crop disabled, using square photos")
+
+        config_path = "static/management/config.json"
+        if not os.path.exists(config_path):
+            print("[Mgmt] config.json not found — skipping management section")
+            return
+
+        with open(config_path) as f:
+            members = json.load(f)
+
+        if not members:
+            return
+
+        self.ln(5)
+
+        # ── Section heading bar ──
+        self.set_fill_color(15, 23, 42)
+        self.rect(0, self.get_y(), 210, 9, "F")
+        self.set_fill_color(8, 145, 178)
+        self.rect(0, self.get_y(), 2.5, 9, "F")
+        self.set_xy(10, self.get_y() + 1.5)
+        self.set_text_color(255, 255, 255)
+        self.set_font("Helvetica", "B", 9)
+        self.cell(0, 6, "Swarnandhra College of Engineering and Technology  -  Management", ln=1)
+        self.ln(5)
+
+        def make_circle_img(src_path):
+            """Crops image to circle, returns temp PNG path."""
+            try:
+                img = Image.open(src_path).convert("RGBA")
+                size = min(img.size)
+                left = (img.width  - size) // 2
+                top  = (img.height - size) // 2
+                img  = img.crop((left, top, left + size, top + size))
+                img  = img.resize((220, 220), Image.LANCZOS)
+
+                mask = Image.new("L", (220, 220), 0)
+                draw = ImageDraw.Draw(mask)
+                draw.ellipse((0, 0, 220, 220), fill=255)
+
+                result = Image.new("RGBA", (220, 220), (255, 255, 255, 0))
+                result.paste(img, (0, 0), mask)
+
+                tmp = tempfile.NamedTemporaryFile(suffix=".png", delete=False)
+                result.save(tmp.name, "PNG")
+                return tmp.name
+            except Exception as e:
+                print(f"[Mgmt] Circle crop failed: {e}")
+                return None
+
+        per_row  = 3
+        photo_d  = 28          # diameter in mm
+        col_w    = 190 / per_row
+        temp_files = []
+
+        for row_start in range(0, len(members), per_row):
+            row_members = members[row_start : row_start + per_row]
+            row_y = self.get_y()
+
+            for i, member in enumerate(row_members):
+                cx = 10 + i * col_w + col_w / 2   # column center x
+                px = cx - photo_d / 2
+                py = row_y
+
+                img_path = os.path.join("static", "management", member.get("file", ""))
+
+                # Blue circle border
+                self.set_draw_color(37, 99, 235)
+                self.set_line_width(0.7)
+                self.ellipse(px - 1, py - 1, photo_d + 2, photo_d + 2, "D")
+
+                if os.path.exists(img_path):
+                    if PIL_AVAILABLE:
+                        circle_path = make_circle_img(img_path)
+                    else:
+                        circle_path = None
+
+                    if circle_path:
+                        temp_files.append(circle_path)
+                        try:
+                            self.image(circle_path, x=px, y=py,
+                                       w=photo_d, h=photo_d)
+                        except Exception as e:
+                            print(f"[Mgmt] Image draw error: {e}")
+                    else:
+                        # Fallback: square photo
+                        try:
+                            self.image(img_path, x=px, y=py,
+                                       w=photo_d, h=photo_d)
+                        except Exception as e:
+                            print(f"[Mgmt] Fallback image draw error: {e}")
+                else:
+                    # Grey placeholder circle
+                    self.set_fill_color(226, 232, 240)
+                    self.ellipse(px, py, photo_d, photo_d, "F")
+                    self.set_xy(px, py + photo_d / 2 - 2)
+                    self.set_text_color(148, 163, 184)
+                    self.set_font("Helvetica", "", 6)
+                    self.cell(photo_d, 4, "No Photo", align="C", ln=0)
+
+                # Name (bold, centered under photo)
+                self.set_xy(10 + i * col_w, py + photo_d + 2)
+                self.set_text_color(15, 23, 42)
+                self.set_font("Helvetica", "B", 8)
+                self.cell(col_w, 4.5,
+                          sanitize(member.get("name", "")),
+                          align="C", ln=0)
+
+                # Title (smaller, grey, wraps if long)
+                self.set_xy(10 + i * col_w, py + photo_d + 7)
+                self.set_text_color(100, 116, 139)
+                self.set_font("Helvetica", "", 6.5)
+                self.multi_cell(col_w, 3.5,
+                                sanitize(member.get("title", "")),
+                                align="C")
+
+            # Move down after each row (extra space for wrapped titles)
+            self.set_y(row_y + photo_d + 18)
+            self.ln(2)
+
+        # Cleanup temp circle PNGs
+        for tmp in temp_files:
+            try:
+                os.remove(tmp)
+            except:
+                pass
+
     def header(self):
         pass
 
@@ -398,12 +521,10 @@ def generate_analysis_pages_fpdf2(claude_analysis, language, name, age, gender,
     font_file = LANG_FONT_MAP.get(language, "NotoSans-Regular.ttf")
     font_path = os.path.join(FONTS_DIR, font_file)
 
-    # ── FIX: warn clearly if font is missing ──
     if not os.path.exists(font_path):
         print(f"[Font] WARNING: {font_path} not found!")
-        print(f"[Font] Telugu/Indian script text will render as boxes/dots.")
-        print(f"[Font] Download fonts: https://fonts.google.com/noto")
-        print(f"[Font] Place them in: {FONTS_DIR}/")
+        print(f"[Font] Download from: https://fonts.google.com/noto")
+        print(f"[Font] Place in: {FONTS_DIR}/")
 
     pdf = AnalysisPDF(
         language=language,
@@ -472,7 +593,9 @@ def generate_analysis_pages_fpdf2(claude_analysis, language, name, age, gender,
                 pdf.draw_body_text(item_text)
                 pdf.ln(1)
 
+    # ── Disclaimer then Management photos ──
     pdf.draw_disclaimer()
+    pdf.draw_management_section()
     pdf.draw_footer()
 
     temp_path = f"static/reports/temp_analysis_{report_id}.pdf"
@@ -496,7 +619,6 @@ def generate_pdf(user_data, detected_labels, report_id,
     report_path = f"static/reports/{report_id}.pdf"
     logo_path   = "static/logo.png"
 
-    # ── FIX: use corrected face photo lookup ──
     face_photo_path = get_face_photo_path(screening_id, report_id)
 
     page1_total = 2
@@ -506,7 +628,7 @@ def generate_pdf(user_data, detected_labels, report_id,
 
     BOTTOM_LIMIT = 82
 
-    # Header
+    # ── Page 1 Header ──
     header_h = 90
     c.setFillColor(C_HEADER)
     c.rect(0, H - header_h, W, header_h, fill=1, stroke=0)
@@ -590,7 +712,7 @@ def generate_pdf(user_data, detected_labels, report_id,
 
     cur_y = card_y - 18
 
-    # Legend
+    # ── Legend ──
     detected = [k for k in ["malaligned","stains","caries","pit_fissure"]
                 if k in detected_labels]
     if detected:
@@ -611,7 +733,7 @@ def generate_pdf(user_data, detected_labels, report_id,
             lx += c.stringWidth(text, "Helvetica", 9) + 34
         cur_y -= 24
 
-    # Treatment
+    # ── Treatment Recommendations ──
     cur_y -= 4
     cur_y = draw_section_bar_rl(c, W, cur_y, "  TREATMENT RECOMMENDATIONS")
     cur_y -= 8
@@ -687,7 +809,7 @@ def generate_pdf(user_data, detected_labels, report_id,
     draw_footer_rl(c, W, report_id, 1, page1_total)
     c.save()
 
-    # ── PAGES 2+ using fpdf2 ─────────────────────────────────────
+    # ── Pages 2+ using fpdf2 ──
     if claude_analysis:
         try:
             temp_path, last_fpdf_page = generate_analysis_pages_fpdf2(
@@ -703,18 +825,16 @@ def generate_pdf(user_data, detected_labels, report_id,
             from pypdf import PdfWriter, PdfReader
 
             writer = PdfWriter()
-
             reader1 = PdfReader(report_path)
             for page in reader1.pages:
                 writer.add_page(page)
-
             reader2 = PdfReader(temp_path)
             for page in reader2.pages:
                 writer.add_page(page)
 
             actual_pages = len(writer.pages)
 
-            # Second pass — redraw page 1 with correct total page count
+            # ── Second pass: redraw page 1 with correct total page count ──
             c2 = rl_canvas.Canvas(report_path, pagesize=A4)
             W2, H2 = A4
 
