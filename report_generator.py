@@ -296,10 +296,9 @@ def render_text_to_image(text, font_path, font_size_pt=9,
         total_h    = sum(line_heights) + line_gap * (len(lines) - 1) + int(font_px * 0.4)
         total_h    = max(total_h, font_px + 4)
 
-        # ── Render ──
-        bg = bg_color if bg_color else (255, 255, 255, 0)
-        mode = "RGBA" if bg_color is None else "RGB"
-        img  = Image.new(mode, (max_w_px, total_h), bg)
+        # ── Render ── always use RGB + white bg (RGBA/transparent breaks fpdf2 on Windows)
+        bg   = bg_color if bg_color else (255, 255, 255)
+        img  = Image.new("RGB", (max_w_px, total_h), bg)
         draw = ImageDraw.Draw(img)
 
         y = int(font_px * 0.1)
@@ -395,7 +394,7 @@ class AnalysisPDF(FPDF):
             text, self.font_path,
             font_size_pt=font_size_pt,
             text_color=text_color,
-            bg_color=bg_color,
+            bg_color=bg_color if bg_color else (255, 255, 255),
             max_width_mm=max_width_mm,
             dpi=200
         )
@@ -494,7 +493,7 @@ class AnalysisPDF(FPDF):
                 text, self.font_path,
                 font_size_pt=10,
                 text_color=(255, 255, 255),
-                bg_color=None,   # transparent bg
+                bg_color=(37, 99, 235),   # match the blue bar
                 max_width_mm=190,
                 dpi=200
             )
@@ -506,7 +505,6 @@ class AnalysisPDF(FPDF):
                 self.set_y(bar_y + 9)
                 self.ln(3)
                 return
-
         # Fallback: standard text
         self.set_xy(10, bar_y + 1.5)
         self.set_text_color(255, 255, 255)
