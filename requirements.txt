@@ -9,5 +9,3 @@ pypdf
 requests
 gunicorn
 python-dotenv
-weasyprint
-Pillow
