@@ -1,18 +1,11 @@
 from reportlab.lib.pagesizes import A4
 from reportlab.pdfgen import canvas as rl_canvas
 from reportlab.lib import colors
-from reportlab.pdfbase import pdfmetrics
-from reportlab.pdfbase.ttfonts import TTFont
-from fpdf import FPDF
+from PIL import Image
 from datetime import datetime
-from PIL import Image, ImageDraw, ImageFont
-import os
-import re
-import base64
-import tempfile
+import os, re, base64, tempfile, json
 
-
-# ── Colour palette ───────────────────────────────────────────────
+# ── Colour palette ───────────────────────────────────────────
 C_HEADER     = colors.HexColor("#0f172a")
 C_ACCENT     = colors.HexColor("#2563eb")
 C_TEAL       = colors.HexColor("#0891b2")
@@ -30,34 +23,17 @@ C_WARN_BG    = colors.HexColor("#fffbeb")
 C_WARN_BD    = colors.HexColor("#fcd34d")
 C_WARN_TX    = colors.HexColor("#78350f")
 
-COND_COLOR = {
-    "malaligned":  colors.HexColor("#f59e0b"),
-    "stains":      colors.HexColor("#ef4444"),
-    "caries":      colors.HexColor("#f97316"),
-    "pit_fissure": colors.HexColor("#8b5cf6"),
-    "none":        colors.HexColor("#16a34a"),
-}
-COND_BG = {
-    "malaligned":  colors.HexColor("#fffbeb"),
-    "stains":      colors.HexColor("#fef2f2"),
-    "caries":      colors.HexColor("#fff7ed"),
-    "pit_fissure": colors.HexColor("#f5f3ff"),
-    "none":        colors.HexColor("#f0fdf4"),
-}
-COND_BD = {
-    "malaligned":  colors.HexColor("#fde68a"),
-    "stains":      colors.HexColor("#fecaca"),
-    "caries":      colors.HexColor("#fed7aa"),
-    "pit_fissure": colors.HexColor("#ddd6fe"),
-    "none":        colors.HexColor("#bbf7d0"),
-}
-COND_LABEL = {
-    "malaligned":  "Malaligned Tooth",
-    "stains":      "Stains",
-    "caries":      "Caries",
-    "pit_fissure": "Pit & Fissure Caries",
-    "none":        "No Issues Detected",
-}
+COND_COLOR  = {"malaligned": colors.HexColor("#f59e0b"), "stains": colors.HexColor("#ef4444"),
+               "caries": colors.HexColor("#f97316"), "pit_fissure": colors.HexColor("#8b5cf6"),
+               "none": colors.HexColor("#16a34a")}
+COND_BG     = {"malaligned": colors.HexColor("#fffbeb"), "stains": colors.HexColor("#fef2f2"),
+               "caries": colors.HexColor("#fff7ed"), "pit_fissure": colors.HexColor("#f5f3ff"),
+               "none": colors.HexColor("#f0fdf4")}
+COND_BD     = {"malaligned": colors.HexColor("#fde68a"), "stains": colors.HexColor("#fecaca"),
+               "caries": colors.HexColor("#fed7aa"), "pit_fissure": colors.HexColor("#ddd6fe"),
+               "none": colors.HexColor("#bbf7d0")}
+COND_LABEL  = {"malaligned": "Malaligned Tooth", "stains": "Stains", "caries": "Caries",
+               "pit_fissure": "Pit & Fissure Caries", "none": "No Issues Detected"}
 
 FONTS_DIR = "static/fonts"
 
@@ -73,31 +49,26 @@ LANG_FONT_MAP = {
     "Arabic":    "NotoSansArabic-Regular.ttf",
 }
 
-# Languages that use non-Latin scripts — rendered via Pillow image method
 NON_LATIN_LANGUAGES = {
     "Hindi", "Marathi", "Telugu", "Tamil",
     "Kannada", "Malayalam", "Bengali", "Arabic"
 }
 
 
+# ══════════════════════════════════════════════════════════════
+#  UTILITIES
+# ══════════════════════════════════════════════════════════════
+
 def sanitize(text):
-    """Sanitize ASCII/Latin special chars only. Never touches Unicode script text."""
     if not isinstance(text, str):
         text = str(text)
-    replacements = {
-        "\u2013": "-", "\u2014": "-", "\u2018": "'", "\u2019": "'",
-        "\u201c": '"', "\u201d": '"', "\u2022": "-", "\u2026": "...",
-        "\u00a0": " ", "\u200b": "", "\u2212": "-", "\u00d7": "x",
-        "\u00b0": " deg",
-    }
-    for char, replacement in replacements.items():
-        text = text.replace(char, replacement)
+    for ch, rep in {"\u2013":"-","\u2014":"-","\u2018":"'","\u2019":"'",
+                    "\u201c":'"',"\u201d":'"',"\u2022":"-","\u2026":"...",
+                    "\u00a0":" ","\u200b":"","\u2212":"-","\u00d7":"x","\u00b0":" deg"}.items():
+        text = text.replace(ch, rep)
     return text
 
-
-def sanitize_structural(text):
-    return sanitize(text)
-
+sanitize_structural = sanitize
 
 def clean_markdown(text, language="English"):
     text = re.sub(r'^#{1,6}\s*', '', text, flags=re.MULTILINE)
@@ -106,867 +77,587 @@ def clean_markdown(text, language="English"):
     text = re.sub(r'^[-=]{2,}\s*$', '', text, flags=re.MULTILINE)
     text = re.sub(r'\[([^\]]+)\]\([^\)]+\)', r'\1', text)
     text = text.replace('`', '')
-
     if language not in NON_LATIN_LANGUAGES:
         text = re.sub(r'\?{2,}', '', text)
         text = re.sub(r'^[-_=?#*]+$', '', text, flags=re.MULTILINE)
-
-    text = re.sub(r'  +', ' ', text)
-    return text.strip()
-
+    return re.sub(r'  +', ' ', text).strip()
 
 def wrap_text(text, max_chars=82):
     words = text.split()
     lines, line = [], ""
     for w in words:
-        if len(line) + len(w) + 1 <= max_chars:
-            line = (line + " " + w).strip()
+        if len(line)+len(w)+1 <= max_chars:
+            line = (line+" "+w).strip()
         else:
-            if line:
-                lines.append(line)
+            if line: lines.append(line)
             line = w
-    if line:
-        lines.append(line)
+    if line: lines.append(line)
     return lines
 
+def _esc(text):
+    """HTML-escape text (preserves non-ASCII Unicode)."""
+    if not isinstance(text, str):
+        text = str(text)
+    return text.replace('&','&amp;').replace('<','&lt;').replace('>','&gt;').replace('"','&quot;')
 
-def hex_to_rgb(hex_color):
-    h = hex_color.lstrip("#")
-    return tuple(int(h[i:i+2], 16) for i in (0, 2, 4))
-
-
-def draw_footer_rl(c, W, report_id, page_num, total_pages):
-    c.setFillColor(C_HEADER)
-    c.rect(0, 0, W, 42, fill=1, stroke=0)
-    c.setFillColor(C_TEAL)
-    c.rect(0, 0, 6, 42, fill=1, stroke=0)
-    c.setFillColor(C_WHITE)
-    c.setFont("Helvetica-Bold", 10)
-    c.drawString(18, 22, "OralAI  -  AI Oral Health Screening  |  www.oralai.site")
-    c.setFont("Helvetica", 9)
-    c.setFillColor(colors.HexColor("#94a3b8"))
-    c.drawRightString(W - 16, 16,
-        f"Report ID: {report_id}   |   {datetime.now().strftime('%d %b %Y')}   |   Page {page_num} of {total_pages}")
+def _img_b64(path):
+    """Return a data-URI for an image file, or empty string."""
+    if not path or not os.path.exists(path):
+        return ""
+    ext  = os.path.splitext(path)[1].lower().lstrip('.')
+    mime = {'jpg':'jpeg','jpeg':'jpeg','png':'png','gif':'gif','webp':'webp'}.get(ext,'png')
+    with open(path,'rb') as f:
+        data = base64.b64encode(f.read()).decode()
+    return f"data:image/{mime};base64,{data}"
 
 
-def draw_disclaimer_rl(c, W):
-    c.setFillColor(C_WARN_BG)
-    c.roundRect(28, 50, W - 56, 24, 6, fill=1, stroke=0)
-    c.setStrokeColor(C_WARN_BD)
-    c.setLineWidth(0.8)
-    c.roundRect(28, 50, W - 56, 24, 6, fill=0, stroke=1)
-    c.setFillColor(C_WARN_TX)
-    c.setFont("Helvetica-Oblique", 8.5)
-    c.drawCentredString(W / 2, 59,
-        "This is an AI-based screening tool and does not replace a professional dental diagnosis. Please consult a dentist.")
+# ══════════════════════════════════════════════════════════════
+#  WEASYPRINT HTML BUILDER  (pages 2+)
+# ══════════════════════════════════════════════════════════════
+
+def _management_html():
+    """Build the management section HTML (photos as base64)."""
+    config_path = "static/management/config.json"
+    if not os.path.exists(config_path):
+        return ""
+    try:
+        with open(config_path) as f:
+            members = json.load(f)
+    except Exception:
+        return ""
+    if not members:
+        return ""
+
+    rows = ""
+    for i in range(0, len(members), 3):
+        row   = members[i:i+3]
+        cards = ""
+        for m in row:
+            img_path = os.path.join("static", "management", m.get("file", ""))
+            b64 = _img_b64(img_path)
+            if b64:
+                photo_tag = f'<img class="mgmt-photo" src="{b64}" alt="">'
+            else:
+                photo_tag = '<div class="mgmt-photo-placeholder"></div>'
+            cards += f"""
+              <div class="mgmt-card">
+                {photo_tag}
+                <div class="mgmt-name">{_esc(m.get('name',''))}</div>
+                <div class="mgmt-title">{_esc(m.get('title',''))}</div>
+              </div>"""
+        rows += f'<div class="mgmt-row">{cards}</div>\n'
+
+    return f"""
+    <div class="mgmt-section">
+      <div class="mgmt-head">Swarnandhra College of Engineering and Technology &#8212; Management</div>
+      {rows}
+    </div>"""
 
 
-def draw_section_bar_rl(c, W, y, title, color=None):
-    bg = color or C_ACCENT
-    c.setFillColor(bg)
-    c.rect(0, y - 26, W, 26, fill=1, stroke=0)
-    c.setFillColor(C_WHITE)
-    c.setFont("Helvetica-Bold", 11)
-    c.drawString(28, y - 17, title)
-    return y - 26
+def generate_analysis_html(claude_analysis, language, name, age, gender,
+                            report_id, logo_path, total_pages):
+    """
+    Build a complete HTML document for the analysis pages.
+    WeasyPrint will convert it to PDF — Pango/HarfBuzz handles Telugu/Hindi etc.
+    """
+    font_file = LANG_FONT_MAP.get(language, "NotoSans-Regular.ttf")
+    font_path = os.path.join(FONTS_DIR, font_file)
+    font_abs  = os.path.abspath(font_path)
 
+    # English font always available for header/footer labels
+    en_font_path = os.path.join(FONTS_DIR, "NotoSans-Regular.ttf")
+    en_font_abs  = os.path.abspath(en_font_path)
+
+    logo_src = _img_b64(logo_path)
+    date_str = datetime.now().strftime('%d %b %Y')
+
+    # ── Parse analysis into HTML fragments ──────────────────
+    cleaned = clean_markdown(claude_analysis, language=language)
+    content_html = ""
+    for raw in cleaned.split("\n"):
+        line = raw.strip()
+        if not line:
+            content_html += '<div class="spacer"></div>\n'
+        elif re.match(r'^\d+\.\s+[^\s]', line) and len(line) < 120:
+            content_html += f'<div class="sec-head">{_esc(line)}</div>\n'
+        elif line.startswith(("- ", "• ", "* ")):
+            content_html += f'<div class="bullet">{_esc(line[2:].strip())}</div>\n'
+        else:
+            content_html += f'<p class="body">{_esc(line)}</p>\n'
+
+    mgmt_html = _management_html()
+
+    # ── Arabic needs RTL direction ───────────────────────────
+    dir_attr  = 'rtl' if language == "Arabic" else 'ltr'
+    text_align = 'right' if language == "Arabic" else 'left'
+
+    # ── Logo in header ───────────────────────────────────────
+    logo_img_tag = f'<img id="hdr-logo" src="{logo_src}" alt="logo">' if logo_src else ''
+
+    html = f"""<!DOCTYPE html>
+<html lang="{language}" dir="{dir_attr}">
+<head>
+<meta charset="UTF-8">
+<style>
+
+/* ── Fonts ─────────────────────────────────────────────── */
+@font-face {{
+  font-family: 'NativeLang';
+  src: url('file://{font_abs}');
+  font-weight: normal; font-style: normal;
+}}
+@font-face {{
+  font-family: 'EnFont';
+  src: url('file://{en_font_abs}');
+  font-weight: normal; font-style: normal;
+}}
+
+/* ── Page layout ────────────────────────────────────────── */
+@page {{
+  size: 210mm 297mm;
+  margin: 28mm 10mm 18mm 10mm;
+
+  @top-left {{
+    content: element(page-header);
+    margin-left: -10mm;
+    width: 210mm;
+    height: 26mm;
+    vertical-align: top;
+  }}
+
+  @bottom-left {{
+    content: "OralAI \2014 AI Oral Health Screening \00a0|\00a0 www.oralai.site";
+    background: #0f172a;
+    color: #ffffff;
+    font-family: 'EnFont', Helvetica, Arial;
+    font-size: 8pt;
+    font-weight: bold;
+    height: 16mm;
+    width: 130mm;
+    margin-left: -10mm;
+    padding-left: 8mm;
+    vertical-align: middle;
+  }}
+
+  @bottom-right {{
+    content: "ID: {report_id[:14]} \00a0|\00a0 {date_str} \00a0|\00a0 Page " counter(page) " of {total_pages}";
+    background: #0f172a;
+    color: #94a3b8;
+    font-family: 'EnFont', Helvetica, Arial;
+    font-size: 7pt;
+    height: 16mm;
+    width: 90mm;
+    margin-right: -10mm;
+    padding-right: 4mm;
+    vertical-align: middle;
+    text-align: right;
+  }}
+}}
+
+/* ── Reset ──────────────────────────────────────────────── */
+* {{ box-sizing: border-box; }}
+
+body {{
+  font-family: 'NativeLang', 'Noto Sans', sans-serif;
+  font-size: 9pt;
+  color: #0f172a;
+  line-height: 1.55;
+  text-align: {text_align};
+  direction: {dir_attr};
+}}
+
+/* ── Running page header ────────────────────────────────── */
+#page-header {{
+  position: running(page-header);
+  width: 210mm;
+  height: 26mm;
+  background: #0f172a;
+  display: flex;
+  flex-direction: column;
+}}
+#hdr-body {{
+  display: flex;
+  align-items: center;
+  flex: 1;
+  padding: 0 0 0 0;
+}}
+#hdr-teal {{
+  width: 3mm;
+  min-width: 3mm;
+  height: 24mm;
+  background: #0891b2;
+  align-self: flex-start;
+}}
+#hdr-content {{
+  display: flex;
+  align-items: center;
+  gap: 3mm;
+  padding: 2mm 0 0 2mm;
+  flex: 1;
+}}
+#hdr-logo {{
+  height: 18mm;
+  width: auto;
+  display: block;
+}}
+#hdr-sep {{
+  width: 0.3mm;
+  height: 16mm;
+  background: #334155;
+}}
+#hdr-text {{
+  display: flex;
+  flex-direction: column;
+  gap: 1mm;
+}}
+#hdr-title {{
+  color: #ffffff;
+  font-family: 'EnFont', Helvetica, Arial;
+  font-size: 13pt;
+  font-weight: bold;
+}}
+#hdr-sub {{
+  color: #a78bfa;
+  font-family: 'EnFont', Helvetica, Arial;
+  font-size: 7pt;
+}}
+#hdr-purple {{
+  height: 1.5mm;
+  width: 100%;
+  background: #7c3aed;
+}}
+
+/* ── Content elements ───────────────────────────────────── */
+.spacer {{ height: 3mm; }}
+
+.sec-head {{
+  background: #2563eb;
+  color: #ffffff;
+  font-size: 10pt;
+  padding: 2mm 3mm;
+  margin: 5mm 0 3mm 0;
+  page-break-inside: avoid;
+  page-break-after: avoid;
+}}
+
+.bullet {{
+  padding: 1.5mm 0 1.5mm 7mm;
+  position: relative;
+  page-break-inside: avoid;
+}}
+.bullet::before {{
+  content: '\2022';
+  color: #2563eb;
+  font-size: 10pt;
+  position: absolute;
+  left: 1mm;
+  top: 1mm;
+}}
+
+.body {{
+  margin: 1.5mm 0;
+  page-break-inside: avoid;
+}}
+
+/* ── Disclaimer ─────────────────────────────────────────── */
+.disclaimer {{
+  background: #fffbeb;
+  border: 0.4mm solid #fcd34d;
+  padding: 2mm 3mm;
+  font-family: 'EnFont', Helvetica, Arial;
+  font-size: 7pt;
+  color: #78350f;
+  font-style: italic;
+  margin: 5mm 0;
+  page-break-inside: avoid;
+}}
+
+/* ── Management section ─────────────────────────────────── */
+.mgmt-section {{
+  page-break-inside: avoid;
+  margin-top: 5mm;
+}}
+.mgmt-head {{
+  background: #0f172a;
+  color: #ffffff;
+  font-family: 'EnFont', Helvetica, Arial;
+  font-size: 9pt;
+  font-weight: bold;
+  padding: 2mm 3mm 2mm 5mm;
+  border-left: 2.5mm solid #0891b2;
+  margin-bottom: 5mm;
+}}
+.mgmt-row {{
+  display: flex;
+  gap: 5mm;
+  margin-bottom: 5mm;
+}}
+.mgmt-card {{
+  width: 58mm;
+  text-align: center;
+}}
+.mgmt-photo {{
+  width: 28mm;
+  height: 28mm;
+  border-radius: 50%;
+  border: 0.7mm solid #2563eb;
+  object-fit: cover;
+  display: block;
+  margin: 0 auto 2mm auto;
+}}
+.mgmt-photo-placeholder {{
+  width: 28mm;
+  height: 28mm;
+  border-radius: 50%;
+  background: #e2e8f0;
+  border: 0.7mm solid #2563eb;
+  display: block;
+  margin: 0 auto 2mm auto;
+}}
+.mgmt-name {{
+  font-family: 'EnFont', Helvetica, Arial;
+  font-size: 8pt;
+  font-weight: bold;
+  color: #0f172a;
+}}
+.mgmt-title {{
+  font-family: 'EnFont', Helvetica, Arial;
+  font-size: 6.5pt;
+  color: #64748b;
+  margin-top: 1mm;
+  line-height: 1.4;
+}}
+
+</style>
+</head>
+<body>
+
+<!-- ── Running page header (pulled out of flow by WeasyPrint) ── -->
+<div id="page-header">
+  <div id="hdr-body">
+    <div id="hdr-teal"></div>
+    <div id="hdr-content">
+      {logo_img_tag}
+      <div id="hdr-sep"></div>
+      <div id="hdr-text">
+        <span id="hdr-title">AI Detailed Analysis</span>
+        <span id="hdr-sub">Language: {_esc(language)} &nbsp;|&nbsp; Observing all 3 dental images</span>
+      </div>
+    </div>
+  </div>
+  <div id="hdr-purple"></div>
+</div>
+
+<!-- ── Analysis content ─────────────────────────────────────── -->
+{content_html}
+
+<!-- ── Disclaimer ──────────────────────────────────────────── -->
+<div class="disclaimer">
+  This is an AI-based screening tool and does not replace a professional dental diagnosis. Please consult a dentist.
+</div>
+
+<!-- ── Management section ──────────────────────────────────── -->
+{mgmt_html}
+
+</body>
+</html>"""
+
+    return html
+
+
+def generate_analysis_weasyprint(claude_analysis, language, name, age, gender,
+                                  report_id, logo_path, total_pages):
+    """Render HTML → PDF via WeasyPrint (Pango/HarfBuzz = correct Indic shaping)."""
+    try:
+        from weasyprint import HTML
+        import logging
+        logging.getLogger('weasyprint').setLevel(logging.ERROR)
+    except ImportError:
+        raise RuntimeError(
+            "weasyprint not installed.\n"
+            "Run: sudo apt install -y libpango-1.0-0 libpangoft2-1.0-0 libharfbuzz0b\n"
+            "     pip install weasyprint --break-system-packages"
+        )
+
+    html_str  = generate_analysis_html(
+        claude_analysis, language, name, age, gender,
+        report_id, logo_path, total_pages
+    )
+    temp_path = f"static/reports/temp_analysis_{report_id}.pdf"
+    HTML(string=html_str, base_url=os.getcwd()).write_pdf(temp_path)
+    print(f"[WeasyPrint] OK → {temp_path}")
+    return temp_path
+
+
+# ══════════════════════════════════════════════════════════════
+#  PAGE 1  (ReportLab — unchanged)
+# ══════════════════════════════════════════════════════════════
 
 def get_face_photo_path(screening_id, report_id):
     if screening_id:
-        path = os.path.join("static", "uploads", f"{screening_id}_face.jpg")
-        if os.path.exists(path):
-            return path
-        path = os.path.join("static", "results", f"{screening_id}_face.jpg")
-        if os.path.exists(path):
-            return path
-    path = os.path.join("static", "results", f"{report_id}_face.jpg")
-    if os.path.exists(path):
-        return path
-    return None
+        for d in ["uploads", "results"]:
+            p = os.path.join("static", d, f"{screening_id}_face.jpg")
+            if os.path.exists(p): return p
+    p = os.path.join("static", "results", f"{report_id}_face.jpg")
+    return p if os.path.exists(p) else None
 
+def draw_footer_rl(c, W, report_id, page_num, total_pages):
+    c.setFillColor(C_HEADER); c.rect(0, 0, W, 42, fill=1, stroke=0)
+    c.setFillColor(C_TEAL);   c.rect(0, 0, 6, 42, fill=1, stroke=0)
+    c.setFillColor(C_WHITE);  c.setFont("Helvetica-Bold", 10)
+    c.drawString(18, 22, "OralAI  -  AI Oral Health Screening  |  www.oralai.site")
+    c.setFont("Helvetica", 9); c.setFillColor(colors.HexColor("#94a3b8"))
+    c.drawRightString(W-16, 16,
+        f"Report ID: {report_id}   |   {datetime.now().strftime('%d %b %Y')}   |   Page {page_num} of {total_pages}")
+
+def draw_section_bar_rl(c, W, y, title, color=None):
+    c.setFillColor(color or C_ACCENT); c.rect(0, y-26, W, 26, fill=1, stroke=0)
+    c.setFillColor(C_WHITE); c.setFont("Helvetica-Bold", 11)
+    c.drawString(28, y-17, title); return y-26
 
 def draw_patient_info_bar(c, W, H, header_h, name, age, gender, phone, now, face_photo_path=None):
-    bar_top = H - header_h
-    bar_h   = 54
-
-    c.setFillColor(C_SURFACE2)
-    c.rect(0, bar_top - bar_h, W, bar_h, fill=1, stroke=0)
-    c.setStrokeColor(C_BORDER)
-    c.setLineWidth(0.8)
-    c.line(0, bar_top - bar_h, W, bar_top - bar_h)
-
-    photo_w = 40
-    photo_h = 44
-    photo_x = W - photo_w - 14
-    photo_y = bar_top - bar_h + 5
-
+    bt = H-header_h; bh = 54
+    c.setFillColor(C_SURFACE2); c.rect(0, bt-bh, W, bh, fill=1, stroke=0)
+    c.setStrokeColor(C_BORDER); c.setLineWidth(0.8); c.line(0, bt-bh, W, bt-bh)
+    pw, ph = 40, 44; px = W-pw-14; py = bt-bh+5
     if face_photo_path and os.path.exists(face_photo_path):
-        c.setStrokeColor(C_BORDER)
-        c.setLineWidth(1)
-        c.roundRect(photo_x - 2, photo_y - 2, photo_w + 4, photo_h + 4, 4, fill=0, stroke=1)
-        try:
-            c.drawImage(face_photo_path, photo_x, photo_y,
-                        width=photo_w, height=photo_h,
-                        preserveAspectRatio=True, mask="auto")
-        except Exception as e:
-            _draw_face_placeholder(c, photo_x, photo_y, photo_w, photo_h)
+        c.setStrokeColor(C_BORDER); c.setLineWidth(1)
+        c.roundRect(px-2, py-2, pw+4, ph+4, 4, fill=0, stroke=1)
+        try: c.drawImage(face_photo_path, px, py, width=pw, height=ph,
+                         preserveAspectRatio=True, mask="auto")
+        except: _draw_face_placeholder(c, px, py, pw, ph)
     else:
-        _draw_face_placeholder(c, photo_x, photo_y, photo_w, photo_h)
-
-    def info_pair(label, value, x, y):
-        c.setFillColor(C_MUTED)
-        c.setFont("Helvetica", 9)
-        lw = c.stringWidth(label, "Helvetica", 9)
-        c.drawString(x, y, label)
-        c.setFillColor(C_TEXT)
-        c.setFont("Helvetica-Bold", 10)
-        c.drawString(x + lw + 3, y, value)
-
-    iy1 = bar_top - 22
-    iy2 = bar_top - 38
-
-    info_pair("Name:",  f"{name}  ({age} / {gender})", 28, iy1)
-    info_pair("Phone:", phone, 28, iy2)
-    info_pair("Date:",  now,   220, iy2)
-
-    return bar_top - bar_h
-
+        _draw_face_placeholder(c, px, py, pw, ph)
+    def ip(label, value, x, y):
+        c.setFillColor(C_MUTED); c.setFont("Helvetica", 9)
+        lw = c.stringWidth(label, "Helvetica", 9); c.drawString(x, y, label)
+        c.setFillColor(C_TEXT); c.setFont("Helvetica-Bold", 10); c.drawString(x+lw+3, y, value)
+    ip("Name:",  f"{name}  ({age} / {gender})", 28, bt-22)
+    ip("Phone:", phone, 28, bt-38); ip("Date:", now, 220, bt-38)
+    return bt-bh
 
 def _draw_face_placeholder(c, x, y, w, h):
-    c.setFillColor(colors.HexColor("#e2e8f0"))
-    c.roundRect(x, y, w, h, 4, fill=1, stroke=0)
-    c.setFillColor(colors.HexColor("#94a3b8"))
-    c.setFont("Helvetica", 7)
-    c.drawCentredString(x + w / 2, y + h / 2 - 3,  "No")
-    c.drawCentredString(x + w / 2, y + h / 2 - 11, "Photo")
-
-
-# ══════════════════════════════════════════════════════════════
-#  PILLOW TEXT IMAGE RENDERER — handles Telugu & all Indian scripts
-# ══════════════════════════════════════════════════════════════
-
-def render_text_to_image(text, font_path, font_size_pt=9,
-                          text_color=(15, 23, 42),
-                          bg_color=None,
-                          max_width_mm=183,
-                          dpi=200):
-    """
-    Renders text using Pillow + FreeType (which correctly shapes Telugu,
-    Hindi, Tamil, Kannada etc. via HarfBuzz on Windows).
-
-    Returns: (tmp_png_path, height_mm, width_mm)  or  None on failure
-    """
-    try:
-        px_per_mm = dpi / 25.4
-        max_w_px  = int(max_width_mm * px_per_mm)
-
-        # Convert pt → px  (1 pt = 1/72 inch)
-        font_px = max(int(font_size_pt * dpi / 72), 10)
-
-        pil_font = ImageFont.truetype(font_path, font_px)
-
-        # ── Word-wrap ──
-        words = text.split()
-        lines   = []
-        current = ""
-
-        # measure on a tiny dummy image
-        dummy = ImageDraw.Draw(Image.new("RGBA", (1, 1)))
-        for word in words:
-            test = (current + " " + word).strip() if current else word
-            w    = dummy.textlength(test, font=pil_font)
-            if w <= max_w_px:
-                current = test
-            else:
-                if current:
-                    lines.append(current)
-                current = word
-        if current:
-            lines.append(current)
-        if not lines:
-            return None
-
-        # ── Measure actual rendered heights per line ──
-        line_heights = []
-        for ln in lines:
-            bbox = dummy.textbbox((0, 0), ln, font=pil_font)
-            line_heights.append(bbox[3] - bbox[1])
-
-        line_gap   = max(int(font_px * 0.3), 4)
-        total_h    = sum(line_heights) + line_gap * (len(lines) - 1) + int(font_px * 0.4)
-        total_h    = max(total_h, font_px + 4)
-
-        # ── Render ── always use RGB + white bg (RGBA/transparent breaks fpdf2 on Windows)
-        bg   = bg_color if bg_color else (255, 255, 255)
-        img  = Image.new("RGB", (max_w_px, total_h), bg)
-        draw = ImageDraw.Draw(img)
-
-        y = int(font_px * 0.1)
-        for i, ln in enumerate(lines):
-            draw.text((0, y), ln, font=pil_font, fill=text_color)
-            y += line_heights[i] + line_gap
-
-        tmp  = tempfile.NamedTemporaryFile(suffix=".png", delete=False)
-        img.save(tmp.name, "PNG")
-        tmp.close()
-
-        h_mm = total_h  / px_per_mm
-        w_mm = max_w_px / px_per_mm
-
-        return tmp.name, h_mm, w_mm
-
-    except Exception as e:
-        print(f"[TextImg] render failed: {e}")
-        return None
-
-
-# ══════════════════════════════════════════════════════════════
-#  PAGE 2+ GENERATOR using fpdf2
-# ══════════════════════════════════════════════════════════════
-
-class AnalysisPDF(FPDF):
-    def __init__(self, language, font_path, name, age, gender,
-                 report_id, logo_path, total_pages):
-        super().__init__()
-        self.language    = language
-        self.font_path   = font_path
-        self.pat_name    = name
-        self.pat_age     = str(age)
-        self.pat_gender  = gender
-        self.report_id   = report_id
-        self.logo_path   = logo_path
-        self.total_pages = total_pages
-        self.page_num    = 2
-        self.is_non_latin = language in NON_LATIN_LANGUAGES
-        self._tmp_images  = []   # track temp files for cleanup
-
-        self.font_name = "NotoUni"
-
-        if font_path and os.path.exists(font_path):
-            try:
-                self.add_font(self.font_name, style="", fname=font_path)
-                print(f"[Font] Loaded: {font_path}")
-            except Exception as e:
-                print(f"[Font] Failed to load {font_path}: {e}")
-                self.font_name = None
-        else:
-            print(f"[Font] NOT FOUND: {font_path}")
-            self.font_name = None
-
-    # ── cleanup all temp PNG files created during rendering ──
-    def cleanup_tmp(self):
-        for p in self._tmp_images:
-            try:
-                os.remove(p)
-            except:
-                pass
-        self._tmp_images = []
-
-    def _safe_text(self, text):
-        if not isinstance(text, str):
-            text = str(text)
-        if self.is_non_latin:
-            text = re.sub(r'[\x00-\x08\x0b\x0c\x0e-\x1f]', '', text)
-            return text
-        else:
-            return sanitize(text)
-
-    def get_font(self, bold=False, size=10):
-        if self.font_name:
-            self.set_font(self.font_name, size=size)
-        else:
-            self.set_font("Helvetica", style="B" if bold else "", size=size)
-
-    # ── Core image-embed helper for non-Latin text ──────────────
-    def _embed_text_image(self, text, font_size_pt=9,
-                          text_color=(15, 23, 42),
-                          bg_color=None,
-                          x_mm=10, max_width_mm=183):
-        """
-        Renders `text` via Pillow (correct Telugu/Hindi shaping),
-        embeds the PNG into the PDF at current Y position.
-        Returns the height_mm consumed, or 0 on failure.
-        """
-        if not self.font_path or not os.path.exists(self.font_path):
-            return 0
-
-        result = render_text_to_image(
-            text, self.font_path,
-            font_size_pt=font_size_pt,
-            text_color=text_color,
-            bg_color=bg_color if bg_color else (255, 255, 255),
-            max_width_mm=max_width_mm,
-            dpi=200
-        )
-        if result is None:
-            return 0
-
-        tmp_path, h_mm, w_mm = result
-        self._tmp_images.append(tmp_path)
-
-        self.image(tmp_path, x=x_mm, y=self.get_y(), w=max_width_mm, h=h_mm)
-        self.set_y(self.get_y() + h_mm + 1)
-        return h_mm
-
-    def draw_header(self):
-        self.set_fill_color(15, 23, 42)
-        self.rect(0, 0, 210, 22, "F")
-        self.set_fill_color(8, 145, 178)
-        self.rect(0, 0, 3, 22, "F")
-
-        if self.logo_path and os.path.exists(self.logo_path):
-            try:
-                self.image(self.logo_path, x=5, y=2, w=40, h=18)
-            except:
-                pass
-
-        self.set_draw_color(51, 65, 85)
-        self.line(50, 3, 50, 19)
-
-        self.set_xy(53, 5)
-        self.set_text_color(255, 255, 255)
-        self.set_font("Helvetica", "B", 14)
-        self.cell(0, 8, "AI Detailed Analysis", ln=0)
-
-        self.set_xy(53, 14)
-        self.set_text_color(167, 139, 250)
-        self.set_font("Helvetica", "", 7)
-        self.cell(0, 5, sanitize_structural(f"Language: {self.language}   Observing all 3 dental images"), ln=0)
-
-        self.set_xy(110, 5)
-        self.set_text_color(148, 163, 184)
-        self.set_font("Helvetica", "", 7)
-        pat_display = f"{self.pat_name} ({self.pat_age}/{self.pat_gender})"
-        self.cell(95, 5, pat_display if not self.is_non_latin else "(see report)", ln=0, align="R")
-
-        self.set_fill_color(124, 58, 237)
-        self.rect(0, 22, 210, 1.5, "F")
-        self.set_y(25)
-
-    def draw_footer(self):
-        self.set_y(-14)
-        self.set_fill_color(15, 23, 42)
-        self.rect(0, self.get_y(), 210, 14, "F")
-        self.set_fill_color(8, 145, 178)
-        self.rect(0, self.get_y(), 2.5, 14, "F")
-
-        self.set_xy(5, self.get_y() + 3)
-        self.set_text_color(255, 255, 255)
-        self.set_font("Helvetica", "B", 8)
-        self.cell(100, 5, sanitize_structural("OralAI  -  AI Oral Health Screening  |  www.oralai.site"), ln=0)
-
-        self.set_x(110)
-        self.set_text_color(148, 163, 184)
-        self.set_font("Helvetica", "", 7)
-        self.cell(0, 5,
-            sanitize_structural(f"Report ID: {self.report_id}   |   {datetime.now().strftime('%d %b %Y')}   |   Page {self.page_num} of {self.total_pages}"),
-            align="R", ln=0)
-
-    def draw_disclaimer(self):
-        y = self.get_y()
-        self.set_fill_color(255, 251, 235)
-        self.set_draw_color(252, 211, 77)
-        self.set_line_width(0.4)
-        self.rect(10, y, 190, 8, "FD")
-        self.set_xy(12, y + 1.5)
-        self.set_text_color(120, 53, 15)
-        self.set_font("Helvetica", "I", 7)
-        self.cell(0, 5,
-            sanitize_structural("This is an AI-based screening tool and does not replace a professional dental diagnosis. Please consult a dentist."),
-            ln=0)
-        self.set_y(y + 9)
-
-    def draw_section_heading(self, text):
-        """
-        Blue bar heading. For non-Latin: renders text as white-on-blue PNG image.
-        For English: standard fpdf2 cell.
-        """
-        text = self._safe_text(text)
-        bar_y = self.get_y()
-
-        self.set_fill_color(37, 99, 235)
-        self.rect(0, bar_y, 210, 9, "F")
-
-        if self.is_non_latin and self.font_path and os.path.exists(self.font_path):
-            # Render white text image
-            result = render_text_to_image(
-                text, self.font_path,
-                font_size_pt=10,
-                text_color=(255, 255, 255),
-                bg_color=(37, 99, 235),   # match the blue bar
-                max_width_mm=190,
-                dpi=200
-            )
-            if result:
-                tmp_path, h_mm, w_mm = result
-                self._tmp_images.append(tmp_path)
-                img_y = bar_y + max(0, (9 - h_mm) / 2)
-                self.image(tmp_path, x=10, y=img_y, w=190, h=h_mm)
-                self.set_y(bar_y + 9)
-                self.ln(3)
-                return
-        # Fallback: standard text
-        self.set_xy(10, bar_y + 1.5)
-        self.set_text_color(255, 255, 255)
-        self.get_font(bold=True, size=10)
-        self.cell(0, 6, text, ln=1)
-        self.ln(3)
-
-    def draw_bullet(self, text):
-        """
-        Bullet point. For non-Latin: embeds Pillow-rendered PNG.
-        For English: standard fpdf2 multi_cell.
-        """
-        text = self._safe_text(text)
-        y = self.get_y()
-
-        # Draw bullet dot
-        self.set_fill_color(37, 99, 235)
-        self.ellipse(12, y + 2.5, 2, 2, "F")
-
-        if self.is_non_latin and self.font_path and os.path.exists(self.font_path):
-            h = self._embed_text_image(
-                text,
-                font_size_pt=9,
-                text_color=(15, 23, 42),
-                x_mm=17,
-                max_width_mm=176
-            )
-            if h > 0:
-                self.set_x(10)
-                return
-
-        # Fallback: standard text
-        self.set_xy(17, y)
-        self.set_text_color(15, 23, 42)
-        self.get_font(size=9)
-        self.multi_cell(183, 5, text, ln=1)
-        self.set_x(10)
-
-    def draw_body_text(self, text):
-        """
-        Body paragraph. For non-Latin: embeds Pillow-rendered PNG.
-        For English: standard fpdf2 multi_cell.
-        """
-        text = self._safe_text(text)
-
-        if self.is_non_latin and self.font_path and os.path.exists(self.font_path):
-            h = self._embed_text_image(
-                text,
-                font_size_pt=9,
-                text_color=(15, 23, 42),
-                x_mm=10,
-                max_width_mm=183
-            )
-            if h > 0:
-                return
-
-        # Fallback: standard text
-        self.set_x(10)
-        self.set_text_color(15, 23, 42)
-        self.get_font(size=9)
-        self.multi_cell(190, 5, text, ln=1)
-
-    def _start_new_page_mgmt(self):
-        self.draw_footer()
-        self.page_num += 1
-        self.add_page()
-
-        self.set_fill_color(15, 23, 42)
-        self.rect(0, 0, 210, 14, "F")
-        self.set_fill_color(8, 145, 178)
-        self.rect(0, 0, 2.5, 14, "F")
-        self.set_xy(5, 3)
-        self.set_text_color(255, 255, 255)
-        self.set_font("Helvetica", "B", 10)
-        self.cell(130, 8, "Swarnandhra College of Engineering and Technology  -  Management")
-        self.set_fill_color(124, 58, 237)
-        self.rect(0, 14, 210, 1.5, "F")
-        self.set_y(18)
-
-    def draw_management_section(self):
-        import json
-        try:
-            from PIL import Image as PilImage, ImageDraw as PilDraw
-            PIL_AVAILABLE = True
-        except ImportError:
-            PIL_AVAILABLE = False
-
-        config_path = "static/management/config.json"
-        if not os.path.exists(config_path):
-            return
-
-        with open(config_path) as f:
-            members = json.load(f)
-
-        if not members:
-            return
-
-        PAGE_H      = 297
-        FOOTER_H    = 16
-        SAFE_BOTTOM = PAGE_H - FOOTER_H
-        per_row     = 3
-        photo_d     = 28
-        col_w       = 190 / per_row
-        ROW_H       = photo_d + 20
-        HEADING_H   = 9 + 5
-
-        space_needed = HEADING_H + ROW_H + 5
-        if self.get_y() + space_needed > SAFE_BOTTOM:
-            self._start_new_page_mgmt()
-        else:
-            self.ln(5)
-
-        self.set_fill_color(15, 23, 42)
-        self.rect(0, self.get_y(), 210, 9, "F")
-        self.set_fill_color(8, 145, 178)
-        self.rect(0, self.get_y(), 2.5, 9, "F")
-        self.set_xy(10, self.get_y() + 1.5)
-        self.set_text_color(255, 255, 255)
-        self.set_font("Helvetica", "B", 9)
-        self.cell(0, 6, "Swarnandhra College of Engineering and Technology  -  Management", ln=1)
-        self.ln(5)
-
-        def make_circle_img(src_path):
-            try:
-                img  = PilImage.open(src_path).convert("RGBA")
-                size = min(img.size)
-                left = (img.width  - size) // 2
-                top  = (img.height - size) // 2
-                img  = img.crop((left, top, left + size, top + size))
-                img  = img.resize((220, 220), PilImage.LANCZOS)
-                mask = PilImage.new("L", (220, 220), 0)
-                draw = PilDraw.Draw(mask)
-                draw.ellipse((0, 0, 220, 220), fill=255)
-                result = PilImage.new("RGBA", (220, 220), (255, 255, 255, 0))
-                result.paste(img, (0, 0), mask)
-                tmp = tempfile.NamedTemporaryFile(suffix=".png", delete=False)
-                result.save(tmp.name, "PNG")
-                return tmp.name
-            except Exception as e:
-                print(f"[Mgmt] Circle crop failed: {e}")
-                return None
-
-        temp_files = []
-
-        for row_start in range(0, len(members), per_row):
-            row_members = members[row_start: row_start + per_row]
-
-            if self.get_y() + ROW_H > SAFE_BOTTOM:
-                self._start_new_page_mgmt()
-
-            row_y = self.get_y()
-
-            for i, member in enumerate(row_members):
-                cx = 10 + i * col_w + col_w / 2
-                px = cx - photo_d / 2
-                py = row_y
-
-                img_path = os.path.join("static", "management", member.get("file", ""))
-
-                self.set_draw_color(37, 99, 235)
-                self.set_line_width(0.7)
-                self.ellipse(px - 1, py - 1, photo_d + 2, photo_d + 2, "D")
-
-                if os.path.exists(img_path):
-                    if PIL_AVAILABLE:
-                        circle_path = make_circle_img(img_path)
-                    else:
-                        circle_path = None
-
-                    if circle_path:
-                        temp_files.append(circle_path)
-                        try:
-                            self.image(circle_path, x=px, y=py, w=photo_d, h=photo_d)
-                        except Exception as e:
-                            print(f"[Mgmt] Image draw error: {e}")
-                    else:
-                        try:
-                            self.image(img_path, x=px, y=py, w=photo_d, h=photo_d)
-                        except Exception as e:
-                            print(f"[Mgmt] Fallback image draw error: {e}")
-                else:
-                    self.set_fill_color(226, 232, 240)
-                    self.ellipse(px, py, photo_d, photo_d, "F")
-                    self.set_xy(px, py + photo_d / 2 - 2)
-                    self.set_text_color(148, 163, 184)
-                    self.set_font("Helvetica", "", 6)
-                    self.cell(photo_d, 4, "No Photo", align="C", ln=0)
-
-                self.set_xy(10 + i * col_w, py + photo_d + 2)
-                self.set_text_color(15, 23, 42)
-                self.set_font("Helvetica", "B", 8)
-                self.cell(col_w, 4.5, sanitize_structural(member.get("name", "")), align="C", ln=0)
-
-                self.set_xy(10 + i * col_w, py + photo_d + 7)
-                self.set_text_color(100, 116, 139)
-                self.set_font("Helvetica", "", 6.5)
-                self.multi_cell(col_w, 3.5, sanitize_structural(member.get("title", "")), align="C")
-
-            self.set_y(row_y + ROW_H)
-
-        for tmp in temp_files:
-            try:
-                os.remove(tmp)
-            except:
-                pass
-
-    def header(self):
-        pass
-
-    def footer(self):
-        pass
-
-
-def generate_analysis_pages_fpdf2(claude_analysis, language, name, age, gender,
-                                   report_id, logo_path, start_page, total_pages):
-    font_file = LANG_FONT_MAP.get(language, "NotoSans-Regular.ttf")
-    font_path = os.path.join(FONTS_DIR, font_file)
-
-    if not os.path.exists(font_path):
-        print(f"[Font] WARNING: {font_path} not found!")
-
-    pdf = AnalysisPDF(
-        language=language,
-        font_path=font_path,
-        name=name, age=age, gender=gender,
-        report_id=report_id,
-        logo_path=logo_path,
-        total_pages=total_pages
-    )
-    pdf.set_auto_page_break(auto=False)
-    pdf.add_page()
-    pdf.draw_header()
-
-    cleaned   = clean_markdown(claude_analysis, language=language)
-    lines_raw = cleaned.split("\n")
-
-    BOTTOM_LIMIT = 252
-
-    render_items = []
-    for raw_line in lines_raw:
-        line = raw_line.strip()
-        if not line:
-            render_items.append(("blank", ""))
-            continue
-        if re.match(r'^\d+\.\s+[^\s]', line) and len(line) < 80:
-            render_items.append(("heading", line))
-        elif line.startswith("- ") or line.startswith("• ") or line.startswith("* "):
-            render_items.append(("bullet", line[2:].strip()))
-        else:
-            render_items.append(("text", line))
-
-    for item_type, item_text in render_items:
-
-        if pdf.get_y() > BOTTOM_LIMIT:
-            pdf.draw_footer()
-            pdf.page_num += 1
-            pdf.add_page()
-            pdf.set_fill_color(15, 23, 42)
-            pdf.rect(0, 0, 210, 14, "F")
-            pdf.set_fill_color(8, 145, 178)
-            pdf.rect(0, 0, 2.5, 14, "F")
-            pdf.set_xy(5, 3)
-            pdf.set_text_color(255, 255, 255)
-            pdf.set_font("Helvetica", "B", 11)
-            pdf.cell(130, 8, sanitize_structural("AI Detailed Analysis (continued)"))
-            pdf.set_fill_color(124, 58, 237)
-            pdf.rect(0, 14, 210, 1.5, "F")
-            pdf.set_y(18)
-
-        if item_type == "blank":
-            pdf.ln(3)
-        elif item_type == "heading":
-            pdf.ln(4)
-            pdf.draw_section_heading(item_text)
-            pdf.ln(2)
-        elif item_type == "bullet":
-            pdf.draw_bullet(item_text)
-        else:
-            if item_text:
-                pdf.draw_body_text(item_text)
-                pdf.ln(1)
-
-    pdf.draw_disclaimer()
-    pdf.draw_management_section()
-    pdf.draw_footer()
-
-    # cleanup all temp images
-    pdf.cleanup_tmp()
-
-    temp_path = f"static/reports/temp_analysis_{report_id}.pdf"
-    pdf.output(temp_path)
-    return temp_path, pdf.page_num
-
+    c.setFillColor(colors.HexColor("#e2e8f0")); c.roundRect(x, y, w, h, 4, fill=1, stroke=0)
+    c.setFillColor(colors.HexColor("#94a3b8")); c.setFont("Helvetica", 7)
+    c.drawCentredString(x+w/2, y+h/2-3, "No"); c.drawCentredString(x+w/2, y+h/2-11, "Photo")
 
 def _build_page1(c, W, H, header_h, name, age, gender, phone, now,
                  logo_path, face_photo_path, img_parts, img_w, img_h,
                  card_h, gap, pill_colors, detected_labels,
                  recommendations, no_issues, report_id, total_pages):
 
-    # Header
-    c.setFillColor(C_HEADER)
-    c.rect(0, H - header_h, W, header_h, fill=1, stroke=0)
-    c.setFillColor(colors.HexColor("#1e3a8a"))
-    c.rect(0, H - header_h, 8, header_h, fill=1, stroke=0)
-
+    c.setFillColor(C_HEADER); c.rect(0, H-header_h, W, header_h, fill=1, stroke=0)
+    c.setFillColor(colors.HexColor("#1e3a8a")); c.rect(0, H-header_h, 8, header_h, fill=1, stroke=0)
     if os.path.exists(logo_path):
-        logo_y = H - header_h + (header_h - 60) / 2
-        c.drawImage(logo_path, 20, logo_y,
-                    width=180, height=60,
+        ly = H-header_h+(header_h-60)/2
+        c.drawImage(logo_path, 20, ly, width=180, height=60,
                     preserveAspectRatio=True, mask="auto")
-        c.setStrokeColor(colors.HexColor("#334155"))
-        c.setLineWidth(1)
-        c.line(210, H - header_h + 14, 210, H - 14)
-        c.setFillColor(C_WHITE)
-        c.setFont("Helvetica-Bold", 20)
-        c.drawString(222, H - header_h + 44, "Oral Health Screening Report")
-        c.setFillColor(colors.HexColor("#7dd3fc"))
-        c.setFont("Helvetica", 9)
-        c.drawString(224, H - header_h + 26, "powered by OralAI")
+        c.setStrokeColor(colors.HexColor("#334155")); c.setLineWidth(1)
+        c.line(210, H-header_h+14, 210, H-14)
+        c.setFillColor(C_WHITE); c.setFont("Helvetica-Bold", 20)
+        c.drawString(222, H-header_h+44, "Oral Health Screening Report")
+        c.setFillColor(colors.HexColor("#7dd3fc")); c.setFont("Helvetica", 9)
+        c.drawString(224, H-header_h+26, "powered by OralAI")
     else:
-        c.setFillColor(C_WHITE)
-        c.setFont("Helvetica-Bold", 22)
-        c.drawString(30, H - header_h + 44, "Oral Health Screening Report")
+        c.setFillColor(C_WHITE); c.setFont("Helvetica-Bold", 22)
+        c.drawString(30, H-header_h+44, "Oral Health Screening Report")
 
-    bar_bottom = draw_patient_info_bar(
-        c, W, H, header_h,
-        name, age, gender, phone, now,
-        face_photo_path=face_photo_path
-    )
-
+    bar_bottom = draw_patient_info_bar(c, W, H, header_h, name, age, gender, phone, now,
+                                       face_photo_path=face_photo_path)
     cur_y = bar_bottom
     cur_y = draw_section_bar_rl(c, W, cur_y, "  AI SCREENING REPORT")
-
-    card_y = cur_y - 14 - card_h
+    card_y = cur_y-14-card_h
 
     for i, (lbl, fname) in enumerate(img_parts):
-        ix  = 28 + gap + i * (img_w + gap)
-        iy2 = card_y
-
+        ix = 28+gap+i*(img_w+gap); iy2 = card_y
         c.setFillColor(colors.HexColor("#cbd5e1"))
-        c.roundRect(ix + 3, iy2 - 3, img_w, card_h, 10, fill=1, stroke=0)
-        c.setFillColor(C_WHITE)
-        c.roundRect(ix, iy2, img_w, card_h, 10, fill=1, stroke=0)
-        c.setFillColor(C_SURFACE2)
-        c.roundRect(ix + 5, iy2 + 28, img_w - 10, img_h, 8, fill=1, stroke=0)
-
-        img_path = os.path.join("static", "results", fname)
-        if os.path.exists(img_path):
-            c.drawImage(img_path, ix + 5, iy2 + 28,
-                        width=img_w - 10, height=img_h,
+        c.roundRect(ix+3, iy2-3, img_w, card_h, 10, fill=1, stroke=0)
+        c.setFillColor(C_WHITE); c.roundRect(ix, iy2, img_w, card_h, 10, fill=1, stroke=0)
+        c.setFillColor(C_SURFACE2); c.roundRect(ix+5, iy2+28, img_w-10, img_h, 8, fill=1, stroke=0)
+        ip2 = os.path.join("static", "results", fname)
+        if os.path.exists(ip2):
+            c.drawImage(ip2, ix+5, iy2+28, width=img_w-10, height=img_h,
                         preserveAspectRatio=True, mask="auto")
-
-        c.setStrokeColor(C_BORDER)
-        c.setLineWidth(0.8)
+        c.setStrokeColor(C_BORDER); c.setLineWidth(0.8)
         c.roundRect(ix, iy2, img_w, card_h, 10, fill=0, stroke=1)
         c.setFillColor(pill_colors[i])
-        c.roundRect(ix + 14, iy2 + 7, img_w - 28, 17, 8, fill=1, stroke=0)
-        c.setFillColor(C_WHITE)
-        c.setFont("Helvetica-Bold", 9)
-        c.drawCentredString(ix + img_w / 2, iy2 + 12, lbl)
+        c.roundRect(ix+14, iy2+7, img_w-28, 17, 8, fill=1, stroke=0)
+        c.setFillColor(C_WHITE); c.setFont("Helvetica-Bold", 9)
+        c.drawCentredString(ix+img_w/2, iy2+12, lbl)
 
-    cur_y = card_y - 18
-
-    # Legend
-    detected = [k for k in ["malaligned", "stains", "caries", "pit_fissure"]
+    cur_y = card_y-18
+    detected = [k for k in ["malaligned","stains","caries","pit_fissure"]
                 if k in detected_labels]
     if detected:
         c.setFillColor(C_SURFACE2)
-        c.roundRect(28, cur_y - 10, W - 56, 22, 6, fill=1, stroke=0)
-        c.setStrokeColor(C_BORDER)
-        c.setLineWidth(0.6)
-        c.roundRect(28, cur_y - 10, W - 56, 22, 6, fill=0, stroke=1)
+        c.roundRect(28, cur_y-10, W-56, 22, 6, fill=1, stroke=0)
+        c.setStrokeColor(C_BORDER); c.setLineWidth(0.6)
+        c.roundRect(28, cur_y-10, W-56, 22, 6, fill=0, stroke=1)
         lx = 44
         for key in detected:
-            col  = COND_COLOR[key]
-            text = COND_LABEL[key]
-            c.setFillColor(col)
-            c.circle(lx + 5, cur_y + 2, 5, fill=1, stroke=0)
-            c.setFillColor(C_TEXT)
-            c.setFont("Helvetica", 9)
-            c.drawString(lx + 14, cur_y - 2, text)
-            lx += c.stringWidth(text, "Helvetica", 9) + 34
+            col = COND_COLOR[key]; txt = COND_LABEL[key]
+            c.setFillColor(col); c.circle(lx+5, cur_y+2, 5, fill=1, stroke=0)
+            c.setFillColor(C_TEXT); c.setFont("Helvetica", 9)
+            c.drawString(lx+14, cur_y-2, txt)
+            lx += c.stringWidth(txt, "Helvetica", 9)+34
         cur_y -= 24
 
-    # Treatment Recommendations
     cur_y -= 4
     cur_y = draw_section_bar_rl(c, W, cur_y, "  TREATMENT RECOMMENDATIONS")
     cur_y -= 8
 
     if no_issues:
-        rec_text = recommendations[0]["recommendation"] if recommendations else "No issues detected."
-        lines    = wrap_text(rec_text, 76)
-        row_h    = max(52, 22 + len(lines) * 14)
-        cur_y   -= row_h + 4
-
-        c.setFillColor(C_SUCCESS_BG)
-        c.roundRect(28, cur_y, W - 56, row_h, 8, fill=1, stroke=0)
-        c.setStrokeColor(C_SUCCESS_BD)
-        c.setLineWidth(1)
-        c.roundRect(28, cur_y, W - 56, row_h, 8, fill=0, stroke=1)
-        c.setFillColor(C_SUCCESS)
-        c.rect(28, cur_y, 5, row_h, fill=1, stroke=0)
-        c.setFillColor(C_SUCCESS)
+        rt    = recommendations[0]["recommendation"] if recommendations else "No issues detected."
+        lines = wrap_text(rt, 76); rh = max(52, 22+len(lines)*14); cur_y -= rh+4
+        c.setFillColor(C_SUCCESS_BG); c.roundRect(28, cur_y, W-56, rh, 8, fill=1, stroke=0)
+        c.setStrokeColor(C_SUCCESS_BD); c.setLineWidth(1)
+        c.roundRect(28, cur_y, W-56, rh, 8, fill=0, stroke=1)
+        c.setFillColor(C_SUCCESS); c.rect(28, cur_y, 5, rh, fill=1, stroke=0)
         c.setFont("Helvetica-Bold", 11)
-        c.drawString(42, cur_y + row_h - 15, "No major oral health issues detected")
-        ty = cur_y + row_h - 29
-        c.setFillColor(C_MUTED)
-        c.setFont("Helvetica", 9.5)
-        for ln in lines:
-            c.drawString(42, ty, ln)
-            ty -= 13
+        c.drawString(42, cur_y+rh-15, "No major oral health issues detected")
+        ty = cur_y+rh-29; c.setFillColor(C_MUTED); c.setFont("Helvetica", 9.5)
+        for ln in lines: c.drawString(42, ty, ln); ty -= 13
     else:
         for rec in recommendations:
-            if rec["label"] == "none":
-                continue
-            label     = rec["label"]
-            conf      = rec.get("confidence", 0)
-            rec_text  = rec["recommendation"]
-            lines     = wrap_text(rec_text, 73)
-            row_h     = max(56, 30 + len(lines) * 13)
-            col       = COND_COLOR.get(label, C_MUTED)
-            bg        = COND_BG.get(label, C_SURFACE)
-            bd        = COND_BD.get(label, C_BORDER)
-            label_txt = COND_LABEL.get(label, label.title())
-
-            cur_y -= row_h + 8
-            c.setFillColor(bg)
-            c.roundRect(28, cur_y, W - 56, row_h, 8, fill=1, stroke=0)
-            c.setStrokeColor(bd)
-            c.setLineWidth(1)
-            c.roundRect(28, cur_y, W - 56, row_h, 8, fill=0, stroke=1)
-            c.setFillColor(col)
-            c.rect(28, cur_y, 6, row_h, fill=1, stroke=0)
-            c.setFillColor(col)
-            c.circle(52, cur_y + row_h - 18, 8, fill=1, stroke=0)
-            c.setFillColor(C_TEXT)
-            c.setFont("Helvetica-Bold", 12)
-            c.drawString(68, cur_y + row_h - 14, label_txt)
-            bx = 68 + c.stringWidth(label_txt, "Helvetica-Bold", 12) + 8
-            c.setFillColor(col)
-            c.roundRect(bx, cur_y + row_h - 19, 56, 14, 5, fill=1, stroke=0)
-            c.setFillColor(C_WHITE)
-            c.setFont("Helvetica-Bold", 7.5)
-            c.drawCentredString(bx + 28, cur_y + row_h - 12, f"{conf:.0%} confidence")
-            c.setFillColor(C_TEXT)
-            c.setFont("Helvetica", 9.5)
-            ty = cur_y + row_h - 30
-            for ln in lines:
-                c.drawString(68, ty, ln)
-                ty -= 13
+            if rec["label"] == "none": continue
+            label    = rec["label"]; conf = rec.get("confidence", 0)
+            rt       = rec["recommendation"]; lines = wrap_text(rt, 73)
+            rh       = max(56, 30+len(lines)*13)
+            col      = COND_COLOR.get(label, C_MUTED)
+            bg       = COND_BG.get(label,   C_SURFACE)
+            bd       = COND_BD.get(label,   C_BORDER)
+            lt       = COND_LABEL.get(label, label.title())
+            cur_y   -= rh+8
+            c.setFillColor(bg); c.roundRect(28, cur_y, W-56, rh, 8, fill=1, stroke=0)
+            c.setStrokeColor(bd); c.setLineWidth(1)
+            c.roundRect(28, cur_y, W-56, rh, 8, fill=0, stroke=1)
+            c.setFillColor(col); c.rect(28, cur_y, 6, rh, fill=1, stroke=0)
+            c.setFillColor(col); c.circle(52, cur_y+rh-18, 8, fill=1, stroke=0)
+            c.setFillColor(C_TEXT); c.setFont("Helvetica-Bold", 12)
+            c.drawString(68, cur_y+rh-14, lt)
+            bx = 68+c.stringWidth(lt, "Helvetica-Bold", 12)+8
+            c.setFillColor(col); c.roundRect(bx, cur_y+rh-19, 56, 14, 5, fill=1, stroke=0)
+            c.setFillColor(C_WHITE); c.setFont("Helvetica-Bold", 7.5)
+            c.drawCentredString(bx+28, cur_y+rh-12, f"{conf:.0%} confidence")
+            c.setFillColor(C_TEXT); c.setFont("Helvetica", 9.5)
+            ty = cur_y+rh-30
+            for ln in lines: c.drawString(68, ty, ln); ty -= 13
 
     draw_footer_rl(c, W, report_id, 1, total_pages)
     c.save()
 
 
+# ══════════════════════════════════════════════════════════════
+#  ENTRY POINT
+# ══════════════════════════════════════════════════════════════
+
 def generate_pdf(user_data, detected_labels, report_id,
                  recommendations=None, claude_analysis=None, screening_id=None):
 
-    name     = user_data.get("name", "Patient")
-    age      = user_data.get("age", "N/A")
-    gender   = user_data.get("gender", "N/A")
-    phone    = user_data.get("phone", "N/A")
+    name     = user_data.get("name",     "Patient")
+    age      = user_data.get("age",      "N/A")
+    gender   = user_data.get("gender",   "N/A")
+    phone    = user_data.get("phone",    "N/A")
     language = user_data.get("language", "English")
     now      = datetime.now().strftime("%d %b %Y  %I:%M %p")
 
@@ -975,108 +666,76 @@ def generate_pdf(user_data, detected_labels, report_id,
 
     report_path = f"static/reports/{report_id}.pdf"
     logo_path   = "static/logo.png"
+    face_photo  = get_face_photo_path(screening_id, report_id)
 
-    face_photo_path = get_face_photo_path(screening_id, report_id)
-
-    img_h    = 152
-    img_w    = 152
-    gap      = (595.27 - 56 - img_w * 3) / 4
-    card_h   = img_h + 34
+    img_h = 152; img_w = 152
+    gap   = (595.27-56-img_w*3)/4
+    card_h = img_h+34
     pill_colors = [C_ACCENT, C_TEAL, C_PURPLE]
 
-    if screening_id:
-        img_parts = [
-            ("Upper Teeth", f"{screening_id}_upper_yolo.jpg"),
-            ("Front Teeth", f"{screening_id}_front_yolo.jpg"),
-            ("Lower Teeth", f"{screening_id}_lower_yolo.jpg"),
-        ]
-    else:
-        img_parts = [
-            ("Upper Teeth", "upper_yolo.jpg"),
-            ("Front Teeth", "front_yolo.jpg"),
-            ("Lower Teeth", "lower_yolo.jpg"),
-        ]
-
-    no_issues = (not recommendations or
-                 (len(recommendations) == 1 and recommendations[0]["label"] == "none"))
-
-    # Draw page 1 with placeholder total
-    c = rl_canvas.Canvas(report_path, pagesize=A4)
-    W, H = A4
-    header_h = 90
-
-    _build_page1(
-        c, W, H, header_h, name, age, gender, phone, now,
-        logo_path, face_photo_path, img_parts,
-        img_w, img_h, card_h, gap, pill_colors,
-        detected_labels, recommendations, no_issues,
-        report_id, total_pages=99
+    img_parts = (
+        [(f"Upper Teeth", f"{screening_id}_upper_yolo.jpg"),
+         (f"Front Teeth", f"{screening_id}_front_yolo.jpg"),
+         (f"Lower Teeth", f"{screening_id}_lower_yolo.jpg")]
+        if screening_id else
+        [("Upper Teeth","upper_yolo.jpg"),
+         ("Front Teeth","front_yolo.jpg"),
+         ("Lower Teeth","lower_yolo.jpg")]
     )
 
-    # Pages 2+ using fpdf2
-    if claude_analysis:
-        try:
-            temp_path, last_fpdf_page = generate_analysis_pages_fpdf2(
-                claude_analysis=claude_analysis,
-                language=language,
-                name=name, age=age, gender=gender,
-                report_id=report_id,
-                logo_path=logo_path,
-                start_page=2,
-                total_pages=99
-            )
+    no_issues = (not recommendations or
+                 (len(recommendations)==1 and recommendations[0]["label"]=="none"))
 
-            from pypdf import PdfWriter, PdfReader
+    # ── Page 1 (placeholder total) ───────────────────────────
+    c = rl_canvas.Canvas(report_path, pagesize=A4); W, H = A4
+    _build_page1(c, W, H, 90, name, age, gender, phone, now,
+                 logo_path, face_photo, img_parts, img_w, img_h, card_h, gap,
+                 pill_colors, detected_labels, recommendations, no_issues,
+                 report_id, total_pages=99)
 
-            # First merge to count actual pages
-            writer = PdfWriter()
-            for page in PdfReader(report_path).pages:
-                writer.add_page(page)
-            for page in PdfReader(temp_path).pages:
-                writer.add_page(page)
+    if not claude_analysis:
+        return report_path
 
-            actual_pages = len(writer.pages)
-            print(f"[PDF] Total pages: {actual_pages}, language={language}")
+    try:
+        from pypdf import PdfWriter, PdfReader
 
-            # Redraw page 1 with correct total_pages
-            c2 = rl_canvas.Canvas(report_path, pagesize=A4)
-            _build_page1(
-                c2, W, H, header_h, name, age, gender, phone, now,
-                logo_path, face_photo_path, img_parts,
-                img_w, img_h, card_h, gap, pill_colors,
-                detected_labels, recommendations, no_issues,
-                report_id, total_pages=actual_pages
-            )
+        # ── First pass: count pages ──────────────────────────
+        tmp = generate_analysis_weasyprint(
+            claude_analysis, language, name, age, gender,
+            report_id, logo_path, total_pages=99
+        )
 
-            # Regenerate analysis pages with correct total_pages
-            os.remove(temp_path)
-            temp_path2, _ = generate_analysis_pages_fpdf2(
-                claude_analysis=claude_analysis,
-                language=language,
-                name=name, age=age, gender=gender,
-                report_id=report_id,
-                logo_path=logo_path,
-                start_page=2,
-                total_pages=actual_pages
-            )
+        w1 = PdfWriter()
+        for p in PdfReader(report_path).pages: w1.add_page(p)
+        for p in PdfReader(tmp).pages:         w1.add_page(p)
+        actual = len(w1.pages)
+        print(f"[PDF] Total pages: {actual}, language={language}")
 
-            # Final merge
-            writer2 = PdfWriter()
-            for page in PdfReader(report_path).pages:
-                writer2.add_page(page)
-            for page in PdfReader(temp_path2).pages:
-                writer2.add_page(page)
+        # ── Rebuild page 1 with correct total ───────────────
+        c2 = rl_canvas.Canvas(report_path, pagesize=A4)
+        _build_page1(c2, W, H, 90, name, age, gender, phone, now,
+                     logo_path, face_photo, img_parts, img_w, img_h, card_h, gap,
+                     pill_colors, detected_labels, recommendations, no_issues,
+                     report_id, total_pages=actual)
 
-            with open(report_path, "wb") as f:
-                writer2.write(f)
+        # ── Rebuild analysis with correct total ──────────────
+        os.remove(tmp)
+        tmp2 = generate_analysis_weasyprint(
+            claude_analysis, language, name, age, gender,
+            report_id, logo_path, total_pages=actual
+        )
 
-            os.remove(temp_path2)
-            print(f"[PDF] Final report saved: {report_path}")
+        # ── Final merge ──────────────────────────────────────
+        w2 = PdfWriter()
+        for p in PdfReader(report_path).pages: w2.add_page(p)
+        for p in PdfReader(tmp2).pages:        w2.add_page(p)
+        with open(report_path, "wb") as f:     w2.write(f)
+        os.remove(tmp2)
+        print(f"[PDF] Saved: {report_path}")
 
-        except Exception as e:
-            print(f"Analysis page merge failed: {e}")
-            import traceback
-            traceback.print_exc()
-            print("Page 1 only saved.")
+    except Exception as e:
+        import traceback
+        print(f"[PDF] ERROR: {e}")
+        traceback.print_exc()
 
     return report_path
