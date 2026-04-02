@@ -3,12 +3,12 @@ from reportlab.pdfgen import canvas as rl_canvas
 from reportlab.lib import colors
 from reportlab.pdfbase import pdfmetrics
 from reportlab.pdfbase.ttfonts import TTFont
-from fpdf import FPDF
 from datetime import datetime
 import os
 import re
 import base64
 import tempfile
+import html as html_module
 
 
 # ── Colour palette ───────────────────────────────────────────────
@@ -267,10 +267,372 @@ def _draw_face_placeholder(c, x, y, w, h):
 
 
 # ══════════════════════════════════════════════════════════════
-#  PAGE 2+ GENERATOR using fpdf2
+#  GOOGLE FONTS MAP  (used by WeasyPrint HTML renderer)
 # ══════════════════════════════════════════════════════════════
 
-class AnalysisPDF(FPDF):
+LANG_GFONT_MAP = {
+    "English":   "Noto+Sans",
+    "Hindi":     "Noto+Sans+Devanagari",
+    "Marathi":   "Noto+Sans+Devanagari",
+    "Telugu":    "Noto+Sans+Telugu",
+    "Tamil":     "Noto+Sans+Tamil",
+    "Kannada":   "Noto+Sans+Kannada",
+    "Malayalam": "Noto+Sans+Malayalam",
+    "Bengali":   "Noto+Sans+Bengali",
+    "Arabic":    "Noto+Sans+Arabic",
+}
+
+# ── Right-to-left languages ──
+RTL_LANGUAGES = {"Arabic"}
+
+
+def _img_to_data_uri(path):
+    """Convert an image file to a base64 data URI for embedding in HTML."""
+    if not path or not os.path.exists(path):
+        return ""
+    ext = os.path.splitext(path)[1].lower().lstrip(".")
+    mime = {"jpg": "image/jpeg", "jpeg": "image/jpeg",
+            "png": "image/png", "gif": "image/gif"}.get(ext, "image/jpeg")
+    with open(path, "rb") as f:
+        b64 = base64.b64encode(f.read()).decode()
+    return f"data:{mime};base64,{b64}"
+
+
+def _build_analysis_html(claude_analysis, language, name, age, gender,
+                          report_id, logo_path, total_pages,
+                          management_members, management_img_dir):
+    """
+    Build a complete HTML document that WeasyPrint will render to PDF.
+    All text is preserved as-is (no sanitize on body content for non-Latin).
+    Google Fonts CSS is embedded via @import so Telugu/Hindi etc render correctly.
+    """
+    gfont  = LANG_GFONT_MAP.get(language, "Noto+Sans")
+    is_rtl = language in RTL_LANGUAGES
+    dir_attr = 'dir="rtl"' if is_rtl else ""
+    text_align = "right" if is_rtl else "left"
+
+    # ── Logo as data URI so WeasyPrint doesn't need network ──
+    logo_uri = _img_to_data_uri(logo_path)
+    logo_html = (f'<img src="{logo_uri}" style="height:44px;vertical-align:middle;">'
+                 if logo_uri else
+                 '<span style="font-size:22px;font-weight:800;color:#fff;">OralAI</span>')
+
+    # ── Clean markdown but KEEP all Unicode characters ──
+    cleaned = clean_markdown(claude_analysis, language=language)
+    lines   = cleaned.split("\n")
+
+    # ── Convert lines → HTML content ──
+    body_html = ""
+    for raw in lines:
+        line = raw.strip()
+        if not line:
+            body_html += '<div style="height:6px"></div>\n'
+            continue
+        esc = html_module.escape(line)
+        if re.match(r'^\d+\.\s+\S', line) and len(line) < 120:
+            body_html += f'<div class="section-heading">{esc}</div>\n'
+        elif line.startswith(("- ", "• ", "* ")):
+            body_html += f'<div class="bullet"><span class="dot"></span><span>{html_module.escape(line[2:].strip())}</span></div>\n'
+        else:
+            body_html += f'<p class="body-text">{esc}</p>\n'
+
+    # ── Management section HTML ──
+    mgmt_html = ""
+    if management_members:
+        mgmt_html += '''
+        <div style="page-break-inside:avoid;">
+          <div class="mgmt-heading">Swarnandhra College of Engineering and Technology &nbsp;–&nbsp; Management</div>
+          <div class="mgmt-grid">
+        '''
+        for m in management_members:
+            img_path = os.path.join(management_img_dir, m.get("file", ""))
+            img_uri  = _img_to_data_uri(img_path)
+            img_tag  = (f'<img src="{img_uri}" class="mgmt-photo">'
+                        if img_uri else
+                        '<div class="mgmt-photo-placeholder">No Photo</div>')
+            mname = html_module.escape(m.get("name", ""))
+            mtitle = html_module.escape(m.get("title", ""))
+            mgmt_html += f'''
+            <div class="mgmt-card" style="page-break-inside:avoid;">
+              <div class="mgmt-circle">{img_tag}</div>
+              <div class="mgmt-name">{mname}</div>
+              <div class="mgmt-title">{mtitle}</div>
+            </div>
+            '''
+        mgmt_html += '</div></div>'
+
+    date_str = datetime.now().strftime("%d %b %Y")
+
+    html = f"""<!DOCTYPE html>
+<html {dir_attr}>
+<head>
+<meta charset="UTF-8">
+<style>
+@import url('https://fonts.googleapis.com/css2?family={gfont}:wght@400;600&family=Noto+Sans:wght@400;600;700&display=swap');
+
+* {{ box-sizing: border-box; margin: 0; padding: 0; }}
+
+body {{
+  font-family: '{gfont.replace("+", " ")}', 'Noto Sans', sans-serif;
+  font-size: 10pt;
+  color: #0f172a;
+  background: #fff;
+  direction: {("rtl" if is_rtl else "ltr")};
+}}
+
+@page {{
+  size: A4;
+  margin: 0;
+  @bottom-center {{
+    content: "";
+  }}
+}}
+
+/* ── Header bar (repeats on every page) ── */
+.page-header {{
+  background: #0f172a;
+  color: #fff;
+  padding: 6px 14px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-left: 3px solid #0891b2;
+  position: running(pageHeader);
+}}
+.page-header-title {{ font-size: 14pt; font-weight: 700; font-family: 'Noto Sans', sans-serif; }}
+.page-header-sub   {{ font-size: 7pt; color: #a78bfa; font-family: 'Noto Sans', sans-serif; }}
+.page-header-pat   {{ font-size: 7pt; color: #94a3b8; text-align: right; font-family: 'Noto Sans', sans-serif; }}
+.header-accent     {{ height: 2px; background: #7c3aed; }}
+
+/* ── Footer bar (repeats on every page) ── */
+.page-footer {{
+  background: #0f172a;
+  color: #fff;
+  padding: 4px 14px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-left: 3px solid #0891b2;
+  position: running(pageFooter);
+  font-family: 'Noto Sans', sans-serif;
+}}
+.page-footer-left  {{ font-size: 7.5pt; font-weight: 700; }}
+.page-footer-right {{ font-size: 6.5pt; color: #94a3b8; text-align: right; }}
+
+@page {{
+  @top-center    {{ content: element(pageHeader); width: 100%; }}
+  @bottom-center {{ content: element(pageFooter); width: 100%; }}
+}}
+
+/* ── Main content area ── */
+.content {{
+  padding: 14px 18px 10px;
+  text-align: {text_align};
+}}
+
+/* ── Section headings ── */
+.section-heading {{
+  background: #2563eb;
+  color: #fff;
+  padding: 5px 12px;
+  font-size: 10pt;
+  font-weight: 600;
+  border-radius: 0;
+  margin: 10px -18px 6px;
+  page-break-after: avoid;
+  font-family: 'Noto Sans', sans-serif;
+}}
+
+/* ── Bullet points ── */
+.bullet {{
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  margin: 4px 0 4px 10px;
+  font-size: 9.5pt;
+  line-height: 1.55;
+}}
+.dot {{
+  width: 7px; height: 7px;
+  border-radius: 50%;
+  background: #2563eb;
+  flex-shrink: 0;
+  margin-top: 4px;
+}}
+
+/* ── Body text ── */
+.body-text {{
+  font-size: 9.5pt;
+  line-height: 1.6;
+  margin: 3px 0;
+  color: #0f172a;
+}}
+
+/* ── Disclaimer ── */
+.disclaimer {{
+  background: #fffbeb;
+  border: 1px solid #fcd34d;
+  color: #78350f;
+  font-size: 7.5pt;
+  font-style: italic;
+  padding: 5px 12px;
+  margin: 12px 0 10px;
+  border-radius: 4px;
+  font-family: 'Noto Sans', sans-serif;
+}}
+
+/* ── Management section ── */
+.mgmt-heading {{
+  background: #0f172a;
+  color: #fff;
+  padding: 5px 14px;
+  font-size: 9pt;
+  font-weight: 700;
+  border-left: 3px solid #0891b2;
+  margin: 8px -18px 10px;
+  font-family: 'Noto Sans', sans-serif;
+}}
+.mgmt-grid {{
+  display: flex;
+  flex-wrap: wrap;
+  gap: 14px;
+  justify-content: center;
+  padding: 4px 0 10px;
+}}
+.mgmt-card {{
+  width: 28%;
+  text-align: center;
+}}
+.mgmt-circle {{
+  width: 72px; height: 72px;
+  border-radius: 50%;
+  overflow: hidden;
+  border: 2px solid #2563eb;
+  margin: 0 auto 6px;
+  background: #e2e8f0;
+}}
+.mgmt-photo {{
+  width: 100%; height: 100%;
+  object-fit: cover;
+}}
+.mgmt-photo-placeholder {{
+  width: 100%; height: 100%;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 7pt; color: #94a3b8;
+  font-family: 'Noto Sans', sans-serif;
+}}
+.mgmt-name  {{ font-size: 8pt; font-weight: 700; color: #0f172a; font-family: 'Noto Sans', sans-serif; }}
+.mgmt-title {{ font-size: 7pt; color: #64748b; margin-top: 2px; font-family: 'Noto Sans', sans-serif; }}
+</style>
+</head>
+<body>
+
+<!-- ── Running header (printed at top of every page) ── -->
+<div class="page-header">
+  <div>
+    {logo_html}
+    <span style="margin-left:12px;border-left:1px solid #334155;padding-left:12px;">
+      <span class="page-header-title">AI Detailed Analysis</span><br>
+      <span class="page-header-sub">Language: {html_module.escape(language)}&nbsp;&nbsp;Observing all 3 dental images</span>
+    </span>
+  </div>
+  <div class="page-header-pat">{html_module.escape(name)} ({html_module.escape(str(age))}/{html_module.escape(str(gender))})</div>
+</div>
+<div class="header-accent"></div>
+
+<!-- ── Running footer (printed at bottom of every page) ── -->
+<div class="page-footer">
+  <div class="page-footer-left">OralAI &nbsp;–&nbsp; AI Oral Health Screening &nbsp;|&nbsp; www.oralai.site</div>
+  <div class="page-footer-right">Report ID: {html_module.escape(str(report_id))} &nbsp;|&nbsp; {date_str}</div>
+</div>
+
+<!-- ── Main body content ── -->
+<div class="content">
+{body_html}
+
+  <div class="disclaimer">
+    This is an AI-based screening tool and does not replace a professional dental diagnosis. Please consult a dentist.
+  </div>
+
+{mgmt_html}
+</div>
+
+</body>
+</html>"""
+    return html
+
+
+def generate_analysis_pages_weasyprint(claude_analysis, language, name, age, gender,
+                                        report_id, logo_path, total_pages):
+    """
+    Render the AI analysis pages to PDF using WeasyPrint (HTML→PDF).
+    This correctly handles Telugu, Hindi, Arabic and all Indic scripts
+    because it uses a real browser-grade text shaping engine.
+    """
+    try:
+        from weasyprint import HTML, CSS
+        from weasyprint.text.fonts import FontConfiguration
+    except ImportError:
+        raise RuntimeError(
+            "WeasyPrint is not installed. Run:  pip install weasyprint"
+        )
+
+    # ── Load management members ──
+    mgmt_members  = []
+    mgmt_img_dir  = os.path.join("static", "management")
+    mgmt_cfg_path = os.path.join("static", "management", "config.json")
+    if os.path.exists(mgmt_cfg_path):
+        import json
+        try:
+            with open(mgmt_cfg_path) as f:
+                mgmt_members = json.load(f)
+        except Exception as e:
+            print(f"[Mgmt] Could not load config.json: {e}")
+
+    html_str = _build_analysis_html(
+        claude_analysis=claude_analysis,
+        language=language,
+        name=name, age=age, gender=gender,
+        report_id=report_id,
+        logo_path=logo_path,
+        total_pages=total_pages,
+        management_members=mgmt_members,
+        management_img_dir=mgmt_img_dir,
+    )
+
+    temp_html = f"static/reports/temp_analysis_{report_id}.html"
+    temp_pdf  = f"static/reports/temp_analysis_{report_id}.pdf"
+
+    with open(temp_html, "w", encoding="utf-8") as f:
+        f.write(html_str)
+
+    font_config = FontConfiguration()
+    doc = HTML(filename=temp_html).write_pdf(
+        font_config=font_config,
+        presentational_hints=True,
+    )
+
+    with open(temp_pdf, "wb") as f:
+        f.write(doc)
+
+    try:
+        os.remove(temp_html)
+    except:
+        pass
+
+    # Count pages
+    from pypdf import PdfReader
+    page_count = len(PdfReader(temp_pdf).pages)
+    print(f"[WeasyPrint] Generated {page_count} analysis page(s) for language={language}")
+    return temp_pdf, page_count
+
+
+# ══════════════════════════════════════════════════════════════
+#  LEGACY fpdf2 class kept for reference but NO LONGER USED
+#  All analysis pages now go through generate_analysis_pages_weasyprint
+# ══════════════════════════════════════════════════════════════
+
+class AnalysisPDF:
     def __init__(self, language, font_path, name, age, gender,
                  report_id, logo_path, total_pages):
         super().__init__()
@@ -611,94 +973,6 @@ class AnalysisPDF(FPDF):
         pass
 
 
-def generate_analysis_pages_fpdf2(claude_analysis, language, name, age, gender,
-                                   report_id, logo_path, start_page, total_pages):
-    font_file = LANG_FONT_MAP.get(language, "NotoSans-Regular.ttf")
-    font_path = os.path.join(FONTS_DIR, font_file)
-
-    if not os.path.exists(font_path):
-        print(f"[Font] WARNING: {font_path} not found!")
-        print(f"[Font] Download NotoSans fonts from: https://fonts.google.com/noto")
-        print(f"[Font] Place the .ttf file in: {FONTS_DIR}/")
-
-    pdf = AnalysisPDF(
-        language=language,
-        font_path=font_path,
-        name=name, age=age, gender=gender,
-        report_id=report_id,
-        logo_path=logo_path,
-        total_pages=total_pages
-    )
-    pdf.set_auto_page_break(auto=False)
-    pdf.add_page()
-    pdf.draw_header()
-
-    # ── KEY FIX: pass language to clean_markdown so non-Latin text is preserved ──
-    cleaned   = clean_markdown(claude_analysis, language=language)
-    lines_raw = cleaned.split("\n")
-
-    BOTTOM_LIMIT = 252
-
-    render_items = []
-    for raw_line in lines_raw:
-        line = raw_line.strip()
-        if not line:
-            render_items.append(("blank", ""))
-            continue
-        if re.match(r'^\d+\.\s+[^\s]', line) and len(line) < 80:
-            render_items.append(("heading", line))
-        elif line.startswith("- ") or line.startswith("• ") or line.startswith("* "):
-            render_items.append(("bullet", line[2:].strip()))
-        else:
-            render_items.append(("text", line))
-
-    for item_type, item_text in render_items:
-
-        if pdf.get_y() > BOTTOM_LIMIT:
-            pdf.draw_footer()
-            pdf.page_num += 1
-            pdf.add_page()
-            pdf.set_fill_color(15, 23, 42)
-            pdf.rect(0, 0, 210, 14, "F")
-            pdf.set_fill_color(8, 145, 178)
-            pdf.rect(0, 0, 2.5, 14, "F")
-            pdf.set_xy(5, 3)
-            pdf.set_text_color(255, 255, 255)
-            pdf.set_font("Helvetica", "B", 11)
-            pdf.cell(130, 8, sanitize_structural("AI Detailed Analysis (continued)"))
-            pdf.set_text_color(148, 163, 184)
-            if pdf.font_name:
-                pdf.set_font(pdf.font_name, size=7)
-            else:
-                pdf.set_font("Helvetica", "", 7)
-            # Patient name in continuation header
-            cont_name = pdf._safe_text(f"{name} ({age}/{gender})")
-            pdf.cell(65, 8, cont_name, align="R")
-            pdf.set_fill_color(124, 58, 237)
-            pdf.rect(0, 14, 210, 1.5, "F")
-            pdf.set_y(18)
-
-        if item_type == "blank":
-            pdf.ln(3)
-        elif item_type == "heading":
-            pdf.ln(4)
-            pdf.draw_section_heading(item_text)
-            pdf.ln(2)
-        elif item_type == "bullet":
-            pdf.draw_bullet(item_text)
-        else:
-            if item_text:
-                pdf.draw_body_text(item_text)
-                pdf.ln(1)
-
-    # ── Disclaimer then Management photos ──
-    pdf.draw_disclaimer()
-    pdf.draw_management_section()
-    pdf.draw_footer()
-
-    temp_path = f"static/reports/temp_analysis_{report_id}.pdf"
-    pdf.output(temp_path)
-    return temp_path, pdf.page_num
 
 
 def _build_page1(c, W, H, header_h, name, age, gender, phone, now,
@@ -919,32 +1193,30 @@ def generate_pdf(user_data, detected_labels, report_id,
         report_id, total_pages=99  # placeholder — will be corrected below
     )
 
-    # ── Pages 2+ using fpdf2 ──
+    # ── Pages 2+ using WeasyPrint (HTML→PDF, supports Telugu/all scripts) ──
     if claude_analysis:
         try:
-            temp_path, last_fpdf_page = generate_analysis_pages_fpdf2(
+            temp_path, _ = generate_analysis_pages_weasyprint(
                 claude_analysis=claude_analysis,
                 language=language,
                 name=name, age=age, gender=gender,
                 report_id=report_id,
                 logo_path=logo_path,
-                start_page=2,
-                total_pages=99   # placeholder — corrected after merge
+                total_pages=99,   # WeasyPrint handles pagination automatically
             )
 
             from pypdf import PdfWriter, PdfReader
 
-            # ── First merge to count actual pages ──
+            # ── Count total pages after merge ──
             writer = PdfWriter()
             for page in PdfReader(report_path).pages:
                 writer.add_page(page)
             for page in PdfReader(temp_path).pages:
                 writer.add_page(page)
-
             actual_pages = len(writer.pages)
             print(f"[PDF] Total pages: {actual_pages}, language={language}")
 
-            # ── Redraw page 1 with correct total_pages ──
+            # ── Redraw page 1 with correct total page count ──
             c2 = rl_canvas.Canvas(report_path, pagesize=A4)
             _build_page1(
                 c2, W, H, header_h, name, age, gender, phone, now,
@@ -954,29 +1226,17 @@ def generate_pdf(user_data, detected_labels, report_id,
                 report_id, total_pages=actual_pages
             )
 
-            # ── Regenerate analysis pages with correct total_pages ──
-            os.remove(temp_path)
-            temp_path2, _ = generate_analysis_pages_fpdf2(
-                claude_analysis=claude_analysis,
-                language=language,
-                name=name, age=age, gender=gender,
-                report_id=report_id,
-                logo_path=logo_path,
-                start_page=2,
-                total_pages=actual_pages   # ← correct total now
-            )
-
-            # ── Final merge ──
+            # ── Final merge: page 1 + analysis pages ──
             writer2 = PdfWriter()
             for page in PdfReader(report_path).pages:
                 writer2.add_page(page)
-            for page in PdfReader(temp_path2).pages:
+            for page in PdfReader(temp_path).pages:
                 writer2.add_page(page)
 
             with open(report_path, "wb") as f:
                 writer2.write(f)
 
-            os.remove(temp_path2)
+            os.remove(temp_path)
             print(f"[PDF] Final report saved: {report_path}")
 
         except Exception as e:
