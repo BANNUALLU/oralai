@@ -32,7 +32,6 @@ os.makedirs(UPLOAD_DIR, exist_ok=True)
 os.makedirs(RESULT_DIR, exist_ok=True)
 os.makedirs(REPORT_DIR, exist_ok=True)
 
-# Max 3 simultaneous report generations — others wait, never crash
 report_semaphore = threading.Semaphore(3)
 
 # ── Screening counter ─────────────────────────────────────────
@@ -63,7 +62,7 @@ EMAIL_USER      = os.getenv("EMAIL_USER", "oralai.site@gmail.com")
 EMAIL_PASS      = os.getenv("EMAIL_PASS", "")
 DEVELOPER_EMAIL = os.getenv("DEVELOPER_EMAIL", "bannuallu123@gmail.com")
 
-# ── File-based phone session store (works across all Gunicorn workers) ──
+# ── File-based phone session store ──
 PHONE_SESSIONS_DIR = "static/phone_sessions"
 os.makedirs(PHONE_SESSIONS_DIR, exist_ok=True)
 phone_sessions_lock = threading.Lock()
@@ -92,7 +91,7 @@ def delete_phone_session(token):
         pass
 
 
-# ── HTML error page helper ────────────────────────────────────
+# ── HTML error/done helpers ───────────────────────────────────
 def html_error(title, message, status=400):
     html = f"""<!DOCTYPE html>
 <html>
@@ -158,9 +157,7 @@ def html_done(title, message):
     return html, 200
 
 
-# ════════════════════════════════════════════════════════════
-#  HELPER — Delete uploaded + YOLO result images for a screening
-# ════════════════════════════════════════════════════════════
+# ── Delete uploaded + YOLO result images for a screening ──────
 def cleanup_old_files(screening_id):
     if not screening_id:
         return
@@ -188,33 +185,21 @@ def index():
     return render_template("index.html")
 
 
-# ════════════════════════════════════════════════════════════
-#  SCREENING COUNT API
-# ════════════════════════════════════════════════════════════
 @app.route("/screening_count")
 def screening_count():
     return jsonify({"count": get_screening_count()})
 
 
-# ════════════════════════════════════════════════════════════
-#  START
-# ════════════════════════════════════════════════════════════
 @app.route("/start")
 def start():
     return render_template("start.html")
 
 
-# ════════════════════════════════════════════════════════════
-#  PRIVACY POLICY
-# ════════════════════════════════════════════════════════════
 @app.route("/privacy")
 def privacy():
     return render_template("privacy.html")
 
 
-# ════════════════════════════════════════════════════════════
-#  TERMS OF USE
-# ════════════════════════════════════════════════════════════
 @app.route("/terms")
 def terms():
     return render_template("terms.html")
@@ -246,7 +231,6 @@ def details():
 
         token = session["session_token"]
 
-        # ── FIX: added face + face_thumb to phone session ──
         save_phone_session(token, {
             "screening_id": session["screening_id"],
             "language":     session["language"],
@@ -266,7 +250,7 @@ def details():
 
 
 # ════════════════════════════════════════════════════════════
-#  CAPTURE PAGE (laptop/desktop)
+#  CAPTURE PAGE
 # ════════════════════════════════════════════════════════════
 @app.route("/capture")
 def capture_page():
@@ -278,23 +262,21 @@ def capture_page():
 
 
 # ════════════════════════════════════════════════════════════
-#  PHONE CAPTURE PAGE  (patient opens on phone via QR)
+#  PHONE CAPTURE PAGE
 # ════════════════════════════════════════════════════════════
 @app.route("/phone_capture")
 def phone_capture():
     token = request.args.get("token", "").strip()
 
     if not token:
-        print("phone_capture: no token in request")
         return html_error(
             "Missing Session Token",
-            "This link is incomplete. It must be opened by scanning the QR code shown at the clinic, not typed manually."
+            "This link is incomplete. It must be opened by scanning the QR code shown at the clinic."
         )
 
     ps = get_phone_session(token)
 
     if not ps:
-        print(f"phone_capture: token not found: {token[:8]}...")
         return html_error(
             "Session Expired or Not Found",
             "This QR code session has expired or is no longer valid. Please ask the operator to start a new screening.",
@@ -302,20 +284,15 @@ def phone_capture():
         )
 
     if ps.get("expired"):
-        print(f"phone_capture: session already expired for token {token[:8]}...")
         return html_done(
             "All Photos Received!",
             "All 4 photos have been successfully sent to the operator. You can return the phone."
         )
 
     language = ps.get("language", "English")
-    print(f"phone_capture: valid session for screening {ps.get('screening_id', '?')[:8]}, lang={language}")
     return render_template("phone_capture.html", token=token, session_language=language)
 
 
-# ════════════════════════════════════════════════════════════
-#  PHONE STATUS  (laptop polls this to check photo progress)
-# ════════════════════════════════════════════════════════════
 @app.route("/phone_status")
 def phone_status():
     token = request.args.get("token", "").strip()
@@ -326,7 +303,6 @@ def phone_status():
     if not ps:
         return jsonify({"error": "session not found"}), 404
 
-    # ── FIX: return face status too ──
     return jsonify({
         "face":        ps.get("face", False),
         "upper":       ps.get("upper", False),
@@ -340,9 +316,6 @@ def phone_status():
     })
 
 
-# ════════════════════════════════════════════════════════════
-#  PHONE EXPIRE  (operator calls this when all 4 photos received)
-# ════════════════════════════════════════════════════════════
 @app.route("/phone_expire", methods=["POST"])
 def phone_expire():
     try:
@@ -357,17 +330,12 @@ def phone_expire():
 
         ps["expired"] = True
         save_phone_session(token, ps)
-        print(f"[QR] Session expired for token {token[:8]}...")
         return jsonify({"status": "expired"})
 
     except Exception as e:
-        print(f"PHONE_EXPIRE ERROR: {str(e)}")
         return jsonify({"status": "error", "msg": str(e)}), 500
 
 
-# ════════════════════════════════════════════════════════════
-#  PHONE CAPTURE SAVE  (phone POSTs images here)
-# ════════════════════════════════════════════════════════════
 @app.route("/phone_save", methods=["POST"])
 def phone_save():
     try:
@@ -376,7 +344,6 @@ def phone_save():
         image_type = data.get("type", "")
         image_b64  = data.get("image", "")
 
-        # ── FIX: added "face" to accepted image types ──
         if not token or image_type not in ("face", "upper", "front", "lower") or not image_b64:
             return jsonify({"status": "error", "msg": "bad params"}), 400
 
@@ -397,8 +364,6 @@ def phone_save():
         with open(image_path, "wb") as f:
             f.write(image_bytes)
 
-        print(f"[Phone] Saved {image_type} image for screening {screening_id[:8]}...")
-
         thumb_b64 = "data:image/jpeg;base64," + image_b64
 
         with phone_sessions_lock:
@@ -415,7 +380,7 @@ def phone_save():
 
 
 # ════════════════════════════════════════════════════════════
-#  VALIDATE IMAGE  (Claude Haiku checks for teeth)
+#  VALIDATE IMAGE
 # ════════════════════════════════════════════════════════════
 @app.route("/validate", methods=["POST"])
 def validate():
@@ -425,8 +390,6 @@ def validate():
 
         if "," in image_b64:
             image_b64 = image_b64.split(",")[1]
-
-        print("Validating image with Claude...")
 
         message = client.messages.create(
             model="claude-haiku-4-5-20251001",
@@ -457,23 +420,21 @@ def validate():
 
         raw   = message.content[0].text.strip()
         clean = raw.replace("```json", "").replace("```", "").strip()
-        print("Claude validation:", clean)
         return jsonify(json.loads(clean))
 
     except json.JSONDecodeError:
         return jsonify({"isTeeth": True, "reason": "Validation inconclusive"})
     except Exception as e:
-        print("VALIDATE ERROR:", str(e))
         return jsonify({"error": str(e)}), 500
 
 
 # ════════════════════════════════════════════════════════════
-#  SAVE CAPTURED IMAGE  (local camera mode — face + teeth)
+#  SAVE CAPTURED IMAGE
 # ════════════════════════════════════════════════════════════
 @app.route("/capture", methods=["POST"])
 def capture_image():
     data         = request.get_json()
-    image_type   = data["type"]   # "face", "upper", "front", "lower"
+    image_type   = data["type"]
     image_base64 = data["image"].split(",")[1]
     image_bytes  = base64.b64decode(image_base64)
 
@@ -488,14 +449,13 @@ def capture_image():
 
 
 # ════════════════════════════════════════════════════════════
-#  CLAUDE VISION ANALYSIS  (receives YOLO-annotated images)
+#  STEP 1 — CLAUDE VISION ANALYSIS (always in English)
 # ════════════════════════════════════════════════════════════
 def analyse_with_claude(yolo_image_paths, patient_info):
     try:
-        age      = patient_info.get("age", "unknown")
-        gender   = patient_info.get("gender", "unknown")
-        name     = patient_info.get("name", "Patient")
-        language = patient_info.get("language", "English")
+        age    = patient_info.get("age", "unknown")
+        gender = patient_info.get("gender", "unknown")
+        name   = patient_info.get("name", "Patient")
 
         content = []
         labels  = ["Upper Teeth", "Front Teeth", "Lower Teeth"]
@@ -523,11 +483,11 @@ def analyse_with_claude(yolo_image_paths, patient_info):
             "type": "text",
             "text": f"""You are an expert dental AI assistant reviewing 3 dental images for a patient.
 
-Patient: {name}, Age: {age}, Gender: {gender}, Language: {language}
+Patient: {name}, Age: {age}, Gender: {gender}
 
 The images have green bounding boxes drawn by a YOLO model showing detected dental issues.
 
-Write EXACTLY these 6 sections in {language} language. No markdown symbols (no **, ##, *, _). Use plain text with numbered sections and - bullet points only.
+Write EXACTLY these 6 sections in English language. No markdown symbols (no **, ##, *, _). Use plain text with numbered sections and - bullet points only.
 
 1. DETECTED PROBLEMS
 For each detected problem write one bullet like this:
@@ -557,36 +517,36 @@ Write a detailed cost breakdown:
 - One-time product cost: Rs.[amount] (eg. electric toothbrush, flosser)
 - Budget option total: Rs.[min]-Rs.[max]
 - Standard option total: Rs.[min]-Rs.[max]
-Use realistic Indian clinic prices. Keep affordable — not too high, not too low.
+Use realistic Indian clinic prices.
 
 6. CONCLUSION
 Write exactly 3 warm sentences: summarise the overall oral health status, encourage {name} with what can be improved, and state the single most important first action to take now.
 
 STRICT RULES:
-- Write entire response in {language} only
+- Write entire response in English only
 - No markdown, no asterisks, no hashtags
 - All 6 sections must be present
 - Total response under 700 words
 """
         })
 
-        print(f"[Claude] Sending 3 YOLO images for analysis in {language}...")
+        print(f"[Claude] Sending 3 YOLO images for analysis in English...")
 
         message = client.messages.create(
             model="claude-haiku-4-5-20251001",
             max_tokens=2500,
             system=(
-                f"You are a concise expert dental AI assistant. "
-                f"Always respond in {language} language only. "
-                f"Never use markdown symbols like **, ##, *, _ in your response. "
-                f"Use plain text with numbered sections and simple - bullet points only. "
-                f"All 6 sections must be present. Be specific and informative but concise."
+                "You are a concise expert dental AI assistant. "
+                "Always respond in English only. "
+                "Never use markdown symbols like **, ##, *, _ in your response. "
+                "Use plain text with numbered sections and simple - bullet points only. "
+                "All 6 sections must be present. Be specific and informative but concise."
             ),
             messages=[{"role": "user", "content": content}]
         )
 
         analysis = message.content[0].text.strip()
-        print(f"[Claude] Analysis done in {language}!")
+        print(f"[Claude] English analysis done — {len(analysis)} chars")
         return analysis
 
     except Exception as e:
@@ -595,8 +555,51 @@ STRICT RULES:
 
 
 # ════════════════════════════════════════════════════════════
+#  STEP 2 — TRANSLATE English analysis to target language
+# ════════════════════════════════════════════════════════════
+def translate_analysis(english_text, target_language):
+    """Translate English dental analysis to the target language using Claude."""
+    if target_language == "English":
+        return english_text
+
+    try:
+        print(f"[Translate] Translating to {target_language}...")
+
+        message = client.messages.create(
+            model="claude-haiku-4-5-20251001",
+            max_tokens=3000,
+            system=(
+                f"You are an expert translator specialising in medical and dental content. "
+                f"Translate the given dental health report accurately into {target_language}. "
+                f"STRICT RULES: "
+                f"1. Translate EVERYTHING including section numbers and bullet points. "
+                f"2. Keep the same structure — numbered sections, dash bullets. "
+                f"3. Do NOT use any markdown (no **, ##, *, _). "
+                f"4. Output ONLY the translated text, nothing else — no preamble, no explanation. "
+                f"5. Preserve all numbers, prices (Rs. amounts), and medical/dental terms accurately. "
+                f"6. Make the translation natural and easy to read for a patient."
+            ),
+            messages=[{
+                "role": "user",
+                "content": (
+                    f"Translate the following dental report to {target_language}. "
+                    f"Output only the translated text:\n\n{english_text}"
+                )
+            }]
+        )
+
+        translated = message.content[0].text.strip()
+        print(f"[Translate] Done — {len(translated)} chars in {target_language}")
+        return translated
+
+    except Exception as e:
+        print(f"[Translate] Failed: {e} — falling back to English")
+        return english_text
+
+
+# ════════════════════════════════════════════════════════════
 #  GENERATE REPORT
-#  Pipeline: YOLO → Claude AI → PDF → cleanup uploads/results
+#  Pipeline: YOLO → Claude (English) → Translate → PDF
 # ════════════════════════════════════════════════════════════
 @app.route("/generate", methods=["POST"])
 def generate():
@@ -608,7 +611,6 @@ def generate():
     language = session.get("language", "English")
     screening_id = session.get("screening_id", "")
 
-    # QR mode — sync screening_id from phone session if operator session is missing it
     session_token = session.get("session_token", "")
     if session_token and not screening_id:
         ps = get_phone_session(session_token)
@@ -617,12 +619,11 @@ def generate():
             if screening_id:
                 session["screening_id"] = screening_id
                 session.modified = True
-                print(f"[QR mode] Synced screening_id from phone session: {screening_id[:8]}...")
 
     if not name or not screening_id:
         return redirect("/details")
 
-    print(f"[Generate] Starting report for: {name} | lang: {language} | id: {screening_id[:8]}...")
+    print(f"[Generate] Starting: {name} | lang: {language} | id: {screening_id[:8]}...")
 
     patient_info = {
         "name":     name,
@@ -634,7 +635,6 @@ def generate():
     }
 
     with report_semaphore:
-        print(f"[Generate] Slot acquired for: {name}")
 
         # ── Step 1: Run YOLO on all 3 teeth images ─────────────
         all_detections  = []
@@ -658,7 +658,7 @@ def generate():
                 for d in detections:
                     if d["label"] not in detected_labels:
                         detected_labels.append(d["label"])
-                print(f"[YOLO] {part}: {len(detections)} detection(s) — {[d['label'] for d in detections]}")
+                print(f"[YOLO] {part}: {len(detections)} detection(s)")
             else:
                 print(f"[YOLO] {part}: no detections")
 
@@ -669,13 +669,17 @@ def generate():
             gender=gender
         )
 
-        # ── Step 3: Claude AI analyses YOLO-annotated images ──
+        # ── Step 3: Claude analyses YOLO images — always English
         claude_analysis = analyse_with_claude(
             yolo_image_paths=yolo_paths,
             patient_info=patient_info
         )
 
-        # ── Step 4: Build PDF ──────────────────────────────────
+        # ── Step 4: Translate to patient's language ────────────
+        if claude_analysis and language != "English":
+            claude_analysis = translate_analysis(claude_analysis, language)
+
+        # ── Step 5: Build PDF ──────────────────────────────────
         report_id   = str(uuid.uuid4())
         report_path = generate_pdf(
             user_data=patient_info,
@@ -687,20 +691,15 @@ def generate():
         )
         print(f"[Generate] PDF created: {report_path}")
 
-        # ── Step 5: Delete uploaded + YOLO images (PDF is kept) ──
+        # ── Step 6: Delete uploaded + YOLO images ─────────────
         cleanup_old_files(screening_id)
 
-        print(f"[Generate] Slot released for: {name}")
-
-    # Save report info to session for download / email / WhatsApp
     session["report_path"] = report_path
     session["report_id"]   = report_id
     session.modified       = True
 
-    # Delete phone session file now that report is done
     if session_token:
         delete_phone_session(session_token)
-        print(f"[Generate] Phone session deleted for token {session_token[:8]}...")
 
     increment_screening_count()
     print(f"[Generate] Done — report_id: {report_id}")
@@ -748,8 +747,6 @@ def send_email_route():
 # ════════════════════════════════════════════════════════════
 @app.route("/send_whatsapp", methods=["POST"])
 def send_whatsapp_route():
-    print("WhatsApp send requested...")
-
     phone       = session.get("patient_phone", "").strip()
     name        = session.get("patient_name", "Patient")
     report_id   = session.get("report_id", "")
@@ -772,15 +769,8 @@ def send_whatsapp_route():
             report_id=report_id,
             report_path=report_path
         )
-        if success:
-            print(f"[WhatsApp] Sent to {phone}")
-            return f"{message}"
-        else:
-            print(f"[WhatsApp] Failed: {message}")
-            return f"{message}"
-
+        return message
     except Exception as e:
-        print(f"[WhatsApp] Exception: {str(e)}")
         return f"❌ WhatsApp failed: {str(e)}"
 
 
@@ -811,23 +801,18 @@ def review():
           <div style="max-width:560px;margin:0 auto;background:#ffffff;border-radius:12px;overflow:hidden;box-shadow:0 4px 20px rgba(0,0,0,0.08);">
             <div style="background:#0a1628;padding:24px 28px;">
               <h2 style="color:#ffffff;margin:0;font-size:20px;">⭐ New OralAI Review</h2>
-              <p style="color:#8a9bb5;margin:4px 0 0;font-size:13px;">Submitted from the OralAI website</p>
             </div>
             <div style="padding:28px;">
-              <div style="text-align:center;font-size:32px;margin-bottom:8px;letter-spacing:4px;">{stars}</div>
+              <div style="text-align:center;font-size:32px;margin-bottom:8px;">{stars}</div>
               <div style="text-align:center;font-size:15px;font-weight:700;color:#1a6fff;margin-bottom:24px;">{rating} / 5 Stars</div>
               <table style="width:100%;border-collapse:collapse;">
-                <tr><td style="padding:8px 0;font-size:13px;color:#64748b;width:120px;font-weight:600;">Name</td><td style="padding:8px 0;font-size:14px;color:#0f172a;font-weight:700;">{name}</td></tr>
-                <tr style="border-top:1px solid #f1f5f9;"><td style="padding:8px 0;font-size:13px;color:#64748b;font-weight:600;">Contact</td><td style="padding:8px 0;font-size:14px;color:#0f172a;">{contact}</td></tr>
-                <tr style="border-top:1px solid #f1f5f9;"><td style="padding:8px 0;font-size:13px;color:#64748b;font-weight:600;">Used for</td><td style="padding:8px 0;font-size:14px;color:#1a6fff;font-weight:600;">{rtype}</td></tr>
+                <tr><td style="padding:8px 0;font-size:13px;color:#64748b;width:120px;">Name</td><td style="font-size:14px;color:#0f172a;font-weight:700;">{name}</td></tr>
+                <tr style="border-top:1px solid #f1f5f9;"><td style="padding:8px 0;font-size:13px;color:#64748b;">Contact</td><td style="font-size:14px;color:#0f172a;">{contact}</td></tr>
+                <tr style="border-top:1px solid #f1f5f9;"><td style="padding:8px 0;font-size:13px;color:#64748b;">Used for</td><td style="font-size:14px;color:#1a6fff;">{rtype}</td></tr>
               </table>
               <div style="margin-top:20px;padding:18px;background:#f8fafc;border-radius:10px;border-left:4px solid #f5c842;">
-                <div style="font-size:12px;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:0.06em;margin-bottom:10px;">Review</div>
                 <p style="font-size:15px;color:#0f172a;line-height:1.8;margin:0;font-style:italic;">"{review}"</p>
               </div>
-            </div>
-            <div style="background:#f8fafc;padding:16px 28px;border-top:1px solid #e2e8f0;">
-              <p style="font-size:12px;color:#94a3b8;margin:0;">OralAI — AI Oral Health Screening | www.oralai.site</p>
             </div>
           </div>
         </body></html>
@@ -839,13 +824,9 @@ def review():
             server.login(EMAIL_USER, EMAIL_PASS)
             server.sendmail(EMAIL_USER, EMAIL_USER, msg.as_string())
 
-        print(f"[Review] Received from {name} — {rating}/5 stars")
         return jsonify({"success": True})
 
-    except smtplib.SMTPAuthenticationError:
-        return jsonify({"success": False, "error": "Email config error."})
     except Exception as e:
-        print(f"[Review] Error: {e}")
         return jsonify({"success": False, "error": str(e)})
 
 
@@ -873,28 +854,20 @@ def contact():
 
         html_body = f"""
         <html><body style="font-family:Arial,sans-serif;background:#f4f7ff;padding:20px;">
-          <div style="max-width:560px;margin:0 auto;background:#ffffff;border-radius:12px;overflow:hidden;box-shadow:0 4px 20px rgba(0,0,0,0.08);">
+          <div style="max-width:560px;margin:0 auto;background:#ffffff;border-radius:12px;overflow:hidden;">
             <div style="background:#0a1628;padding:24px 28px;">
               <h2 style="color:#ffffff;margin:0;font-size:20px;">OralAI — New Contact Message</h2>
-              <p style="color:#8a9bb5;margin:4px 0 0;font-size:13px;">Received from the OralAI website contact form</p>
             </div>
             <div style="padding:28px;">
               <table style="width:100%;border-collapse:collapse;">
-                <tr><td style="padding:8px 0;font-size:13px;color:#64748b;width:100px;font-weight:600;">Name</td><td style="padding:8px 0;font-size:14px;color:#0f172a;font-weight:600;">{name}</td></tr>
-                <tr style="border-top:1px solid #f1f5f9;"><td style="padding:8px 0;font-size:13px;color:#64748b;font-weight:600;">Email</td><td style="padding:8px 0;font-size:14px;color:#0f172a;">{email}</td></tr>
-                <tr style="border-top:1px solid #f1f5f9;"><td style="padding:8px 0;font-size:13px;color:#64748b;font-weight:600;">Phone</td><td style="padding:8px 0;font-size:14px;color:#0f172a;">{phone}</td></tr>
-                <tr style="border-top:1px solid #f1f5f9;"><td style="padding:8px 0;font-size:13px;color:#64748b;font-weight:600;">Subject</td><td style="padding:8px 0;font-size:14px;color:#1a6fff;font-weight:600;">{subject}</td></tr>
+                <tr><td style="padding:8px 0;font-size:13px;color:#64748b;width:100px;">Name</td><td style="font-size:14px;color:#0f172a;">{name}</td></tr>
+                <tr style="border-top:1px solid #f1f5f9;"><td style="padding:8px 0;font-size:13px;color:#64748b;">Email</td><td style="font-size:14px;color:#0f172a;">{email}</td></tr>
+                <tr style="border-top:1px solid #f1f5f9;"><td style="padding:8px 0;font-size:13px;color:#64748b;">Phone</td><td style="font-size:14px;color:#0f172a;">{phone}</td></tr>
+                <tr style="border-top:1px solid #f1f5f9;"><td style="padding:8px 0;font-size:13px;color:#64748b;">Subject</td><td style="font-size:14px;color:#1a6fff;">{subject}</td></tr>
               </table>
               <div style="margin-top:20px;padding:16px;background:#f8fafc;border-radius:10px;border-left:4px solid #1a6fff;">
-                <div style="font-size:12px;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:0.06em;margin-bottom:8px;">Message</div>
                 <p style="font-size:14px;color:#0f172a;line-height:1.7;margin:0;">{message}</p>
               </div>
-              <div style="margin-top:16px;padding:12px 16px;background:#fffbeb;border-radius:8px;border:1px solid #fde68a;">
-                <p style="font-size:12px;color:#78350f;margin:0;">Reply to this email to respond to {name} at {email}</p>
-              </div>
-            </div>
-            <div style="background:#f8fafc;padding:16px 28px;border-top:1px solid #e2e8f0;">
-              <p style="font-size:12px;color:#94a3b8;margin:0;">OralAI — AI Oral Health Screening | www.oralai.site</p>
             </div>
           </div>
         </body></html>
@@ -906,14 +879,11 @@ def contact():
             server.login(EMAIL_USER, EMAIL_PASS)
             server.sendmail(EMAIL_USER, DEVELOPER_EMAIL, msg.as_string())
 
-        print(f"[Contact] Email sent from {name} ({email})")
         return jsonify({"success": True})
 
     except smtplib.SMTPAuthenticationError:
-        print("[Contact] Gmail auth failed — check EMAIL_USER and EMAIL_PASS env vars")
-        return jsonify({"success": False, "error": "Email configuration error. Please contact us directly."})
+        return jsonify({"success": False, "error": "Email configuration error."})
     except Exception as e:
-        print(f"[Contact] Error: {e}")
         return jsonify({"success": False, "error": str(e)})
 
 
