@@ -6,6 +6,7 @@ import json
 import glob
 import smtplib
 import threading
+import traceback
 from datetime import timedelta
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
@@ -170,11 +171,86 @@ def cleanup_old_files(screening_id):
         for f in glob.glob(pattern):
             try:
                 os.remove(f)
-                print(f"[Cleanup] Deleted: {f}")
                 deleted += 1
             except Exception as e:
                 print(f"[Cleanup] Could not delete {f}: {e}")
     print(f"[Cleanup] {deleted} file(s) removed for screening {screening_id[:8]}...")
+
+
+# ════════════════════════════════════════════════════════════
+#  DEBUG ROUTE — visit /debug to diagnose 500 errors
+# ════════════════════════════════════════════════════════════
+@app.route("/debug")
+def debug_route():
+    errors = []
+
+    try:
+        from pypdf import PdfWriter, PdfReader
+        errors.append("✅ pypdf OK")
+    except Exception as e:
+        errors.append(f"❌ pypdf: {e}")
+        try:
+            from PyPDF2 import PdfWriter, PdfReader
+            errors.append("✅ PyPDF2 OK (fallback)")
+        except Exception as e2:
+            errors.append(f"❌ PyPDF2 also failed: {e2}")
+
+    try:
+        from fpdf import FPDF
+        errors.append("✅ fpdf2 OK")
+    except Exception as e:
+        errors.append(f"❌ fpdf: {e}")
+
+    try:
+        from reportlab.pdfgen import canvas
+        errors.append("✅ reportlab OK")
+    except Exception as e:
+        errors.append(f"❌ reportlab: {e}")
+
+    try:
+        from PIL import Image, ImageDraw, ImageFont
+        errors.append("✅ Pillow OK")
+    except Exception as e:
+        errors.append(f"❌ Pillow: {e}")
+
+    fonts_dir = "static/fonts"
+    if os.path.exists(fonts_dir):
+        fonts = os.listdir(fonts_dir)
+        errors.append(f"✅ Fonts dir exists: {fonts}")
+    else:
+        errors.append(f"❌ Fonts dir MISSING: {fonts_dir}")
+
+    if os.path.exists("static/management/config.json"):
+        errors.append("✅ management/config.json exists")
+    else:
+        errors.append("⚠️ management/config.json missing")
+
+    try:
+        from report_generator import generate_pdf
+        errors.append("✅ report_generator import OK")
+    except Exception as e:
+        errors.append(f"❌ report_generator import FAILED: {e}")
+        errors.append(traceback.format_exc().replace("\n", "<br>"))
+
+    try:
+        from ai_recommendation import generate_recommendations
+        errors.append("✅ ai_recommendation import OK")
+    except Exception as e:
+        errors.append(f"❌ ai_recommendation: {e}")
+
+    try:
+        from detect import run_yolo
+        errors.append("✅ detect import OK")
+    except Exception as e:
+        errors.append(f"❌ detect: {e}")
+
+    try:
+        from whatsapp_sender import send_whatsapp_report
+        errors.append("✅ whatsapp_sender import OK")
+    except Exception as e:
+        errors.append(f"❌ whatsapp_sender: {e}")
+
+    return "<br><br>".join(errors)
 
 
 # ════════════════════════════════════════════════════════════
@@ -550,7 +626,8 @@ STRICT RULES:
         return analysis
 
     except Exception as e:
-        print("Claude analysis error:", str(e))
+        print(f"[Claude] Analysis error: {e}")
+        traceback.print_exc()
         return None
 
 
@@ -558,7 +635,6 @@ STRICT RULES:
 #  STEP 2 — TRANSLATE English analysis to target language
 # ════════════════════════════════════════════════════════════
 def translate_analysis(english_text, target_language):
-    """Translate English dental analysis to the target language using Claude."""
     if target_language == "English":
         return english_text
 
@@ -603,108 +679,125 @@ def translate_analysis(english_text, target_language):
 # ════════════════════════════════════════════════════════════
 @app.route("/generate", methods=["POST"])
 def generate():
-    name     = session.get("patient_name", "")
-    age      = session.get("patient_age", "25")
-    gender   = session.get("patient_gender", "Other")
-    phone    = session.get("patient_phone", "")
-    email    = session.get("patient_email", "")
-    language = session.get("language", "English")
-    screening_id = session.get("screening_id", "")
+    try:
+        name     = session.get("patient_name", "")
+        age      = session.get("patient_age", "25")
+        gender   = session.get("patient_gender", "Other")
+        phone    = session.get("patient_phone", "")
+        email    = session.get("patient_email", "")
+        language = session.get("language", "English")
+        screening_id = session.get("screening_id", "")
 
-    session_token = session.get("session_token", "")
-    if session_token and not screening_id:
-        ps = get_phone_session(session_token)
-        if ps:
-            screening_id = ps.get("screening_id", "")
-            if screening_id:
-                session["screening_id"] = screening_id
-                session.modified = True
+        session_token = session.get("session_token", "")
+        if session_token and not screening_id:
+            ps = get_phone_session(session_token)
+            if ps:
+                screening_id = ps.get("screening_id", "")
+                if screening_id:
+                    session["screening_id"] = screening_id
+                    session.modified = True
 
-    if not name or not screening_id:
-        return redirect("/details")
+        if not name or not screening_id:
+            return redirect("/details")
 
-    print(f"[Generate] Starting: {name} | lang: {language} | id: {screening_id[:8]}...")
+        print(f"[Generate] Starting: {name} | lang: {language} | id: {screening_id[:8]}...")
 
-    patient_info = {
-        "name":     name,
-        "age":      age,
-        "gender":   gender,
-        "phone":    phone,
-        "email":    email,
-        "language": language,
-    }
+        patient_info = {
+            "name":     name,
+            "age":      age,
+            "gender":   gender,
+            "phone":    phone,
+            "email":    email,
+            "language": language,
+        }
 
-    with report_semaphore:
+        with report_semaphore:
 
-        # ── Step 1: Run YOLO on all 3 teeth images ─────────────
-        all_detections  = []
-        detected_labels = []
-        yolo_paths      = {}
+            # ── Step 1: Run YOLO on all 3 teeth images ─────────────
+            all_detections  = []
+            detected_labels = []
+            yolo_paths      = {}
 
-        for part in ["upper", "front", "lower"]:
-            img_path = os.path.join(UPLOAD_DIR, f"{screening_id}_{part}.jpg")
-            out_path = os.path.join(RESULT_DIR, f"{screening_id}_{part}_yolo.jpg")
+            for part in ["upper", "front", "lower"]:
+                img_path = os.path.join(UPLOAD_DIR, f"{screening_id}_{part}.jpg")
+                out_path = os.path.join(RESULT_DIR, f"{screening_id}_{part}_yolo.jpg")
 
-            if not os.path.exists(img_path):
-                print(f"[Generate] Missing image: {img_path}")
-                return render_template("result.html", error="Missing images. Please capture again.")
+                if not os.path.exists(img_path):
+                    print(f"[Generate] Missing image: {img_path}")
+                    return render_template("result.html", error="Missing images. Please capture again.")
 
-            print(f"[YOLO] Running on {part} image...")
-            detections = run_yolo(img_path, out_path)
-            yolo_paths[part] = out_path
+                print(f"[YOLO] Running on {part} image...")
+                try:
+                    detections = run_yolo(img_path, out_path)
+                except Exception as yolo_err:
+                    print(f"[YOLO] Error on {part}: {yolo_err}")
+                    traceback.print_exc()
+                    detections = []
 
-            if detections:
-                all_detections.extend(detections)
-                for d in detections:
-                    if d["label"] not in detected_labels:
-                        detected_labels.append(d["label"])
-                print(f"[YOLO] {part}: {len(detections)} detection(s)")
-            else:
-                print(f"[YOLO] {part}: no detections")
+                yolo_paths[part] = out_path
 
-        # ── Step 2: Generate recommendations ──────────────────
-        recommendations = generate_recommendations(
-            detections=all_detections,
-            age=age,
-            gender=gender
-        )
+                if detections:
+                    all_detections.extend(detections)
+                    for d in detections:
+                        if d["label"] not in detected_labels:
+                            detected_labels.append(d["label"])
+                    print(f"[YOLO] {part}: {len(detections)} detection(s)")
+                else:
+                    print(f"[YOLO] {part}: no detections")
 
-        # ── Step 3: Claude analyses YOLO images — always English
-        claude_analysis = analyse_with_claude(
-            yolo_image_paths=yolo_paths,
-            patient_info=patient_info
-        )
+            # ── Step 2: Generate recommendations ──────────────────
+            try:
+                recommendations = generate_recommendations(
+                    detections=all_detections,
+                    age=age,
+                    gender=gender
+                )
+            except Exception as rec_err:
+                print(f"[Recommendations] Error: {rec_err}")
+                traceback.print_exc()
+                recommendations = []
 
-        # ── Step 4: Translate to patient's language ────────────
-        if claude_analysis and language != "English":
-            claude_analysis = translate_analysis(claude_analysis, language)
+            # ── Step 3: Claude analyses YOLO images — always English
+            claude_analysis = analyse_with_claude(
+                yolo_image_paths=yolo_paths,
+                patient_info=patient_info
+            )
 
-        # ── Step 5: Build PDF ──────────────────────────────────
-        report_id   = str(uuid.uuid4())
-        report_path = generate_pdf(
-            user_data=patient_info,
-            detected_labels=detected_labels,
-            report_id=report_id,
-            recommendations=recommendations,
-            claude_analysis=claude_analysis,
-            screening_id=screening_id
-        )
-        print(f"[Generate] PDF created: {report_path}")
+            # ── Step 4: Translate to patient's language ────────────
+            if claude_analysis and language != "English":
+                claude_analysis = translate_analysis(claude_analysis, language)
 
-        # ── Step 6: Delete uploaded + YOLO images ─────────────
-        cleanup_old_files(screening_id)
+            # ── Step 5: Build PDF ──────────────────────────────────
+            report_id   = str(uuid.uuid4())
+            report_path = generate_pdf(
+                user_data=patient_info,
+                detected_labels=detected_labels,
+                report_id=report_id,
+                recommendations=recommendations,
+                claude_analysis=claude_analysis,
+                screening_id=screening_id
+            )
+            print(f"[Generate] PDF created: {report_path}")
 
-    session["report_path"] = report_path
-    session["report_id"]   = report_id
-    session.modified       = True
+            # ── Step 6: Delete uploaded + YOLO images ─────────────
+            cleanup_old_files(screening_id)
 
-    if session_token:
-        delete_phone_session(session_token)
+        session["report_path"] = report_path
+        session["report_id"]   = report_id
+        session.modified       = True
 
-    increment_screening_count()
-    print(f"[Generate] Done — report_id: {report_id}")
+        if session_token:
+            delete_phone_session(session_token)
 
-    return render_template("result.html", success=True, report_id=report_id)
+        increment_screening_count()
+        print(f"[Generate] Done — report_id: {report_id}")
+
+        return render_template("result.html", success=True, report_id=report_id)
+
+    except Exception as e:
+        print(f"[Generate] FATAL ERROR: {e}")
+        traceback.print_exc()
+        return render_template("result.html", error=f"Report generation failed: {str(e)}")
 
 
 # ════════════════════════════════════════════════════════════
