@@ -10,6 +10,20 @@ import os
 import re
 import base64
 import tempfile
+import traceback
+
+# ── Safe pypdf import with fallback ─────────────────────────
+try:
+    from pypdf import PdfWriter, PdfReader
+    print("[PDF] Using pypdf")
+except ImportError:
+    try:
+        from PyPDF2 import PdfWriter, PdfReader
+        print("[PDF] Using PyPDF2 (fallback)")
+    except ImportError:
+        PdfWriter = None
+        PdfReader = None
+        print("[PDF] WARNING: Neither pypdf nor PyPDF2 found!")
 
 
 # ── Colour palette ───────────────────────────────────────────────
@@ -61,7 +75,6 @@ COND_LABEL = {
 
 FONTS_DIR = "static/fonts"
 
-# Map each language to its Noto font file
 LANG_FONT_MAP = {
     "English":   "NotoSans-Regular.ttf",
     "Hindi":     "NotoSansDevanagari-Regular.ttf",
@@ -74,7 +87,6 @@ LANG_FONT_MAP = {
     "Arabic":    "NotoSansArabic-Regular.ttf",
 }
 
-# Languages that use non-Latin scripts — rendered via Pillow image method
 NON_LATIN_LANGUAGES = {
     "Hindi", "Marathi", "Telugu", "Tamil",
     "Kannada", "Malayalam", "Bengali", "Arabic"
@@ -82,7 +94,6 @@ NON_LATIN_LANGUAGES = {
 
 
 def sanitize(text):
-    """Sanitize ASCII/Latin special chars only. Never touches Unicode script text."""
     if not isinstance(text, str):
         text = str(text)
     replacements = {
@@ -206,6 +217,7 @@ def draw_patient_info_bar(c, W, H, header_h, name, age, gender, phone, now, face
                         width=photo_w, height=photo_h,
                         preserveAspectRatio=True, mask="auto")
         except Exception as e:
+            print(f"[Page1] Face photo draw error: {e}")
             _draw_face_placeholder(c, photo_x, photo_y, photo_w, photo_h)
     else:
         _draw_face_placeholder(c, photo_x, photo_y, photo_w, photo_h)
@@ -240,7 +252,6 @@ def _draw_face_placeholder(c, x, y, w, h):
 
 # ══════════════════════════════════════════════════════════════
 #  PILLOW TEXT IMAGE RENDERER
-#  Handles Telugu, Hindi, Tamil, Kannada etc. via FreeType
 # ══════════════════════════════════════════════════════════════
 
 def render_text_to_image(text, font_path, font_size_pt=9,
@@ -248,10 +259,6 @@ def render_text_to_image(text, font_path, font_size_pt=9,
                           bg_color=None,
                           max_width_mm=183,
                           dpi=200):
-    """
-    Renders text using Pillow + FreeType which correctly shapes
-    Indian scripts. Returns (tmp_png_path, height_mm, width_mm) or None.
-    """
     try:
         px_per_mm = dpi / 25.4
         max_w_px  = int(max_width_mm * px_per_mm)
@@ -370,7 +377,6 @@ class AnalysisPDF(FPDF):
                           text_color=(15, 23, 42),
                           bg_color=None,
                           x_mm=10, max_width_mm=183):
-        """Renders text via Pillow and embeds PNG into the PDF."""
         if not self.font_path or not os.path.exists(self.font_path):
             return 0
 
@@ -564,8 +570,12 @@ class AnalysisPDF(FPDF):
         if not os.path.exists(config_path):
             return
 
-        with open(config_path) as f:
-            members = json.load(f)
+        try:
+            with open(config_path) as f:
+                members = json.load(f)
+        except Exception as e:
+            print(f"[Mgmt] Could not load config.json: {e}")
+            return
 
         if not members:
             return
@@ -692,7 +702,7 @@ def generate_analysis_pages_fpdf2(claude_analysis, language, name, age, gender,
     font_path = os.path.join(FONTS_DIR, font_file)
 
     if not os.path.exists(font_path):
-        print(f"[Font] WARNING: {font_path} not found!")
+        print(f"[Font] WARNING: {font_path} not found — will use Helvetica fallback")
 
     pdf = AnalysisPDF(
         language=language,
@@ -761,6 +771,7 @@ def generate_analysis_pages_fpdf2(claude_analysis, language, name, age, gender,
 
     pdf.cleanup_tmp()
 
+    os.makedirs("static/reports", exist_ok=True)
     temp_path = f"static/reports/temp_analysis_{report_id}.pdf"
     pdf.output(temp_path)
     return temp_path, pdf.page_num
@@ -779,9 +790,12 @@ def _build_page1(c, W, H, header_h, name, age, gender, phone, now,
 
     if os.path.exists(logo_path):
         logo_y = H - header_h + (header_h - 60) / 2
-        c.drawImage(logo_path, 20, logo_y,
-                    width=180, height=60,
-                    preserveAspectRatio=True, mask="auto")
+        try:
+            c.drawImage(logo_path, 20, logo_y,
+                        width=180, height=60,
+                        preserveAspectRatio=True, mask="auto")
+        except Exception as e:
+            print(f"[Page1] Logo draw error: {e}")
         c.setStrokeColor(colors.HexColor("#334155"))
         c.setLineWidth(1)
         c.line(210, H - header_h + 14, 210, H - 14)
@@ -820,9 +834,12 @@ def _build_page1(c, W, H, header_h, name, age, gender, phone, now,
 
         img_path = os.path.join("static", "results", fname)
         if os.path.exists(img_path):
-            c.drawImage(img_path, ix + 5, iy2 + 28,
-                        width=img_w - 10, height=img_h,
-                        preserveAspectRatio=True, mask="auto")
+            try:
+                c.drawImage(img_path, ix + 5, iy2 + 28,
+                            width=img_w - 10, height=img_h,
+                            preserveAspectRatio=True, mask="auto")
+            except Exception as e:
+                print(f"[Page1] YOLO image draw error ({fname}): {e}")
 
         c.setStrokeColor(C_BORDER)
         c.setLineWidth(0.8)
@@ -940,6 +957,7 @@ def generate_pdf(user_data, detected_labels, report_id,
     if recommendations is None:
         recommendations = []
 
+    os.makedirs("static/reports", exist_ok=True)
     report_path = f"static/reports/{report_id}.pdf"
     logo_path   = "static/logo.png"
 
@@ -967,19 +985,31 @@ def generate_pdf(user_data, detected_labels, report_id,
     no_issues = (not recommendations or
                  (len(recommendations) == 1 and recommendations[0]["label"] == "none"))
 
-    c = rl_canvas.Canvas(report_path, pagesize=A4)
-    W, H = A4
-    header_h = 90
+    # ── Build Page 1 ───────────────────────────────────────────
+    try:
+        c = rl_canvas.Canvas(report_path, pagesize=A4)
+        W, H = A4
+        header_h = 90
 
-    _build_page1(
-        c, W, H, header_h, name, age, gender, phone, now,
-        logo_path, face_photo_path, img_parts,
-        img_w, img_h, card_h, gap, pill_colors,
-        detected_labels, recommendations, no_issues,
-        report_id, total_pages=99
-    )
+        _build_page1(
+            c, W, H, header_h, name, age, gender, phone, now,
+            logo_path, face_photo_path, img_parts,
+            img_w, img_h, card_h, gap, pill_colors,
+            detected_labels, recommendations, no_issues,
+            report_id, total_pages=99
+        )
+        print(f"[PDF] Page 1 built successfully")
+    except Exception as e:
+        print(f"[PDF] Page 1 build FAILED: {e}")
+        traceback.print_exc()
+        raise
 
+    # ── Merge analysis pages ────────────────────────────────────
     if claude_analysis:
+        if PdfWriter is None or PdfReader is None:
+            print("[PDF] WARNING: No PDF merge library available — skipping analysis pages")
+            return report_path
+
         try:
             temp_path, last_fpdf_page = generate_analysis_pages_fpdf2(
                 claude_analysis=claude_analysis,
@@ -990,9 +1020,9 @@ def generate_pdf(user_data, detected_labels, report_id,
                 start_page=2,
                 total_pages=99
             )
+            print(f"[PDF] Analysis pages generated: {temp_path}")
 
-            from pypdf import PdfWriter, PdfReader
-
+            # Count actual pages
             writer = PdfWriter()
             for page in PdfReader(report_path).pages:
                 writer.add_page(page)
@@ -1002,6 +1032,7 @@ def generate_pdf(user_data, detected_labels, report_id,
             actual_pages = len(writer.pages)
             print(f"[PDF] Total pages: {actual_pages}, language={language}")
 
+            # Rebuild page 1 with correct total page count
             c2 = rl_canvas.Canvas(report_path, pagesize=A4)
             _build_page1(
                 c2, W, H, header_h, name, age, gender, phone, now,
@@ -1011,7 +1042,12 @@ def generate_pdf(user_data, detected_labels, report_id,
                 report_id, total_pages=actual_pages
             )
 
-            os.remove(temp_path)
+            # Remove first temp and regenerate with correct page count
+            try:
+                os.remove(temp_path)
+            except:
+                pass
+
             temp_path2, _ = generate_analysis_pages_fpdf2(
                 claude_analysis=claude_analysis,
                 language=language,
@@ -1031,12 +1067,17 @@ def generate_pdf(user_data, detected_labels, report_id,
             with open(report_path, "wb") as f:
                 writer2.write(f)
 
-            os.remove(temp_path2)
+            try:
+                os.remove(temp_path2)
+            except:
+                pass
+
             print(f"[PDF] Final report saved: {report_path}")
 
         except Exception as e:
-            print(f"Analysis page merge failed: {e}")
-            import traceback
+            print(f"[PDF] Analysis page merge failed: {e}")
             traceback.print_exc()
+            # Page 1 already saved — return it without analysis pages
+            print("[PDF] Returning page-1-only report as fallback")
 
     return report_path

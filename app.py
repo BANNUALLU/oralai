@@ -223,7 +223,7 @@ def debug_route():
     if os.path.exists("static/management/config.json"):
         errors.append("✅ management/config.json exists")
     else:
-        errors.append("⚠️ management/config.json missing")
+        errors.append("⚠️ management/config.json missing (optional)")
 
     try:
         from report_generator import generate_pdf
@@ -249,6 +249,12 @@ def debug_route():
         errors.append("✅ whatsapp_sender import OK")
     except Exception as e:
         errors.append(f"❌ whatsapp_sender: {e}")
+
+    api_key = os.getenv("ANTHROPIC_API_KEY", "")
+    if api_key and len(api_key) > 10:
+        errors.append(f"✅ ANTHROPIC_API_KEY set (starts: {api_key[:8]}...)")
+    else:
+        errors.append("❌ ANTHROPIC_API_KEY missing or empty!")
 
     return "<br><br>".join(errors)
 
@@ -679,6 +685,7 @@ def translate_analysis(english_text, target_language):
 # ════════════════════════════════════════════════════════════
 @app.route("/generate", methods=["POST"])
 def generate():
+    # ── Outermost safety net: catches ANY unhandled crash ──────
     try:
         name     = session.get("patient_name", "")
         age      = session.get("patient_age", "25")
@@ -698,6 +705,7 @@ def generate():
                     session.modified = True
 
         if not name or not screening_id:
+            print(f"[Generate] Missing name or screening_id — redirecting to /details")
             return redirect("/details")
 
         print(f"[Generate] Starting: {name} | lang: {language} | id: {screening_id[:8]}...")
@@ -723,8 +731,9 @@ def generate():
                 out_path = os.path.join(RESULT_DIR, f"{screening_id}_{part}_yolo.jpg")
 
                 if not os.path.exists(img_path):
-                    print(f"[Generate] Missing image: {img_path}")
-                    return render_template("result.html", error="Missing images. Please capture again.")
+                    msg = f"Missing image for '{part}'. Please go back and capture all 3 images."
+                    print(f"[Generate] {msg}")
+                    return render_template("result.html", error=msg)
 
                 print(f"[YOLO] Running on {part} image...")
                 try:
@@ -752,6 +761,7 @@ def generate():
                     age=age,
                     gender=gender
                 )
+                print(f"[Recommendations] {len(recommendations)} generated")
             except Exception as rec_err:
                 print(f"[Recommendations] Error: {rec_err}")
                 traceback.print_exc()
@@ -769,6 +779,7 @@ def generate():
 
             # ── Step 5: Build PDF ──────────────────────────────────
             report_id   = str(uuid.uuid4())
+            print(f"[Generate] Building PDF: {report_id[:8]}...")
             report_path = generate_pdf(
                 user_data=patient_info,
                 detected_labels=detected_labels,
@@ -795,9 +806,12 @@ def generate():
         return render_template("result.html", success=True, report_id=report_id)
 
     except Exception as e:
-        print(f"[Generate] FATAL ERROR: {e}")
-        traceback.print_exc()
-        return render_template("result.html", error=f"Report generation failed: {str(e)}")
+        # ── Show the REAL error instead of a blank 500 page ──────
+        err_msg  = str(e)
+        err_full = traceback.format_exc()
+        print(f"[Generate] FATAL ERROR: {err_msg}")
+        print(err_full)
+        return render_template("result.html", error=f"Report generation failed: {err_msg}"), 500
 
 
 # ════════════════════════════════════════════════════════════
