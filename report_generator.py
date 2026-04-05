@@ -407,18 +407,69 @@ class AnalysisPDF(FPDF):
         if self.get_y() + needed_mm > SAFE_BOTTOM_MM:
             self._new_page()
 
+    def _measure_text_height_mm(self, text, font_size_pt=9,
+                                max_width_mm=183, dpi=200):
+        """
+        Measure how tall the rendered Pillow image will be (in mm)
+        WITHOUT creating any file. Used for look-ahead page-break decisions.
+        Returns height in mm, or None on failure.
+        """
+        try:
+            px_per_mm = dpi / 25.4
+            max_w_px  = int(max_width_mm * px_per_mm)
+            font_px   = max(int(font_size_pt * dpi / 72), 10)
+            pil_font  = ImageFont.truetype(self.font_path, font_px)
+
+            words, lines, current = text.split(), [], ""
+            dummy = ImageDraw.Draw(Image.new("RGBA", (1, 1)))
+            for word in words:
+                test = (current + " " + word).strip() if current else word
+                if dummy.textlength(test, font=pil_font) <= max_w_px:
+                    current = test
+                else:
+                    if current:
+                        lines.append(current)
+                    current = word
+            if current:
+                lines.append(current)
+            if not lines:
+                return None
+
+            line_heights = []
+            for ln in lines:
+                bbox = dummy.textbbox((0, 0), ln, font=pil_font)
+                line_heights.append(bbox[3] - bbox[1])
+
+            line_gap = max(int(font_px * 0.3), 4)
+            total_h  = sum(line_heights) + line_gap * (len(lines) - 1) + int(font_px * 0.4)
+            total_h  = max(total_h, font_px + 4)
+            return total_h / px_per_mm
+        except Exception as e:
+            print(f"[Measure] failed: {e}")
+            return None
+
     def _embed_text_image(self, text, font_size_pt=9,
                           text_color=(15, 23, 42),
                           bg_color=None,
                           x_mm=10, max_width_mm=183):
         """
         Render text as a Pillow image and embed it.
-        Automatically triggers a page break if the image won't fit.
+        ALWAYS measures height first, breaks page BEFORE drawing anything.
         Returns height placed (mm), or 0 on failure.
         """
         if not self.font_path or not os.path.exists(self.font_path):
             return 0
 
+        # ── STEP 1: measure height WITHOUT rendering ──
+        h_preview = self._measure_text_height_mm(
+            text, font_size_pt=font_size_pt,
+            max_width_mm=max_width_mm, dpi=200
+        )
+        # ── STEP 2: decide page break BEFORE any drawing ──
+        if h_preview is not None and self.get_y() + h_preview > SAFE_BOTTOM_MM:
+            self._new_page()
+
+        # ── STEP 3: now render and place ──
         result = render_text_to_image(
             text, self.font_path,
             font_size_pt=font_size_pt,
@@ -433,7 +484,7 @@ class AnalysisPDF(FPDF):
         tmp_path, h_mm, w_mm = result
         self._tmp_images.append(tmp_path)
 
-        # ── KEY FIX: check ACTUAL rendered height before placing ──
+        # Safety net: if actual height still overflows (measurement was off), break again
         if self.get_y() + h_mm > SAFE_BOTTOM_MM:
             self._new_page()
 
@@ -548,7 +599,20 @@ class AnalysisPDF(FPDF):
         text = self._safe_text(text)
 
         if self.is_non_latin and self.font_path and os.path.exists(self.font_path):
-            # _embed_text_image now handles page break internally
+            # ── STEP 1: measure height BEFORE drawing anything ──
+            h_preview = self._measure_text_height_mm(
+                text, font_size_pt=9, max_width_mm=176, dpi=200
+            )
+            # ── STEP 2: page break BEFORE dot or text ──
+            needed = (h_preview if h_preview is not None else 10) + 2
+            if self.get_y() + needed > SAFE_BOTTOM_MM:
+                self._new_page()
+
+            # ── STEP 3: draw dot and text at the SAME Y ──
+            y_start = self.get_y()
+            self.set_fill_color(37, 99, 235)
+            self.ellipse(12, y_start + 2.5, 2, 2, "F")
+
             h = self._embed_text_image(
                 text,
                 font_size_pt=9,
@@ -556,13 +620,8 @@ class AnalysisPDF(FPDF):
                 x_mm=17,
                 max_width_mm=176
             )
-            if h > 0:
-                # Draw bullet dot at the correct Y (after possible page break)
-                bullet_y = self.get_y() - h - 1 + 2.5
-                self.set_fill_color(37, 99, 235)
-                self.ellipse(12, bullet_y, 2, 2, "F")
-                self.set_x(10)
-                return
+            self.set_x(10)
+            return
 
         # Latin fallback — estimate height and break if needed
         lines_est = max(1, len(text) // 76 + 1)
@@ -802,19 +861,22 @@ def generate_analysis_pages_fpdf2(claude_analysis, language, name, age, gender,
 
         elif item_type == "heading":
             # draw_section_heading calls _ensure_space internally
-            pdf.ln(4)
+            if pdf.get_y() + 3 < SAFE_BOTTOM_MM:
+                pdf.ln(4)
             pdf.draw_section_heading(item_text)
-            pdf.ln(2)
+            if pdf.get_y() + 2 < SAFE_BOTTOM_MM:
+                pdf.ln(2)
 
         elif item_type == "bullet":
-            # draw_bullet calls _ensure_space / _embed_text_image internally
+            # draw_bullet: measures height first, breaks before dot+text together
             pdf.draw_bullet(item_text)
 
         else:
             if item_text:
-                # draw_body_text calls _ensure_space / _embed_text_image internally
+                # draw_body_text: measures first, breaks before placing
                 pdf.draw_body_text(item_text)
-                pdf.ln(1)
+                if pdf.get_y() + 1 < SAFE_BOTTOM_MM:
+                    pdf.ln(1)
 
     # ── Disclaimer + management at the very end ──
     pdf.ln(4)
