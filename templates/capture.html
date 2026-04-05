@@ -80,77 +80,31 @@ nav{position:fixed;top:0;left:0;right:0;z-index:100;display:flex;align-items:cen
 .guide-tip{background:rgba(26,111,255,0.08);border:1px solid rgba(26,111,255,0.2);border-radius:10px;padding:10px 12px;font-size:12px;color:var(--blue2);line-height:1.6;}
 .camera-panel{flex:1;min-width:0;display:flex;flex-direction:column;gap:14px;}
 
-/* ── CAMERA BOX ── */
-.camera-box{
-  position:relative;
-  width:100%;
-  aspect-ratio:4/3;
-  border-radius:16px;
-  overflow:hidden;
-  background:#000;
-  border:1px solid var(--border);
-  box-shadow:0 8px 32px rgba(0,0,0,0.4);
-  transition:border-color .3s,box-shadow .3s;
-}
+.camera-box{position:relative;width:100%;aspect-ratio:4/3;border-radius:16px;overflow:hidden;background:#000;border:1px solid var(--border);box-shadow:0 8px 32px rgba(0,0,0,0.4);transition:border-color .3s,box-shadow .3s;}
 .camera-box.valid-flash{border-color:var(--green);box-shadow:0 0 0 3px rgba(34,232,142,0.2);}
 .camera-box.invalid-flash{border-color:var(--red);box-shadow:0 0 0 3px rgba(239,68,68,0.2);}
+#video{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:center;display:block;}
+#previewImage{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:center;display:none;}
 
-#video{
-  position:absolute;
-  inset:0;
-  width:100%;
-  height:100%;
-  object-fit:cover;
-  object-position:center;
-  display:block;
-}
-#previewImage{
-  position:absolute;
-  inset:0;
-  width:100%;
-  height:100%;
-  object-fit:cover;
-  object-position:center;
-  display:none;
-}
-
-.validation-overlay{display:none;position:absolute;inset:0;background:rgba(10,22,40,0.85);
-  backdrop-filter:blur(8px);z-index:20;flex-direction:column;align-items:center;justify-content:center;gap:14px;border-radius:16px;}
+.validation-overlay{display:none;position:absolute;inset:0;background:rgba(10,22,40,0.85);backdrop-filter:blur(8px);z-index:20;flex-direction:column;align-items:center;justify-content:center;gap:14px;border-radius:16px;}
 .validation-overlay.show{display:flex;}
 .spinner{width:44px;height:44px;border:3px solid rgba(255,255,255,0.1);border-top-color:var(--blue);border-radius:50%;animation:spin .7s linear infinite;}
 @keyframes spin{to{transform:rotate(360deg)}}
 .overlay-text{font-size:14px;font-weight:600;}
 
-/* Guide frame — % of camera-box */
-.guide-frame{
-  position:absolute;
-  top:50%;
-  left:50%;
-  transform:translate(-50%,-50%);
-  border-radius:12px;
-  pointer-events:none;
-  z-index:10;
-  border:2.5px dashed var(--cyan);
-  box-shadow:0 0 20px rgba(0,200,224,0.15);
-  animation:framePulse 2s ease-in-out infinite;
-}
+.guide-frame{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);border-radius:12px;pointer-events:none;z-index:10;border:2.5px dashed var(--cyan);box-shadow:0 0 20px rgba(0,200,224,0.15);animation:framePulse 2s ease-in-out infinite;}
 @keyframes framePulse{0%,100%{opacity:1}50%{opacity:.45}}
 .guide-frame::before,.guide-frame::after{content:'';position:absolute;width:20px;height:20px;border-color:var(--cyan);border-style:solid;}
 .guide-frame::before{top:-4px;left:-4px;border-width:3px 0 0 3px;border-radius:6px 0 0 0;}
 .guide-frame::after{bottom:-4px;right:-4px;border-width:0 3px 3px 0;border-radius:0 0 6px 0;}
-
-/* Face: 60% wide × 70% tall — bigger so whole face fits */
 .guide-frame.face{width:60%;height:70%;border-color:#f59e0b;box-shadow:0 0 20px rgba(245,158,11,0.15);}
 .guide-frame.face .frame-label{background:#f59e0b;}
 .guide-frame.face::before,.guide-frame.face::after{border-color:#f59e0b;}
-/* Teeth frames */
 .guide-frame.upper{width:90%;height:55%;}
 .guide-frame.front{width:70%;height:38%;}
 .guide-frame.lower{width:90%;height:55%;}
+.frame-label{position:absolute;top:-26px;left:50%;transform:translateX(-50%);background:var(--cyan);color:#0a1628;font-size:10px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;padding:2px 10px;border-radius:999px;white-space:nowrap;}
 
-.frame-label{position:absolute;top:-26px;left:50%;transform:translateX(-50%);
-  background:var(--cyan);color:#0a1628;font-size:10px;font-weight:800;
-  letter-spacing:.1em;text-transform:uppercase;padding:2px 10px;border-radius:999px;white-space:nowrap;}
 .result-banner{display:none;align-items:center;gap:10px;padding:11px 14px;border-radius:12px;font-size:13px;font-weight:600;}
 .result-banner.show{display:flex;}
 .result-banner.success{background:var(--green-bg);border:1px solid var(--green-bd);color:var(--green);}
@@ -158,8 +112,7 @@ nav{position:fixed;top:0;left:0;right:0;z-index:100;display:flex;align-items:cen
 .banner-icon{font-size:18px;}.banner-msg{flex:1;line-height:1.4;}
 .banner-msg small{display:block;font-weight:400;font-size:11px;opacity:.8;margin-top:2px;}
 .controls{display:flex;gap:8px;flex-wrap:wrap;}
-button{display:inline-flex;align-items:center;gap:6px;padding:9px 18px;border:none;
-  border-radius:11px;cursor:pointer;font-family:var(--font);font-size:13px;font-weight:700;transition:all .2s;}
+button{display:inline-flex;align-items:center;gap:6px;padding:9px 18px;border:none;border-radius:11px;cursor:pointer;font-family:var(--font);font-size:13px;font-weight:700;transition:all .2s;}
 .btn-capture{background:var(--blue);color:var(--white);box-shadow:0 6px 20px rgba(26,111,255,0.4);}
 .btn-capture:hover{background:var(--blue2);transform:translateY(-2px);}
 .btn-capture:disabled{opacity:.5;cursor:not-allowed;transform:none;}
@@ -171,6 +124,7 @@ button{display:inline-flex;align-items:center;gap:6px;padding:9px 18px;border:no
 .btn-icon:hover{color:var(--white);background:rgba(255,255,255,0.1);}
 .hidden{display:none!important;}
 
+/* QR MODE */
 .qr-panel{display:flex;flex-direction:column;gap:20px;}
 .qr-top{display:flex;gap:24px;align-items:flex-start;}
 .qr-left{display:flex;flex-direction:column;gap:14px;flex:1;}
@@ -179,26 +133,21 @@ button{display:inline-flex;align-items:center;gap:6px;padding:9px 18px;border:no
 .qr-card p{font-size:12px;color:var(--muted);line-height:1.6;}
 .qr-steps{display:flex;flex-direction:column;gap:10px;margin-top:10px;}
 .qr-step{display:flex;align-items:flex-start;gap:12px;}
-.qr-step-num{width:24px;height:24px;border-radius:50%;background:rgba(168,85,247,0.2);border:1px solid var(--purple-bd);
-  font-size:11px;font-weight:800;color:var(--purple);display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:1px;}
+.qr-step-num{width:24px;height:24px;border-radius:50%;background:rgba(168,85,247,0.2);border:1px solid var(--purple-bd);font-size:11px;font-weight:800;color:var(--purple);display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:1px;}
 .qr-step-text{font-size:12px;color:var(--muted);line-height:1.5;}
 .qr-step-text strong{color:var(--white);font-weight:700;}
 .qr-code-box{background:var(--white);border-radius:16px;padding:12px;box-shadow:0 8px 32px rgba(0,0,0,0.4);flex-shrink:0;}
 #qrCodeEl{width:160px;height:160px;}
-.qr-url-box{display:flex;align-items:center;gap:8px;background:rgba(255,255,255,0.04);border:1px solid var(--border);
-  border-radius:10px;padding:8px 12px;margin-top:4px;}
+.qr-url-box{display:flex;align-items:center;gap:8px;background:rgba(255,255,255,0.04);border:1px solid var(--border);border-radius:10px;padding:8px 12px;margin-top:4px;}
 .qr-url-text{font-size:11px;color:var(--muted);flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
-.btn-copy{padding:5px 10px;font-size:11px;font-weight:700;background:rgba(26,111,255,0.15);color:var(--blue2);
-  border:1px solid rgba(26,111,255,0.3);border-radius:7px;}
+.btn-copy{padding:5px 10px;font-size:11px;font-weight:700;background:rgba(26,111,255,0.15);color:var(--blue2);border:1px solid rgba(26,111,255,0.3);border-radius:7px;}
 .btn-copy:hover{background:rgba(26,111,255,0.25);}
-
 .qr-progress-wrap{background:rgba(255,255,255,0.03);border:1px solid var(--border);border-radius:16px;padding:18px 20px;}
 .qr-progress-title{font-size:13px;font-weight:700;margin-bottom:14px;display:flex;align-items:center;gap:8px;}
 .qr-progress-title .live-dot{width:8px;height:8px;border-radius:50%;background:var(--green);animation:livePulse 1.2s ease-in-out infinite;}
 @keyframes livePulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.4;transform:scale(.7)}}
 .qr-shots{display:flex;gap:10px;}
-.qr-shot{flex:1;border-radius:10px;overflow:hidden;border:1px solid var(--border);background:rgba(255,255,255,0.03);
-  aspect-ratio:4/3;position:relative;transition:border-color .3s;}
+.qr-shot{flex:1;border-radius:10px;overflow:hidden;border:1px solid var(--border);background:rgba(255,255,255,0.03);aspect-ratio:4/3;position:relative;transition:border-color .3s;}
 .qr-shot.received{border-color:var(--green-bd);}
 .qr-shot img{width:100%;height:100%;object-fit:cover;display:none;}
 .qr-shot.received img{display:block;}
@@ -206,62 +155,38 @@ button{display:inline-flex;align-items:center;gap:6px;padding:9px 18px;border:no
 .qr-shot.received .qr-shot-placeholder{display:none;}
 .qr-shot-icon{font-size:22px;opacity:.3;}
 .qr-shot-label{font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);}
-.qr-shot-badge{position:absolute;top:6px;right:6px;background:var(--green);color:#0a1628;font-size:9px;font-weight:800;
-  padding:2px 7px;border-radius:999px;display:none;}
+.qr-shot-badge{position:absolute;top:6px;right:6px;background:var(--green);color:#0a1628;font-size:9px;font-weight:800;padding:2px 7px;border-radius:999px;display:none;}
 .qr-shot.received .qr-shot-badge{display:block;}
 .qr-waiting{display:flex;align-items:center;gap:10px;font-size:12px;color:var(--muted);margin-top:12px;}
 .qr-wait-spinner{width:14px;height:14px;border:2px solid rgba(255,255,255,0.08);border-top-color:var(--purple);border-radius:50%;animation:spin .7s linear infinite;}
 .qr-all-done{display:none;align-items:center;gap:10px;margin-top:12px;font-size:13px;font-weight:700;color:var(--green);}
 .qr-all-done.show{display:flex;}
-.qr-gen-progress{display:none;margin-top:12px;align-items:center;gap:12px;
-  background:rgba(26,111,255,0.1);border:1px solid rgba(26,111,255,0.25);
-  border-radius:12px;padding:14px 16px;}
-.qr-gen-progress.show{display:flex;}
-.qr-gen-spinner{width:18px;height:18px;flex-shrink:0;border:2px solid rgba(26,111,255,0.2);border-top-color:var(--blue2);border-radius:50%;animation:spin .7s linear infinite;}
-.qr-gen-text{font-size:13px;font-weight:600;color:var(--blue2);}
-.btn-proceed{background:var(--green);color:#0a1628;font-size:14px;font-weight:800;padding:11px 28px;
-  border-radius:12px;border:none;cursor:pointer;margin-top:14px;box-shadow:0 6px 20px rgba(34,232,142,0.3);display:block;}
+.btn-proceed{background:var(--green);color:#0a1628;font-size:14px;font-weight:800;padding:11px 28px;border-radius:12px;border:none;cursor:pointer;margin-top:14px;box-shadow:0 6px 20px rgba(34,232,142,0.3);display:block;}
 .btn-proceed:hover{background:#1fd47d;transform:translateY(-2px);}
 .btn-proceed:disabled{opacity:.5;cursor:not-allowed;transform:none;}
 
+/* FINAL CARD */
 .final-card{display:none;flex-direction:column;align-items:center;text-align:center;padding:48px 32px;gap:18px;}
-.final-icon{width:84px;height:84px;background:var(--green-bg);border:2px solid var(--green-bd);
-  border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:38px;
-  animation:popIn .5s cubic-bezier(.175,.885,.32,1.275) both;box-shadow:0 0 40px rgba(34,232,142,0.2);}
+.final-icon{width:84px;height:84px;background:var(--green-bg);border:2px solid var(--green-bd);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:38px;animation:popIn .5s cubic-bezier(.175,.885,.32,1.275) both;box-shadow:0 0 40px rgba(34,232,142,0.2);}
 @keyframes popIn{0%{transform:scale(0);opacity:0}100%{transform:scale(1);opacity:1}}
 .final-card h3{font-size:26px;font-weight:800;letter-spacing:-0.5px;}
 .final-card p{color:var(--muted);font-size:14px;max-width:380px;line-height:1.6;}
 .thumb-row{display:flex;gap:12px;justify-content:center;flex-wrap:wrap;}
-.thumb{position:relative;width:110px;height:82px;border-radius:10px;overflow:hidden;
-  border:1px solid var(--green-bd);background:rgba(255,255,255,0.05);box-shadow:0 4px 16px rgba(0,0,0,0.3);}
+.thumb{position:relative;width:110px;height:82px;border-radius:10px;overflow:hidden;border:1px solid var(--green-bd);background:rgba(255,255,255,0.05);box-shadow:0 4px 16px rgba(0,0,0,0.3);}
 .thumb img{width:100%;height:100%;object-fit:cover;}
-.thumb-label{position:absolute;bottom:0;left:0;right:0;background:rgba(0,0,0,0.7);
-  color:var(--white);font-size:9px;font-weight:700;text-align:center;padding:3px 0;
-  letter-spacing:.08em;text-transform:uppercase;}
-.btn-generate{background:var(--blue);color:var(--white);font-size:15px;padding:14px 40px;
-  border-radius:14px;border:none;cursor:pointer;font-family:var(--font);font-weight:800;
-  box-shadow:0 8px 28px rgba(26,111,255,0.45);transition:all .25s;display:inline-flex;align-items:center;gap:8px;margin-top:6px;}
+.thumb-label{position:absolute;bottom:0;left:0;right:0;background:rgba(0,0,0,0.7);color:var(--white);font-size:9px;font-weight:700;text-align:center;padding:3px 0;letter-spacing:.08em;text-transform:uppercase;}
+.btn-generate{background:var(--blue);color:var(--white);font-size:15px;padding:14px 40px;border-radius:14px;border:none;cursor:pointer;font-family:var(--font);font-weight:800;box-shadow:0 8px 28px rgba(26,111,255,0.45);transition:all .25s;display:inline-flex;align-items:center;gap:8px;margin-top:6px;}
 .btn-generate:hover{background:var(--blue2);transform:translateY(-3px);}
 .btn-generate:disabled{opacity:.6;cursor:not-allowed;transform:none;}
-.gen-status{display:none;margin-top:14px;align-items:center;gap:14px;
-  background:rgba(26,111,255,0.1);border:1px solid rgba(26,111,255,0.25);border-radius:14px;padding:14px 18px;}
-.gen-status.show{display:flex;}
-.gen-spinner{width:20px;height:20px;flex-shrink:0;border:3px solid rgba(26,111,255,0.2);border-top-color:var(--blue2);border-radius:50%;animation:spin .7s linear infinite;}
-.gen-text h4{font-size:13px;font-weight:700;margin-bottom:2px;}
-.gen-text p{font-size:12px;color:var(--muted);}
 
-.site-footer{position:relative;z-index:1;border-top:1px solid var(--border);
-  background:rgba(8,18,34,0.95);padding:18px 40px;}
-.footer-inner{max-width:1400px;margin:0 auto;display:flex;align-items:center;
-  justify-content:space-between;flex-wrap:wrap;gap:10px;}
+/* FOOTER */
+.site-footer{position:relative;z-index:1;border-top:1px solid var(--border);background:rgba(8,18,34,0.95);padding:18px 40px;}
+.footer-inner{max-width:1400px;margin:0 auto;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;}
 .footer-copy{font-size:13px;color:var(--muted);font-weight:400;}
 .footer-powered{font-size:13px;color:var(--muted);}
 .footer-powered a{color:var(--blue2);text-decoration:none;font-weight:500;transition:color .2s;}
 .footer-powered a:hover{color:var(--white);}
-.scroll-top{position:fixed;bottom:24px;right:24px;z-index:200;width:44px;height:44px;
-  border-radius:50%;background:var(--blue);border:none;cursor:pointer;
-  display:flex;align-items:center;justify-content:center;
-  box-shadow:0 4px 16px rgba(26,111,255,0.5);transition:all .2s;font-size:18px;color:var(--white);}
+.scroll-top{position:fixed;bottom:24px;right:24px;z-index:200;width:44px;height:44px;border-radius:50%;background:var(--blue);border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;box-shadow:0 4px 16px rgba(26,111,255,0.5);transition:all .2s;font-size:18px;color:var(--white);}
 .scroll-top:hover{background:var(--blue2);transform:translateY(-3px);}
 
 @media(max-width:768px){
@@ -291,6 +216,7 @@ button{display:inline-flex;align-items:center;gap:6px;padding:9px 18px;border:no
 </style>
 </head>
 <body>
+
 <nav id="navbar">
   <div class="nav-logo">
     <a href="/"><span class="nav-logo-text">Oral<span>AI</span></span></a>
@@ -406,9 +332,8 @@ button{display:inline-flex;align-items:center;gap:6px;padding:9px 18px;border:no
           </div>
           <div class="qr-waiting" id="qrWaiting"><div class="qr-wait-spinner"></div><span id="qrWaitText">Waiting for patient to capture photos on phone...</span></div>
           <div class="qr-all-done" id="qrAllDone">✅ All 4 photos received!</div>
-          <div class="qr-gen-progress" id="qrGenProgress"><div class="qr-gen-spinner"></div><span class="qr-gen-text" id="qrGenText">Generating AI Report...</span></div>
-          <form action="/generate" method="post" onsubmit="startGenerating(this)" id="qrGenerateForm">
-            <button class="btn-proceed" id="qrProceedBtn" style="display:none;">🤖 Generate AI Report</button>
+          <form action="/generate" method="post" id="qrGenerateForm">
+            <button class="btn-proceed" id="qrProceedBtn" style="display:none;" type="submit">🤖 Generate AI Report</button>
           </form>
         </div>
       </div>
@@ -425,13 +350,9 @@ button{display:inline-flex;align-items:center;gap:6px;padding:9px 18px;border:no
         <div class="thumb"><img id="thumb2" src=""><div class="thumb-label" id="thumbLabel2">Front</div></div>
         <div class="thumb"><img id="thumb3" src=""><div class="thumb-label" id="thumbLabel3">Lower</div></div>
       </div>
-      <form action="/generate" method="post" onsubmit="startGenerating(this)">
-        <button class="btn-generate" id="generateBtn">🤖 Generate AI Report</button>
+      <form action="/generate" method="post">
+        <button class="btn-generate" id="generateBtn" type="submit">🤖 Generate AI Report</button>
       </form>
-      <div class="gen-status" id="genStatus">
-        <div class="gen-spinner"></div>
-        <div class="gen-text"><h4 id="genTitle">Generating AI Report...</h4><p id="genDesc">Running YOLO detection on your images...</p></div>
-      </div>
     </div>
 
   </div>
@@ -452,7 +373,7 @@ const LANG = "{{session_language}}";
 const SESSION_TOKEN = "{{session_token}}";
 const BASE_URL = window.location.origin;
 
-// ── Inject QR button on desktop only ──
+// Inject QR button on desktop only
 (function injectQRButtonIfDesktop() {
   const ua = navigator.userAgent;
   const isMobileOrTablet =
@@ -479,19 +400,15 @@ const BASE_URL = window.location.origin;
   }
 })();
 
-// ── Translations ──
+// Translations
 const T = {
   "English": {
-    face_title:"Capture Patient Face Photo",
-    face_sub:"Position the patient's face inside the guide box, then tap Capture.",
-    face_tip:"🧑 Ask the patient to look straight at the camera. Face should be clearly visible.",
-    face_label:"Patient Face",
+    face_title:"Capture Patient Face Photo",face_sub:"Position the patient's face inside the guide box, then tap Capture.",face_tip:"🧑 Ask the patient to look straight at the camera. Face should be clearly visible.",face_label:"Patient Face",
     upper_title:"Capture Upper Teeth",upper_sub:"Align your upper teeth inside the guide box, then tap Capture.",upper_tip:"🦷 Open wide and angle the camera slightly downward to show your upper teeth clearly.",upper_label:"Upper Teeth",
     front_title:"Capture Front Teeth",front_sub:"Show your front teeth straight-on inside the guide box.",front_tip:"😁 Keep the camera level with your mouth. Show both top and bottom front teeth.",front_label:"Front Teeth",
     lower_title:"Capture Lower Teeth",lower_sub:"Tilt the camera slightly upward to show your lower teeth inside the box.",lower_tip:"🦷 Tilt your head back slightly and angle the camera up to expose your lower row.",lower_label:"Lower Teeth",
     reference:"Reference",checking:"Saving photo...",
-    face_ok:"Face photo saved!",
-    teeth_ok:"Teeth detected!",no_teeth:"Invalid image — no teeth detected.",retake_msg:"Please retake the photo.",
+    face_ok:"Face photo saved!",teeth_ok:"Teeth detected!",no_teeth:"Invalid image — no teeth detected.",retake_msg:"Please retake the photo.",
     capture:"📸 Capture",retake:"↩ Retake",next:"Next ➡",
     pill_face:"Face",pill_upper:"Upper",pill_front:"Front",pill_lower:"Lower",
     final_title:"All Photos Captured!",final_desc:"Face + 3 dental views saved. Generate your AI dental report now.",generate:"🤖 Generate AI Report",
@@ -578,7 +495,6 @@ function setMode(mode) {
   }
 }
 
-// ── DOM refs ──
 const videoEl           = document.getElementById("video");
 const preview           = document.getElementById("previewImage");
 const canvasCrop        = document.getElementById("canvasCrop");
@@ -620,23 +536,15 @@ function updatePills() {
 
 async function startCamera() {
   if (stream) { stream.getTracks().forEach(t => t.stop()); stream = null; }
-  flash = false;
-  flashBtn.textContent = "⚡";
-  flashBtn.style.opacity = "1";
+  flash = false; flashBtn.textContent = "⚡"; flashBtn.style.opacity = "1";
   try {
-    stream = await navigator.mediaDevices.getUserMedia({
-      video: { facingMode, width: { ideal: 1920 }, height: { ideal: 1080 } }
-    });
+    stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode, width: { ideal: 1920 }, height: { ideal: 1080 } } });
     videoEl.srcObject = stream;
   } catch (e) {
-    try {
-      stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode } });
-      videoEl.srcObject = stream;
-    } catch (e2) {
-      try {
-        stream = await navigator.mediaDevices.getUserMedia({ video: true });
-        videoEl.srcObject = stream;
-      } catch (e3) { console.warn("Camera access denied:", e3); }
+    try { stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode } }); videoEl.srcObject = stream; }
+    catch (e2) {
+      try { stream = await navigator.mediaDevices.getUserMedia({ video: true }); videoEl.srcObject = stream; }
+      catch (e3) { console.warn("Camera access denied:", e3); }
     }
   }
 }
@@ -653,14 +561,10 @@ flashBtn.onclick = async () => {
   if (!track) return;
   const cap = track.getCapabilities ? track.getCapabilities() : {};
   if (cap && cap.torch) {
-    try {
-      flash = !flash;
-      await track.applyConstraints({ advanced: [{ torch: flash }] });
-      flashBtn.textContent = flash ? "🔦" : "⚡";
-    } catch (e) { flash = false; flashBtn.textContent = "⚡"; }
+    try { flash = !flash; await track.applyConstraints({ advanced: [{ torch: flash }] }); flashBtn.textContent = flash ? "🔦" : "⚡"; }
+    catch (e) { flash = false; flashBtn.textContent = "⚡"; }
   } else {
-    flashBtn.textContent = "🚫";
-    flashBtn.style.opacity = "0.4";
+    flashBtn.textContent = "🚫"; flashBtn.style.opacity = "0.4";
     setTimeout(() => { flashBtn.textContent = "⚡"; flashBtn.style.opacity = "1"; }, 2000);
   }
 };
@@ -673,203 +577,102 @@ function showBanner(type, icon, message, sub) {
 function hideBanner() { resultBanner.className = "result-banner"; }
 
 async function validateTeeth(b64) {
-  const res = await fetch("/validate", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ image: b64 })
-  });
+  const res = await fetch("/validate", { method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify({ image: b64 }) });
   if (!res.ok) throw new Error("Server error: " + res.status);
   return await res.json();
 }
 
-// ══════════════════════════════════════════════════════
-//  THE FIX: Correct object-fit:cover crop math
-//
-//  object-fit:cover centers+clips the video so both
-//  dimensions are >= the container. The clip amount on
-//  each side = (renderedSize - containerSize) / 2.
-//
-//  To find where the guide frame is in SOURCE pixels:
-//  1. scale = max(containerW/videoW, containerH/videoH)
-//  2. rendW = videoW * scale  (rendered size in CSS px)
-//  3. clipX = (rendW - containerW) / 2  (hidden CSS px)
-//  4. frame's x in rendered-video space = (frame.left - container.left) + clipX
-//  5. source pixel x = renderedX / scale
-// ══════════════════════════════════════════════════════
 function cropToFrame(videoElement, frameElement, containerElement) {
-  const vW = videoElement.videoWidth;
-  const vH = videoElement.videoHeight;
+  const vW = videoElement.videoWidth, vH = videoElement.videoHeight;
   if (!vW || !vH) return null;
-
   const cRect = containerElement.getBoundingClientRect();
   const fRect = frameElement.getBoundingClientRect();
-
-  const cW = cRect.width;
-  const cH = cRect.height;
-
-  // CSS px scale factor for object-fit:cover
+  const cW = cRect.width, cH = cRect.height;
   const scale = Math.max(cW / vW, cH / vH);
-
-  // Rendered video dims in CSS px (one axis overflows container)
-  const rendW = vW * scale;
-  const rendH = vH * scale;
-
-  // How many CSS px are clipped on each side
-  const clipX = (rendW - cW) / 2;
-  const clipY = (rendH - cH) / 2;
-
-  // Frame position relative to container
-  const fx = fRect.left - cRect.left;
-  const fy = fRect.top  - cRect.top;
-  const fw = fRect.width;
-  const fh = fRect.height;
-
-  // Convert to source pixel coordinates
-  const sx = Math.round((fx + clipX) / scale);
-  const sy = Math.round((fy + clipY) / scale);
-  const sw = Math.round(fw / scale);
-  const sh = Math.round(fh / scale);
-
-  // Clamp to source bounds
-  const safeSx = Math.max(0, Math.min(sx, vW - 1));
-  const safeSy = Math.max(0, Math.min(sy, vH - 1));
-  const safeSw = Math.min(sw, vW - safeSx);
-  const safeSh = Math.min(sh, vH - safeSy);
-
+  const rendW = vW * scale, rendH = vH * scale;
+  const clipX = (rendW - cW) / 2, clipY = (rendH - cH) / 2;
+  const fx = fRect.left - cRect.left, fy = fRect.top - cRect.top;
+  const fw = fRect.width, fh = fRect.height;
+  const sx = Math.round((fx + clipX) / scale), sy = Math.round((fy + clipY) / scale);
+  const sw = Math.round(fw / scale), sh = Math.round(fh / scale);
+  const safeSx = Math.max(0, Math.min(sx, vW - 1)), safeSy = Math.max(0, Math.min(sy, vH - 1));
+  const safeSw = Math.min(sw, vW - safeSx), safeSh = Math.min(sh, vH - safeSy);
   return { sx: safeSx, sy: safeSy, sw: safeSw, sh: safeSh };
 }
 
 captureBtn.onclick = async () => {
   const vW = videoEl.videoWidth, vH = videoEl.videoHeight;
   if (!vW || !vH) { alert("Camera not ready."); return; }
-
-  // Wait one frame to ensure layout is settled
   await new Promise(r => requestAnimationFrame(r));
-
-  // ✅ FIXED: pass cameraBox as container
   const crop = cropToFrame(videoEl, guideFrame, cameraBox);
   if (!crop) { alert("Crop failed — please try again."); return; }
-
   const { sx, sy, sw, sh } = crop;
-
-  canvasCrop.width  = sw;
-  canvasCrop.height = sh;
+  canvasCrop.width = sw; canvasCrop.height = sh;
   ctxCrop.drawImage(videoEl, sx, sy, sw, sh, 0, 0, sw, sh);
   const cropImg = canvasCrop.toDataURL("image/jpeg", 0.92);
-
-  preview.src           = cropImg;
-  preview.style.display = "block";
-  videoEl.style.display = "none";
-  captureBtn.disabled   = true;
-  hideBanner();
-  validationOverlay.classList.add("show");
-
+  preview.src = cropImg; preview.style.display = "block"; videoEl.style.display = "none";
+  captureBtn.disabled = true; hideBanner(); validationOverlay.classList.add("show");
   const isFaceStep = steps[currentStep].skipValidate;
-
   if (isFaceStep) {
-    fetch("/capture", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ image: cropImg, type: "face" })
-    }).catch(console.error);
-
+    fetch("/capture", { method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify({ image: cropImg, type:"face" }) }).catch(console.error);
     validationOverlay.classList.remove("show");
-    cameraBox.classList.add("valid-flash");
-    setTimeout(() => cameraBox.classList.remove("valid-flash"), 1500);
+    cameraBox.classList.add("valid-flash"); setTimeout(() => cameraBox.classList.remove("valid-flash"), 1500);
     showBanner("success", "✅", L.face_ok, "");
     capturedThumbs[currentStep] = cropImg;
-    captureBtn.classList.add("hidden");
-    retakeBtn.classList.remove("hidden");
-    nextBtn.classList.remove("hidden");
+    captureBtn.classList.add("hidden"); retakeBtn.classList.remove("hidden"); nextBtn.classList.remove("hidden");
     captureBtn.disabled = false;
-
   } else {
     try {
       const result = await validateTeeth(cropImg);
       validationOverlay.classList.remove("show");
-
       if (result.isTeeth) {
-        cameraBox.classList.add("valid-flash");
-        setTimeout(() => cameraBox.classList.remove("valid-flash"), 1500);
+        cameraBox.classList.add("valid-flash"); setTimeout(() => cameraBox.classList.remove("valid-flash"), 1500);
         showBanner("success", "✅", L.teeth_ok, result.reason || "");
         capturedThumbs[currentStep] = cropImg;
-        fetch("/capture", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ image: cropImg, type: steps[currentStep].type })
-        }).catch(console.error);
-        captureBtn.classList.add("hidden");
-        retakeBtn.classList.remove("hidden");
-        nextBtn.classList.remove("hidden");
+        fetch("/capture", { method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify({ image: cropImg, type: steps[currentStep].type }) }).catch(console.error);
+        captureBtn.classList.add("hidden"); retakeBtn.classList.remove("hidden"); nextBtn.classList.remove("hidden");
         captureBtn.disabled = false;
       } else {
-        cameraBox.classList.add("invalid-flash");
-        setTimeout(() => cameraBox.classList.remove("invalid-flash"), 1500);
+        cameraBox.classList.add("invalid-flash"); setTimeout(() => cameraBox.classList.remove("invalid-flash"), 1500);
         showBanner("error", "❌", L.no_teeth, (result.reason || "") + " " + L.retake_msg);
-        setTimeout(() => {
-          preview.style.display = "none";
-          videoEl.style.display = "block";
-          hideBanner();
-          captureBtn.disabled = false;
-        }, 2500);
+        setTimeout(() => { preview.style.display = "none"; videoEl.style.display = "block"; hideBanner(); captureBtn.disabled = false; }, 2500);
       }
     } catch (err) {
       validationOverlay.classList.remove("show");
       showBanner("error", "❌", "Validation failed — " + err.message, "");
-      preview.style.display = "none";
-      videoEl.style.display = "block";
-      captureBtn.disabled   = false;
+      preview.style.display = "none"; videoEl.style.display = "block"; captureBtn.disabled = false;
     }
   }
 };
 
 retakeBtn.onclick = () => {
-  preview.style.display = "none";
-  videoEl.style.display = "block";
-  hideBanner();
-  captureBtn.classList.remove("hidden");
-  retakeBtn.classList.add("hidden");
-  nextBtn.classList.add("hidden");
+  preview.style.display = "none"; videoEl.style.display = "block"; hideBanner();
+  captureBtn.classList.remove("hidden"); retakeBtn.classList.add("hidden"); nextBtn.classList.add("hidden");
 };
 
 nextBtn.onclick = () => {
-  currentStep++;
-  hideBanner();
-
+  currentStep++; hideBanner();
   if (currentStep < steps.length) {
     const s = steps[currentStep];
-    titleText.innerText   = s.title;
-    subText.innerText     = s.sub;
-    guideTip.innerText    = s.tip;
-    refVideo.src          = "/static/" + s.video;
-    refVideo.load();
-    frameLabel.innerText  = s.label;
-    guideFrame.className  = "guide-frame " + s.frameClass;
-    preview.style.display = "none";
-    videoEl.style.display = "block";
+    titleText.innerText = s.title; subText.innerText = s.sub; guideTip.innerText = s.tip;
+    refVideo.src = "/static/" + s.video; refVideo.load();
+    frameLabel.innerText = s.label; guideFrame.className = "guide-frame " + s.frameClass;
+    preview.style.display = "none"; videoEl.style.display = "block";
     updatePills();
-    captureBtn.classList.remove("hidden");
-    retakeBtn.classList.add("hidden");
-    nextBtn.classList.add("hidden");
-
+    captureBtn.classList.remove("hidden"); retakeBtn.classList.add("hidden"); nextBtn.classList.add("hidden");
     const newFacing = (s.type === "face") ? "user" : "environment";
-    facingMode = newFacing;
-    startCamera();
+    facingMode = newFacing; startCamera();
   } else {
     for (let i = 0; i < 4; i++) document.getElementById("pill" + i).className = "step-pill done";
     stopCamera();
-    titleBar.style.display    = "none";
-    splitLayout.style.display = "none";
-    for (let i = 0; i < 4; i++) {
-      const t = document.getElementById("thumb" + i);
-      if (capturedThumbs[i]) t.src = capturedThumbs[i];
-    }
+    titleBar.style.display = "none"; splitLayout.style.display = "none";
+    for (let i = 0; i < 4; i++) { const t = document.getElementById("thumb" + i); if (capturedThumbs[i]) t.src = capturedThumbs[i]; }
     finalCard.style.display = "flex";
     document.getElementById("modeSelector").style.display = "none";
   }
 };
 
-// ── QR MODE ──
+// QR MODE
 let qrGenerated = false;
 let qrReceivedCount = 0;
 
@@ -878,11 +681,7 @@ function initQrMode() {
   qrGenerated = true;
   const phoneUrl = `${BASE_URL}/phone_capture?token=${SESSION_TOKEN}`;
   document.getElementById("qrUrlText").innerText = phoneUrl;
-  new QRCode(document.getElementById("qrCodeEl"), {
-    text: phoneUrl, width: 160, height: 160,
-    colorDark: "#000000", colorLight: "#ffffff",
-    correctLevel: QRCode.CorrectLevel.M
-  });
+  new QRCode(document.getElementById("qrCodeEl"), { text: phoneUrl, width:160, height:160, colorDark:"#000000", colorLight:"#ffffff", correctLevel: QRCode.CorrectLevel.M });
   startQrPolling();
 }
 
@@ -890,9 +689,7 @@ function copyQrUrl() {
   const url = document.getElementById("qrUrlText").innerText;
   navigator.clipboard.writeText(url).then(() => {
     const btn = document.querySelector(".btn-copy");
-    btn.innerText = "Copied!";
-    btn.style.background = "rgba(34,232,142,0.15)";
-    btn.style.color = "var(--green)";
+    btn.innerText = "Copied!"; btn.style.background = "rgba(34,232,142,0.15)"; btn.style.color = "var(--green)";
     setTimeout(() => { btn.innerText = "Copy"; btn.style.background = ""; btn.style.color = ""; }, 2000);
   });
 }
@@ -919,55 +716,22 @@ async function pollQrStatus() {
       }
     });
     qrReceivedCount = count;
-    const waitEl     = document.getElementById("qrWaiting");
-    const doneEl     = document.getElementById("qrAllDone");
+    const waitEl = document.getElementById("qrWaiting");
+    const doneEl = document.getElementById("qrAllDone");
     const proceedBtn = document.getElementById("qrProceedBtn");
     if (count === 4) {
-      waitEl.style.display = "none";
-      doneEl.classList.add("show");
+      waitEl.style.display = "none"; doneEl.classList.add("show");
       if (proceedBtn) proceedBtn.style.display = "block";
       stopQrPolling();
       for (let i = 0; i < 4; i++) document.getElementById("pill" + i).className = "step-pill done";
-      fetch("/phone_expire", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ token: SESSION_TOKEN })
-      }).catch(e => console.warn("Expire call failed:", e));
+      fetch("/phone_expire", { method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify({ token: SESSION_TOKEN }) }).catch(e => console.warn("Expire call failed:", e));
     } else {
       const remaining = 4 - count;
-      document.getElementById("qrWaitText").innerText =
-        count === 0
-          ? "Waiting for patient to capture photos on phone..."
-          : `${count}/4 received — waiting for ${remaining} more photo${remaining > 1 ? "s" : ""}...`;
+      document.getElementById("qrWaitText").innerText = count === 0
+        ? "Waiting for patient to capture photos on phone..."
+        : `${count}/4 received — waiting for ${remaining} more photo${remaining > 1 ? "s" : ""}...`;
     }
   } catch (e) { console.warn("Poll error:", e); }
-}
-
-function startGenerating(formEl) {
-  const btn = formEl
-    ? formEl.querySelector("button")
-    : (document.getElementById("generateBtn") || document.getElementById("qrProceedBtn"));
-  if (btn) { btn.disabled = true; btn.innerText = "⏳ Generating..."; }
-  const status        = document.getElementById("genStatus");
-  const qrGenProgress = document.getElementById("qrGenProgress");
-  const qrGenText     = document.getElementById("qrGenText");
-  const genTitle      = document.getElementById("genTitle");
-  const genDesc       = document.getElementById("genDesc");
-  if (status)        status.classList.add("show");
-  if (qrGenProgress) qrGenProgress.classList.add("show");
-  const s = [
-    { t:0,     title:"Generating AI Report...",     desc:"Running YOLO detection on your images...",   qr:"Generating AI Report..." },
-    { t:5000,  title:"Analysing Detections...",      desc:"Processing detected dental conditions...",   qr:"Analysing dental detections..." },
-    { t:12000, title:"AI Analysing Images...",       desc:"AI is reviewing all 4 dental images...",     qr:"AI reviewing images..." },
-    { t:25000, title:"Writing Detailed Analysis...", desc:"AI is writing your personalised report...",  qr:"Writing detailed analysis..." },
-    { t:40000, title:"Generating PDF Report...",     desc:"Building your multi-page dental report...",  qr:"Building PDF report..." },
-    { t:55000, title:"Almost Ready...",              desc:"Finalising your report. Please wait...",     qr:"Almost ready — finalising report..." }
-  ];
-  s.forEach(x => setTimeout(() => {
-    if (genTitle)  genTitle.innerText  = x.title;
-    if (genDesc)   genDesc.innerText   = x.desc;
-    if (qrGenText) qrGenText.innerText = x.qr;
-  }, x.t));
 }
 
 facingMode = "user";

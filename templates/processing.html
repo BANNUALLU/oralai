@@ -4,139 +4,193 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>OralAI — Generating Report</title>
-<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;700;800&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
 <style>
 *{box-sizing:border-box;margin:0;padding:0;}
 :root{
-  --navy:#0a1628;--blue:#1a6fff;--blue2:#4d9fff;--cyan:#00c8e0;
+  --navy:#0a1628;--navy2:#0f2040;--blue:#1a6fff;--blue2:#4d9fff;--cyan:#00c8e0;
   --white:#ffffff;--muted:#8a9bb5;--border:rgba(255,255,255,0.08);
   --green:#22e88e;--green-bg:rgba(34,232,142,0.08);--green-bd:rgba(34,232,142,0.2);
   --red:#ef4444;--red-bg:rgba(239,68,68,0.08);--red-bd:rgba(239,68,68,0.2);
   --font:'Outfit',sans-serif;
 }
-body{
-  font-family:var(--font);background:var(--navy);color:var(--white);
-  display:flex;flex-direction:column;align-items:center;justify-content:center;
-  min-height:100vh;padding:24px;text-align:center;
-}
+html{font-family:var(--font);}
+body{background:var(--navy);color:var(--white);overflow-x:hidden;min-height:100vh;display:flex;flex-direction:column;}
+a{text-decoration:none;color:inherit;}
 body::before{content:'';position:fixed;inset:0;z-index:0;
-  background:radial-gradient(ellipse 60% 50% at 20% 20%,rgba(26,111,255,0.1) 0%,transparent 60%),
-  radial-gradient(ellipse 40% 40% at 80% 80%,rgba(0,200,224,0.07) 0%,transparent 60%);pointer-events:none;}
+  background:radial-gradient(ellipse 80% 50% at 20% -10%,rgba(26,111,255,0.15) 0%,transparent 60%),
+  radial-gradient(ellipse 60% 40% at 80% 100%,rgba(0,200,224,0.1) 0%,transparent 60%);pointer-events:none;}
+body::after{content:'';position:fixed;inset:0;z-index:0;
+  background-image:linear-gradient(rgba(26,111,255,0.04) 1px,transparent 1px),
+  linear-gradient(90deg,rgba(26,111,255,0.04) 1px,transparent 1px);
+  background-size:60px 60px;pointer-events:none;}
 
-.logo{font-size:24px;font-weight:800;margin-bottom:40px;position:relative;z-index:1;}
-.logo span{color:var(--blue);}
+/* NAV */
+nav{position:fixed;top:0;left:0;right:0;z-index:100;display:flex;align-items:center;
+  justify-content:space-between;padding:0 60px;height:72px;
+  background:rgba(10,22,40,0.9);backdrop-filter:blur(20px);
+  border-bottom:1px solid var(--border);transition:all .3s;}
+.nav-logo a{display:flex;align-items:center;text-decoration:none;}
+.nav-logo-text{font-size:22px;font-weight:800;color:var(--white);letter-spacing:-0.5px;}
+.nav-logo-text span{color:var(--blue);}
+.nav-links{display:flex;align-items:center;gap:32px;font-size:14px;font-weight:500;color:var(--muted);}
+.nav-links a:hover{color:var(--white);}
+.nav-cta{display:flex;align-items:center;gap:12px;}
+.btn-nav{padding:9px 22px;border-radius:10px;font-family:var(--font);font-size:14px;font-weight:600;cursor:pointer;border:none;transition:all .2s;text-decoration:none;display:inline-flex;align-items:center;}
+.btn-nav-outline{background:transparent;color:var(--white);border:1.5px solid rgba(255,255,255,0.2);}
+.btn-nav-outline:hover{border-color:var(--blue);color:var(--blue2);}
+.hamburger{display:none;flex-direction:column;gap:5px;cursor:pointer;background:none;border:none;padding:4px;}
+.hamburger span{width:24px;height:2px;background:var(--white);border-radius:2px;display:block;}
+.mobile-menu{display:none;position:fixed;top:72px;left:0;right:0;z-index:99;
+  background:rgba(10,22,40,0.98);backdrop-filter:blur(20px);
+  border-bottom:1px solid var(--border);padding:20px 24px;flex-direction:column;gap:16px;}
+.mobile-menu.open{display:flex;}
+.mobile-menu a{font-size:15px;font-weight:500;color:var(--muted);padding:4px 0;}
+.mobile-menu a:hover{color:var(--white);}
+
+/* MAIN */
+.main{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;
+  padding:100px 24px 40px;text-align:center;position:relative;z-index:1;}
 
 /* Triple ring spinner */
-.spinner-wrap{position:relative;width:100px;height:100px;margin:0 auto 32px;z-index:1;}
+.spinner-wrap{position:relative;width:100px;height:100px;margin:0 auto 32px;}
 .ring{position:absolute;inset:0;border-radius:50%;border:4px solid transparent;}
 .ring1{border-top-color:var(--blue);animation:spin 1s linear infinite;}
 .ring2{border-right-color:var(--cyan);animation:spin 1.5s linear infinite reverse;inset:10px;}
 .ring3{border-bottom-color:var(--green);animation:spin 2s linear infinite;inset:20px;}
 @keyframes spin{to{transform:rotate(360deg)}}
 
-h1{font-size:24px;font-weight:800;margin-bottom:8px;position:relative;z-index:1;}
-.sub{color:var(--muted);font-size:14px;margin-bottom:32px;position:relative;z-index:1;}
+h1{font-size:24px;font-weight:800;margin-bottom:8px;}
+.sub{color:var(--muted);font-size:14px;margin-bottom:32px;}
 
 /* Status card */
-.status-box{
-  background:rgba(26,111,255,0.06);border:1px solid rgba(26,111,255,0.2);
-  border-radius:16px;padding:20px 28px;max-width:360px;width:100%;
-  position:relative;z-index:1;
-}
+.status-box{background:rgba(26,111,255,0.06);border:1px solid rgba(26,111,255,0.2);
+  border-radius:16px;padding:20px 28px;max-width:380px;width:100%;}
 .status-step{font-size:14px;font-weight:700;color:var(--blue2);margin-bottom:6px;}
 .status-desc{font-size:12px;color:var(--muted);line-height:1.6;}
-
-/* Progress bar */
-.progress-bar{
-  width:100%;height:5px;background:rgba(255,255,255,0.06);
-  border-radius:999px;margin-top:18px;overflow:hidden;
-}
-.progress-fill{
-  height:100%;
-  background:linear-gradient(90deg,var(--blue),var(--cyan),var(--green));
-  border-radius:999px;
-  width:5%;
-  transition:width 10s ease;
-}
+.progress-bar{width:100%;height:5px;background:rgba(255,255,255,0.06);border-radius:999px;margin-top:18px;overflow:hidden;}
+.progress-fill{height:100%;background:linear-gradient(90deg,var(--blue),var(--cyan),var(--green));border-radius:999px;width:5%;transition:width 10s ease;}
 
 /* Steps list */
-.steps-list{
-  display:flex;flex-direction:column;gap:8px;margin-top:20px;
-  max-width:360px;width:100%;position:relative;z-index:1;
-}
-.step-item{
-  display:flex;align-items:center;gap:10px;padding:8px 14px;
-  border-radius:10px;font-size:12px;font-weight:600;
-  background:rgba(255,255,255,0.03);border:1px solid var(--border);
-  color:var(--muted);transition:all .4s;
-}
-.step-item.active{
-  background:rgba(26,111,255,0.1);border-color:rgba(26,111,255,0.3);
-  color:var(--blue2);
-}
-.step-item.done{
-  background:var(--green-bg);border-color:var(--green-bd);color:var(--green);
-}
+.steps-list{display:flex;flex-direction:column;gap:8px;margin-top:20px;max-width:380px;width:100%;}
+.step-item{display:flex;align-items:center;gap:10px;padding:8px 14px;border-radius:10px;font-size:12px;font-weight:600;background:rgba(255,255,255,0.03);border:1px solid var(--border);color:var(--muted);transition:all .4s;}
+.step-item.active{background:rgba(26,111,255,0.1);border-color:rgba(26,111,255,0.3);color:var(--blue2);}
+.step-item.done{background:var(--green-bg);border-color:var(--green-bd);color:var(--green);}
 .step-dot{width:8px;height:8px;border-radius:50%;background:currentColor;flex-shrink:0;}
 .step-item.active .step-dot{animation:pulse 1s ease-in-out infinite;}
 @keyframes pulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.4;transform:scale(.7)}}
 
 /* Error box */
-.error-box{
-  display:none;background:var(--red-bg);border:1px solid var(--red-bd);
-  border-radius:14px;padding:18px 24px;max-width:360px;width:100%;
-  margin-top:16px;position:relative;z-index:1;
-}
+.error-box{display:none;background:var(--red-bg);border:1px solid var(--red-bd);border-radius:14px;padding:18px 24px;max-width:380px;width:100%;margin-top:16px;}
 .error-box.show{display:block;}
 .error-box p{color:var(--red);font-size:13px;margin-bottom:12px;line-height:1.5;}
-.btn-retry{
-  display:inline-block;padding:10px 24px;background:var(--blue);
-  color:var(--white);border-radius:10px;font-weight:700;font-size:13px;
-  text-decoration:none;border:none;cursor:pointer;font-family:var(--font);
-}
+.btn-retry{display:inline-block;padding:10px 24px;background:var(--blue);color:var(--white);border-radius:10px;font-weight:700;font-size:13px;text-decoration:none;border:none;cursor:pointer;font-family:var(--font);}
 
-/* Footer */
-.footer{
-  position:fixed;bottom:0;left:0;right:0;padding:12px 24px;
-  border-top:1px solid var(--border);background:rgba(8,18,34,0.95);
-  font-size:12px;color:var(--muted);text-align:center;z-index:1;
+/* FOOTER */
+.site-footer{position:relative;z-index:1;border-top:1px solid var(--border);
+  background:rgba(8,18,34,0.95);padding:18px 40px;}
+.footer-inner{max-width:1400px;margin:0 auto;display:flex;align-items:center;
+  justify-content:space-between;flex-wrap:wrap;gap:10px;}
+.footer-copy{font-size:13px;color:var(--muted);font-weight:400;}
+.footer-powered{font-size:13px;color:var(--muted);}
+.footer-powered a{color:var(--blue2);text-decoration:none;font-weight:500;transition:color .2s;}
+.footer-powered a:hover{color:var(--white);}
+
+/* SCROLL TOP */
+.scroll-top{position:fixed;bottom:24px;right:24px;z-index:200;width:44px;height:44px;
+  border-radius:50%;background:var(--blue);border:none;cursor:pointer;
+  display:flex;align-items:center;justify-content:center;
+  box-shadow:0 4px 16px rgba(26,111,255,0.5);transition:all .2s;font-size:18px;color:var(--white);}
+.scroll-top:hover{background:var(--blue2);transform:translateY(-3px);}
+
+/* RESPONSIVE */
+@media(max-width:1199px){nav{padding:0 32px;}}
+@media(max-width:767px){
+  nav{padding:0 20px;height:60px;}.mobile-menu{top:60px;}
+  .nav-links,.nav-cta{display:none;}.hamburger{display:flex;}
+  .main{padding:80px 16px 32px;}
+  .site-footer{padding:16px 20px;}
+  .footer-inner{flex-direction:column;align-items:flex-start;gap:6px;}
+  .footer-copy,.footer-powered{font-size:12px;}
+  .scroll-top{bottom:16px;right:16px;width:40px;height:40px;font-size:16px;}
+}
+@media(max-width:480px){
+  h1{font-size:20px;}
+  .status-box{padding:16px 18px;}
 }
 </style>
 </head>
 <body>
 
-<div class="logo">Oral<span>AI</span></div>
-
-<div class="spinner-wrap">
-  <div class="ring ring1"></div>
-  <div class="ring ring2"></div>
-  <div class="ring ring3"></div>
-</div>
-
-<h1>Generating Your Report</h1>
-<p class="sub">AI is analysing your dental images. Please do not close this tab.</p>
-
-<div class="status-box">
-  <div class="status-step" id="stepText">🔍 Running YOLO detection...</div>
-  <div class="status-desc" id="descText">Detecting dental conditions in your 3 images</div>
-  <div class="progress-bar">
-    <div class="progress-fill" id="progressFill"></div>
+<!-- NAV -->
+<nav id="navbar">
+  <div class="nav-logo">
+    <a href="/"><span class="nav-logo-text">Oral<span>AI</span></span></a>
   </div>
+  <div class="nav-links">
+    <a href="/#features">Features</a>
+    <a href="/#how">How it Works</a>
+    <a href="/#languages">Languages</a>
+    <a href="/#developer">Developer</a>
+    <a href="/#contact">Contact</a>
+  </div>
+  <div class="nav-cta">
+    <a href="/#contact" class="btn-nav btn-nav-outline">Contact Us</a>
+  </div>
+  <button class="hamburger" onclick="toggleMenu()"><span></span><span></span><span></span></button>
+</nav>
+
+<div class="mobile-menu" id="mobileMenu">
+  <a href="/#features" onclick="closeMenu()">Features</a>
+  <a href="/#how" onclick="closeMenu()">How it Works</a>
+  <a href="/#languages" onclick="closeMenu()">Languages</a>
+  <a href="/#developer" onclick="closeMenu()">Developer</a>
+  <a href="/#contact" onclick="closeMenu()">Contact</a>
 </div>
 
-<div class="steps-list">
-  <div class="step-item active" id="s0"><div class="step-dot"></div>YOLO Detection</div>
-  <div class="step-item" id="s1"><div class="step-dot"></div>AI Analysis</div>
-  <div class="step-item" id="s2"><div class="step-dot"></div>Translation</div>
-  <div class="step-item" id="s3"><div class="step-dot"></div>PDF Generation</div>
-</div>
+<!-- MAIN -->
+<main class="main">
 
-<div class="error-box" id="errorBox">
-  <p id="errorMsg">Something went wrong generating your report.</p>
-  <a href="/capture" class="btn-retry">↩ Try Again</a>
-</div>
+  <div class="spinner-wrap">
+    <div class="ring ring1"></div>
+    <div class="ring ring2"></div>
+    <div class="ring ring3"></div>
+  </div>
 
-<div class="footer">OralAI — AI Oral Health Screening &nbsp;|&nbsp; www.oralai.site</div>
+  <h1>Generating Your Report</h1>
+  <p class="sub">AI is analysing your dental images. Please do not close this tab.</p>
+
+  <div class="status-box">
+    <div class="status-step" id="stepText">🔍 Running YOLO detection...</div>
+    <div class="status-desc" id="descText">Detecting dental conditions in your 3 images</div>
+    <div class="progress-bar">
+      <div class="progress-fill" id="progressFill"></div>
+    </div>
+  </div>
+
+  <div class="steps-list">
+    <div class="step-item active" id="s0"><div class="step-dot"></div>YOLO Detection</div>
+    <div class="step-item" id="s1"><div class="step-dot"></div>AI Analysis</div>
+    <div class="step-item" id="s2"><div class="step-dot"></div>Translation</div>
+    <div class="step-item" id="s3"><div class="step-dot"></div>PDF Generation</div>
+  </div>
+
+  <div class="error-box" id="errorBox">
+    <p id="errorMsg">Something went wrong generating your report.</p>
+    <a href="/capture" class="btn-retry">↩ Try Again</a>
+  </div>
+
+</main>
+
+<!-- FOOTER -->
+<footer class="site-footer">
+  <div class="footer-inner">
+    <span class="footer-copy">© 2026 OralAI. All rights reserved.</span>
+    <span class="footer-powered">Powered by <a href="https://www.oralai.site" target="_blank">oralai.site</a></span>
+  </div>
+</footer>
+
+<button class="scroll-top" onclick="window.scrollTo({top:0,behavior:'smooth'})" title="Back to top">↑</button>
 
 <script>
 const REPORT_ID = "{{ report_id }}";
@@ -147,7 +201,6 @@ const fillEl   = document.getElementById("progressFill");
 const errorBox = document.getElementById("errorBox");
 const errorMsg = document.getElementById("errorMsg");
 
-// Timeline of status messages
 const timeline = [
   { t:0,     step:"🔍 Running YOLO detection...",       desc:"Detecting dental conditions in all 3 images",     pct:"15%", si:0 },
   { t:5000,  step:"🦷 Processing detections...",        desc:"Analysing detected dental conditions",             pct:"28%", si:0 },
@@ -158,60 +211,62 @@ const timeline = [
   { t:90000, step:"⏳ Finalising report...",            desc:"Almost ready — please wait a moment",              pct:"95%", si:3 },
 ];
 
-function setStepDone(idx) {
-  const el = document.getElementById("s" + idx);
-  if (el) { el.className = "step-item done"; }
+function setStepDone(idx){
+  var el=document.getElementById("s"+idx);
+  if(el){el.className="step-item done";}
 }
-function setStepActive(idx) {
-  for (let i = 0; i < 4; i++) {
-    const el = document.getElementById("s" + i);
-    if (!el) continue;
-    if (i < idx)       el.className = "step-item done";
-    else if (i === idx) el.className = "step-item active";
-    else                el.className = "step-item";
+function setStepActive(idx){
+  for(var i=0;i<4;i++){
+    var el=document.getElementById("s"+i);
+    if(!el)continue;
+    if(i<idx)        el.className="step-item done";
+    else if(i===idx) el.className="step-item active";
+    else             el.className="step-item";
   }
 }
 
-timeline.forEach(s => {
-  setTimeout(() => {
-    stepEl.textContent = s.step;
-    descEl.textContent = s.desc;
-    fillEl.style.width = s.pct;
+timeline.forEach(function(s){
+  setTimeout(function(){
+    stepEl.textContent=s.step;
+    descEl.textContent=s.desc;
+    fillEl.style.width=s.pct;
     setStepActive(s.si);
-  }, s.t);
+  },s.t);
 });
 
-// Poll server every 3 seconds
-function poll() {
-  fetch("/report_status/" + REPORT_ID)
-    .then(r => r.json())
-    .then(data => {
-      if (data.status === "done") {
-        // All steps done
-        for (let i = 0; i < 4; i++) setStepDone(i);
-        fillEl.style.width = "100%";
-        fillEl.style.transition = "width 0.5s ease";
-        stepEl.textContent = "✅ Report ready!";
-        descEl.textContent = "Redirecting to your report...";
-        setTimeout(() => {
-          window.location.href = "/result?report_id=" + REPORT_ID;
-        }, 1000);
-      } else if (data.status === "error") {
+function poll(){
+  fetch("/report_status/"+REPORT_ID)
+    .then(function(r){return r.json();})
+    .then(function(data){
+      if(data.status==="done"){
+        for(var i=0;i<4;i++)setStepDone(i);
+        fillEl.style.width="100%";
+        fillEl.style.transition="width 0.5s ease";
+        stepEl.textContent="✅ Report ready!";
+        descEl.textContent="Redirecting to your report...";
+        setTimeout(function(){window.location.href="/result?report_id="+REPORT_ID;},1000);
+      }else if(data.status==="error"){
         errorBox.classList.add("show");
-        errorMsg.textContent = "Error: " + (data.error || "Unknown error occurred");
-      } else {
-        // Still processing — poll again
-        setTimeout(poll, 3000);
+        errorMsg.textContent="Error: "+(data.error||"Unknown error occurred");
+      }else{
+        setTimeout(poll,3000);
       }
     })
-    .catch(err => {
-      console.warn("Poll error:", err);
-      setTimeout(poll, 4000);
+    .catch(function(err){
+      console.warn("Poll error:",err);
+      setTimeout(poll,4000);
     });
 }
 
-// Start polling after 5 seconds
-setTimeout(poll, 5000);
+setTimeout(poll,5000);
+
+function toggleMenu(){document.getElementById('mobileMenu').classList.toggle('open');}
+function closeMenu(){document.getElementById('mobileMenu').classList.remove('open');}
+window.addEventListener('scroll',function(){
+  var nav=document.getElementById('navbar');
+  nav.style.background=window.scrollY>50?'rgba(10,22,40,0.98)':'rgba(10,22,40,0.9)';
+  nav.style.boxShadow=window.scrollY>50?'0 4px 30px rgba(0,0,0,0.3)':'none';
+});
 </script>
 </body>
 </html>
