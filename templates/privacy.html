@@ -1,325 +1,145 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
+  <meta charset="UTF-8"/>
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Privacy Policy – OralAI</title>
-  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700&family=Playfair+Display:wght@600;700&display=swap" rel="stylesheet"/>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800;900&family=Lora:ital,wght@0,400;1,400&display=swap" rel="stylesheet"/>
   <style>
-    :root {
-      --primary: #2563eb;
-      --primary-light: #eff6ff;
-      --accent: #0ea5e9;
-      --dark: #0f172a;
-      --mid: #334155;
-      --soft: #64748b;
-      --border: #e2e8f0;
-      --bg: #f8fafc;
-      --white: #ffffff;
-      --tooth: #38bdf8;
+    *{box-sizing:border-box;margin:0;padding:0;scroll-behavior:smooth;}
+    :root{
+      --navy:#0a1628;--navy2:#0f2040;--blue:#1a6fff;--blue2:#4d9fff;--cyan:#00c8e0;
+      --white:#ffffff;--muted:#8a9bb5;--border:rgba(255,255,255,0.08);
+      --card:rgba(255,255,255,0.04);--gold:#f5c842;--green:#22e88e;--red:#ef4444;
+      --font:'Outfit',sans-serif;--serif:'Lora',serif;
     }
-
-    * { margin: 0; padding: 0; box-sizing: border-box; }
-
-    body {
-      font-family: 'DM Sans', sans-serif;
-      background: var(--bg);
-      color: var(--mid);
-      line-height: 1.75;
-    }
+    html{font-family:var(--font);}
+    body{background:var(--navy);color:var(--white);overflow-x:hidden;line-height:1.75;}
+    a{text-decoration:none;color:inherit;}
+    body::before{content:'';position:fixed;inset:0;z-index:0;
+      background:radial-gradient(ellipse 80% 50% at 20% -10%,rgba(26,111,255,0.12) 0%,transparent 60%),
+      radial-gradient(ellipse 60% 40% at 80% 100%,rgba(0,200,224,0.08) 0%,transparent 60%);pointer-events:none;}
+    body::after{content:'';position:fixed;inset:0;z-index:0;
+      background-image:linear-gradient(rgba(26,111,255,0.03) 1px,transparent 1px),
+      linear-gradient(90deg,rgba(26,111,255,0.03) 1px,transparent 1px);
+      background-size:60px 60px;pointer-events:none;}
 
     /* NAV */
-    nav {
-      position: sticky; top: 0; z-index: 100;
-      background: rgba(255,255,255,0.95);
-      backdrop-filter: blur(12px);
-      border-bottom: 1px solid var(--border);
-      padding: 0 2rem;
-      display: flex; align-items: center; justify-content: space-between;
-      height: 64px;
-    }
-    .nav-logo {
-      font-family: 'Playfair Display', serif;
-      font-size: 1.4rem;
-      color: var(--primary);
-      text-decoration: none;
-      display: flex; align-items: center; gap: 8px;
-    }
-    .nav-logo span { font-size: 1.4rem; }
-    .nav-back {
-      background: var(--primary);
-      color: white;
-      padding: 8px 20px;
-      border-radius: 8px;
-      text-decoration: none;
-      font-size: 0.875rem;
-      font-weight: 600;
-      transition: background 0.2s;
-    }
-    .nav-back:hover { background: #1d4ed8; }
+    nav{position:fixed;top:0;left:0;right:0;z-index:100;display:flex;align-items:center;
+      justify-content:space-between;padding:0 60px;height:72px;
+      background:rgba(10,22,40,0.95);backdrop-filter:blur(20px);
+      border-bottom:1px solid var(--border);}
+    .nav-logo-text{font-size:22px;font-weight:800;color:var(--white);letter-spacing:-0.5px;}
+    .nav-logo-text span{color:var(--blue);}
+    .nav-back{padding:9px 22px;border-radius:10px;font-family:var(--font);font-size:14px;
+      font-weight:600;background:var(--blue);color:var(--white);border:none;cursor:pointer;
+      box-shadow:0 4px 20px rgba(26,111,255,0.4);transition:all .2s;}
+    .nav-back:hover{background:var(--blue2);}
 
     /* HERO */
-    .hero {
-      background: linear-gradient(135deg, #1e40af 0%, #0ea5e9 100%);
-      color: white;
-      padding: 4rem 2rem 3rem;
-      text-align: center;
-      position: relative;
-      overflow: hidden;
-    }
-    .hero::before {
-      content: '🦷';
-      position: absolute;
-      font-size: 12rem;
-      opacity: 0.05;
-      top: -2rem; right: -2rem;
-    }
-    .hero-badge {
-      display: inline-block;
-      background: rgba(255,255,255,0.15);
-      border: 1px solid rgba(255,255,255,0.3);
-      padding: 4px 16px;
-      border-radius: 100px;
-      font-size: 0.8rem;
-      font-weight: 600;
-      letter-spacing: 0.05em;
-      text-transform: uppercase;
-      margin-bottom: 1rem;
-    }
-    .hero h1 {
-      font-family: 'Playfair Display', serif;
-      font-size: clamp(2rem, 5vw, 3rem);
-      font-weight: 700;
-      margin-bottom: 0.75rem;
-    }
-    .hero p {
-      font-size: 1rem;
-      opacity: 0.85;
-      max-width: 500px;
-      margin: 0 auto;
-    }
-    .hero-meta {
-      display: flex;
-      justify-content: center;
-      gap: 2rem;
-      margin-top: 2rem;
-      flex-wrap: wrap;
-    }
-    .hero-meta-item {
-      background: rgba(255,255,255,0.12);
-      border: 1px solid rgba(255,255,255,0.2);
-      border-radius: 10px;
-      padding: 8px 20px;
-      font-size: 0.85rem;
-      font-weight: 500;
-    }
+    .hero{position:relative;z-index:1;padding:130px 60px 70px;text-align:center;
+      background:linear-gradient(180deg,rgba(0,200,224,0.06) 0%,transparent 100%);}
+    .hero-badge{display:inline-flex;align-items:center;gap:8px;background:rgba(34,232,142,0.1);
+      border:1px solid rgba(34,232,142,0.3);color:var(--green);font-size:12px;font-weight:700;
+      padding:5px 16px;border-radius:999px;margin-bottom:20px;letter-spacing:0.08em;text-transform:uppercase;}
+    .hero h1{font-size:clamp(2rem,5vw,3.2rem);font-weight:900;letter-spacing:-1.5px;margin-bottom:14px;}
+    .hero p{font-size:15px;color:var(--muted);max-width:480px;margin:0 auto 28px;}
+    .hero-meta{display:flex;justify-content:center;gap:14px;flex-wrap:wrap;}
+    .hero-meta-item{background:rgba(255,255,255,0.05);border:1px solid var(--border);
+      border-radius:10px;padding:8px 18px;font-size:13px;font-weight:500;color:var(--muted);}
 
-    /* LAYOUT */
-    .container {
-      max-width: 820px;
-      margin: 0 auto;
-      padding: 3rem 2rem 5rem;
-    }
+    /* CONTAINER */
+    .container{position:relative;z-index:1;max-width:820px;margin:0 auto;padding:48px 24px 80px;}
 
     /* TOC */
-    .toc {
-      background: var(--white);
-      border: 1px solid var(--border);
-      border-left: 4px solid var(--primary);
-      border-radius: 12px;
-      padding: 1.5rem 2rem;
-      margin-bottom: 3rem;
-    }
-    .toc h3 {
-      font-size: 0.85rem;
-      text-transform: uppercase;
-      letter-spacing: 0.08em;
-      color: var(--primary);
-      font-weight: 700;
-      margin-bottom: 1rem;
-    }
-    .toc ol {
-      padding-left: 1.2rem;
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 4px 2rem;
-    }
-    .toc a {
-      color: var(--mid);
-      text-decoration: none;
-      font-size: 0.9rem;
-      font-weight: 500;
-      transition: color 0.2s;
-    }
-    .toc a:hover { color: var(--primary); }
+    .toc{background:var(--card);border:1px solid var(--border);border-left:3px solid var(--cyan);
+      border-radius:16px;padding:24px 28px;margin-bottom:36px;}
+    .toc h3{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;
+      color:var(--cyan);margin-bottom:16px;}
+    .toc ol{padding-left:20px;display:grid;grid-template-columns:1fr 1fr;gap:6px 32px;}
+    .toc a{color:var(--muted);font-size:13px;font-weight:500;transition:color .2s;}
+    .toc a:hover{color:var(--cyan);}
 
-    /* SECTIONS */
-    .section {
-      background: var(--white);
-      border: 1px solid var(--border);
-      border-radius: 16px;
-      padding: 2rem 2.5rem;
-      margin-bottom: 1.5rem;
-      transition: box-shadow 0.2s;
-    }
-    .section:hover { box-shadow: 0 4px 24px rgba(37,99,235,0.07); }
+    /* WARNING BANNER */
+    .warning-banner{background:rgba(245,200,66,0.07);border:1px solid rgba(245,200,66,0.25);
+      border-radius:14px;padding:16px 20px;margin-bottom:28px;font-size:13px;
+      color:rgba(245,200,66,0.9);font-weight:500;line-height:1.6;}
+    .warning-banner::before{content:'⚠️  ';}
 
-    .section-header {
-      display: flex;
-      align-items: center;
-      gap: 14px;
-      margin-bottom: 1.25rem;
-      padding-bottom: 1rem;
-      border-bottom: 1px solid var(--border);
-    }
-    .section-icon {
-      width: 44px; height: 44px;
-      background: var(--primary-light);
-      border-radius: 10px;
-      display: flex; align-items: center; justify-content: center;
-      font-size: 1.2rem;
-      flex-shrink: 0;
-    }
-    .section h2 {
-      font-family: 'DM Sans', sans-serif;
-      font-size: 1.1rem;
-      font-weight: 700;
-      color: var(--dark);
-    }
-    .section-num {
-      font-size: 0.75rem;
-      color: var(--primary);
-      font-weight: 700;
-      text-transform: uppercase;
-      letter-spacing: 0.05em;
-      display: block;
-      margin-bottom: 2px;
-    }
-
-    .section p {
-      color: var(--soft);
-      font-size: 0.95rem;
-      margin-bottom: 0.75rem;
-    }
-    .section p:last-child { margin-bottom: 0; }
-
-    .section ul, .section ol {
-      padding-left: 1.25rem;
-      color: var(--soft);
-      font-size: 0.95rem;
-    }
-    .section li { margin-bottom: 0.5rem; }
+    /* SECTION CARD */
+    .section{background:var(--card);border:1px solid var(--border);border-radius:20px;
+      padding:28px 32px;margin-bottom:16px;transition:all .3s;}
+    .section:hover{border-color:rgba(0,200,224,0.25);}
+    .section-header{display:flex;align-items:center;gap:14px;margin-bottom:20px;
+      padding-bottom:16px;border-bottom:1px solid var(--border);}
+    .section-icon{width:46px;height:46px;background:rgba(0,200,224,0.1);border-radius:12px;
+      display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0;}
+    .section h2{font-size:16px;font-weight:700;color:var(--white);}
+    .section-num{font-size:11px;color:var(--cyan);font-weight:700;text-transform:uppercase;
+      letter-spacing:0.08em;display:block;margin-bottom:3px;}
+    .section p{color:var(--muted);font-size:14px;margin-bottom:10px;line-height:1.8;}
+    .section p:last-child{margin-bottom:0;}
+    .section ul,.section ol{padding-left:20px;color:var(--muted);font-size:14px;}
+    .section li{margin-bottom:8px;line-height:1.7;}
+    .section strong{color:rgba(255,255,255,0.9);}
 
     /* DATA TABLE */
-    .data-table {
-      width: 100%;
-      border-collapse: collapse;
-      font-size: 0.9rem;
-      margin: 1rem 0;
-    }
-    .data-table th {
-      background: var(--primary-light);
-      color: var(--primary);
-      font-weight: 700;
-      padding: 10px 16px;
-      text-align: left;
-      font-size: 0.8rem;
-      text-transform: uppercase;
-      letter-spacing: 0.04em;
-    }
-    .data-table td {
-      padding: 10px 16px;
-      border-bottom: 1px solid var(--border);
-      color: var(--soft);
-    }
-    .data-table tr:last-child td { border-bottom: none; }
-    .data-table tr:hover td { background: #f8fafc; }
+    .data-table{width:100%;border-collapse:collapse;font-size:13px;margin:14px 0;border-radius:12px;overflow:hidden;}
+    .data-table th{background:rgba(0,200,224,0.1);color:var(--cyan);font-weight:700;
+      padding:11px 16px;text-align:left;font-size:11px;text-transform:uppercase;letter-spacing:0.06em;}
+    .data-table td{padding:11px 16px;border-bottom:1px solid var(--border);color:var(--muted);font-size:13px;}
+    .data-table tr:last-child td{border-bottom:none;}
+    .data-table tr:hover td{background:rgba(255,255,255,0.02);}
 
-    /* HIGHLIGHT BOX */
-    .highlight {
-      background: linear-gradient(135deg, #eff6ff, #f0f9ff);
-      border: 1px solid #bfdbfe;
-      border-radius: 10px;
-      padding: 1rem 1.25rem;
-      margin: 1rem 0;
-      font-size: 0.9rem;
-      color: #1e40af;
-      font-weight: 500;
-    }
-    .highlight::before { content: '💡 '; }
-
-    /* WARNING BOX */
-    .warning {
-      background: #fefce8;
-      border: 1px solid #fde68a;
-      border-radius: 10px;
-      padding: 1rem 1.25rem;
-      margin: 1rem 0;
-      font-size: 0.9rem;
-      color: #92400e;
-      font-weight: 500;
-    }
-    .warning::before { content: '⚠️ '; }
+    /* HIGHLIGHT / WARNING */
+    .highlight{background:rgba(34,232,142,0.07);border:1px solid rgba(34,232,142,0.2);
+      border-radius:12px;padding:14px 18px;margin:14px 0;font-size:13px;
+      color:var(--green);font-weight:500;line-height:1.6;}
+    .highlight::before{content:'✅  ';}
+    .warning{background:rgba(245,200,66,0.07);border:1px solid rgba(245,200,66,0.2);
+      border-radius:12px;padding:14px 18px;margin:14px 0;font-size:13px;
+      color:rgba(245,200,66,0.9);font-weight:500;line-height:1.6;}
+    .warning::before{content:'⚠️  ';}
 
     /* CONTACT CARD */
-    .contact-card {
-      background: linear-gradient(135deg, #1e40af, #0ea5e9);
-      color: white;
-      border-radius: 16px;
-      padding: 2rem 2.5rem;
-      margin-top: 3rem;
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      flex-wrap: wrap;
-      gap: 1rem;
-    }
-    .contact-card h3 {
-      font-size: 1.1rem;
-      font-weight: 700;
-      margin-bottom: 4px;
-    }
-    .contact-card p { font-size: 0.9rem; opacity: 0.85; }
-    .contact-card a {
-      background: white;
-      color: var(--primary);
-      padding: 10px 24px;
-      border-radius: 8px;
-      text-decoration: none;
-      font-weight: 700;
-      font-size: 0.9rem;
-      white-space: nowrap;
-      transition: opacity 0.2s;
-    }
-    .contact-card a:hover { opacity: 0.9; }
+    .contact-card{background:linear-gradient(135deg,rgba(26,111,255,0.15),rgba(0,200,224,0.08));
+      border:1px solid rgba(26,111,255,0.3);border-radius:20px;padding:32px 36px;
+      margin-top:40px;display:flex;align-items:center;justify-content:space-between;
+      flex-wrap:wrap;gap:16px;}
+    .contact-card h3{font-size:17px;font-weight:800;margin-bottom:5px;}
+    .contact-card p{font-size:13px;color:var(--muted);}
+    .contact-card a{background:var(--blue);color:var(--white);padding:11px 26px;
+      border-radius:12px;font-weight:700;font-size:14px;white-space:nowrap;
+      box-shadow:0 6px 20px rgba(26,111,255,0.4);transition:all .2s;}
+    .contact-card a:hover{background:var(--blue2);}
 
     /* FOOTER */
-    footer {
-      text-align: center;
-      padding: 2rem;
-      font-size: 0.8rem;
-      color: var(--soft);
-      border-top: 1px solid var(--border);
-    }
+    footer{position:relative;z-index:1;text-align:center;padding:28px 20px;
+      font-size:12px;color:var(--muted);border-top:1px solid var(--border);}
+    footer a{color:var(--blue2);}
 
-    @media (max-width: 600px) {
-      .toc ol { grid-template-columns: 1fr; }
-      .section { padding: 1.5rem; }
-      .contact-card { flex-direction: column; text-align: center; }
+    @media(max-width:767px){
+      nav{padding:0 20px;height:60px;}
+      .hero{padding:90px 20px 50px;}
+      .container{padding:36px 16px 60px;}
+      .toc ol{grid-template-columns:1fr;}
+      .section{padding:20px;}
+      .contact-card{flex-direction:column;text-align:center;}
+      .data-table{font-size:12px;}
     }
   </style>
 </head>
 <body>
 
-<!-- NAV -->
 <nav>
-  <a href="/" class="nav-logo"><span>🦷</span> OralAI</a>
+  <a href="/" style="text-decoration:none;">
+    <span class="nav-logo-text">Oral<span>AI</span></span>
+  </a>
   <a href="/" class="nav-back">← Back to Home</a>
 </nav>
 
-<!-- HERO -->
 <div class="hero">
-  <div class="hero-badge">Legal</div>
+  <div class="hero-badge">🔒 Privacy</div>
   <h1>Privacy Policy</h1>
   <p>How OralAI collects, uses, and protects your personal and health information.</p>
   <div class="hero-meta">
@@ -329,8 +149,10 @@
   </div>
 </div>
 
-<!-- MAIN -->
 <div class="container">
+
+  <!-- WARNING -->
+  <div class="warning-banner">OralAI is a screening aid only and is NOT a substitute for professional dental diagnosis or treatment. Always consult a licensed dentist for medical advice.</div>
 
   <!-- TOC -->
   <div class="toc">
@@ -338,18 +160,13 @@
     <ol>
       <li><a href="#s1">Information We Collect</a></li>
       <li><a href="#s2">How We Use Your Data</a></li>
-      <li><a href="#s3">Data Storage & Security</a></li>
-      <li><a href="#s4">Image & Health Data</a></li>
-      <li><a href="#s5">WhatsApp & Email Delivery</a></li>
+      <li><a href="#s3">Data Storage &amp; Security</a></li>
+      <li><a href="#s4">Image &amp; Health Data</a></li>
+      <li><a href="#s5">WhatsApp &amp; Email Delivery</a></li>
       <li><a href="#s6">Data Sharing</a></li>
       <li><a href="#s7">Your Rights</a></li>
-      <li><a href="#s8">Contact Us</a></li>
+      <li><a href="#s8">Policy Updates</a></li>
     </ol>
-  </div>
-
-  <!-- DISCLAIMER -->
-  <div class="warning">
-    OralAI is a screening aid only and is NOT a substitute for professional dental diagnosis or treatment. Always consult a licensed dentist for medical advice.
   </div>
 
   <!-- S1 -->
@@ -369,7 +186,8 @@
       <tbody>
         <tr><td>Personal Info</td><td>Full name, age, gender</td><td>✅ Yes</td></tr>
         <tr><td>Contact Info</td><td>Phone number, email address</td><td>✅ Yes</td></tr>
-        <tr><td>Health Images</td><td>3 dental photos (upper, front, lower)</td><td>✅ Yes</td></tr>
+        <tr><td>Face Image</td><td>1 front-facing photo of the patient</td><td>✅ Yes</td></tr>
+        <tr><td>Dental Images</td><td>3 dental photos (upper, front, lower teeth)</td><td>✅ Yes</td></tr>
         <tr><td>Language Preference</td><td>Chosen report language</td><td>✅ Yes</td></tr>
         <tr><td>Usage Data</td><td>Pages visited, screening timestamps</td><td>🔄 Automatic</td></tr>
       </tbody>
@@ -388,15 +206,14 @@
     </div>
     <p>Your data is used exclusively to provide OralAI's screening service:</p>
     <ul>
+      <li>To capture and validate 4 images — your face photo first, then 3 dental images</li>
       <li>To run YOLOv8 object detection on your dental images</li>
       <li>To generate a personalised AI analysis report in your chosen language</li>
       <li>To create and deliver your PDF screening report via download, email, or WhatsApp</li>
       <li>To improve the accuracy and performance of our AI models (anonymised only)</li>
       <li>To respond to support requests or contact inquiries</li>
     </ul>
-    <div class="highlight">
-      We do not use your data for advertising, marketing to third parties, or selling to any external organisation.
-    </div>
+    <div class="highlight">We do not use your data for advertising, marketing to third parties, or selling to any external organisation.</div>
   </div>
 
   <!-- S3 -->
@@ -405,19 +222,17 @@
       <div class="section-icon">🔒</div>
       <div>
         <span class="section-num">Section 03</span>
-        <h2>Data Storage & Security</h2>
+        <h2>Data Storage &amp; Security</h2>
       </div>
     </div>
     <p>OralAI is hosted on <strong>AWS EC2 (Amazon Web Services)</strong> infrastructure with the following protections:</p>
     <ul>
       <li>All data transmitted over <strong>HTTPS/TLS encryption</strong></li>
       <li>Server access restricted to the development team only</li>
-      <li>Dental images are processed in real-time and <strong>not permanently stored</strong> on our servers after the report is generated</li>
+      <li>Face and dental images are processed in real-time and <strong>not permanently stored</strong> on our servers after the report is generated</li>
       <li>Patient details are stored securely and not exposed publicly</li>
     </ul>
-    <div class="highlight">
-      Dental images are used only during the active screening session and are not retained after your report is generated.
-    </div>
+    <div class="highlight">All 4 images (face + 3 dental) are used only during the active screening session and are not retained after your report is generated.</div>
   </div>
 
   <!-- S4 -->
@@ -426,19 +241,18 @@
       <div class="section-icon">🦷</div>
       <div>
         <span class="section-num">Section 04</span>
-        <h2>Image & Health Data</h2>
+        <h2>Image &amp; Health Data</h2>
       </div>
     </div>
-    <p>Because OralAI processes dental images (a category of health-related data), we take extra precautions:</p>
+    <p>Because OralAI processes dental and face images (a category of health-related data), we take extra precautions:</p>
     <ul>
-      <li>Images are processed only by our AI pipeline (YOLOv8 + AI language model)</li>
-      <li>No human team member manually reviews your dental images unless you contact us for support</li>
+      <li>All 4 images are processed only by our AI pipeline (YOLOv8 + AI language model)</li>
+      <li>Your face image is used for patient identification context in the PDF report only — it is not used for facial recognition</li>
+      <li>No human team member manually reviews your images unless you contact us for support</li>
       <li>Images are <strong>not shared</strong> with dentists, clinics, or any third party without your consent</li>
       <li>AI-generated reports are for <strong>informational purposes only</strong> and do not constitute a medical diagnosis</li>
     </ul>
-    <div class="warning">
-      The OralAI report does not replace a professional dental examination. Please consult a licensed dentist for clinical decisions.
-    </div>
+    <div class="warning">The OralAI report does not replace a professional dental examination. Please consult a licensed dentist for clinical decisions.</div>
   </div>
 
   <!-- S5 -->
@@ -447,7 +261,7 @@
       <div class="section-icon">📱</div>
       <div>
         <span class="section-num">Section 05</span>
-        <h2>WhatsApp & Email Delivery</h2>
+        <h2>WhatsApp &amp; Email Delivery</h2>
       </div>
     </div>
     <p>When you choose to receive your report via WhatsApp or Email:</p>
@@ -474,9 +288,7 @@
       <li><strong>Legal obligation:</strong> If required by Indian law, court order, or government authority</li>
       <li><strong>Academic research:</strong> Only fully anonymised, aggregated data — never individual records</li>
     </ul>
-    <div class="highlight">
-      No third party advertiser, insurance company, employer, or organisation ever receives your data.
-    </div>
+    <div class="highlight">No third-party advertiser, insurance company, employer, or organisation ever receives your personal data or images.</div>
   </div>
 
   <!-- S7 -->
@@ -502,10 +314,10 @@
   <!-- S8 -->
   <div class="section" id="s8">
     <div class="section-header">
-      <div class="section-icon">📧</div>
+      <div class="section-icon">📅</div>
       <div>
         <span class="section-num">Section 08</span>
-        <h2>Updates to This Policy</h2>
+        <h2>Policy Updates</h2>
       </div>
     </div>
     <p>We may update this Privacy Policy as OralAI evolves. Changes will be posted on this page with an updated effective date. Continued use of OralAI after changes constitutes acceptance of the revised policy.</p>
@@ -524,9 +336,9 @@
 </div>
 
 <footer>
-  © 2026 OralAI · Swarnandhra College of Engineering and Technology (Autonomous) · Andhra Pradesh, India<br>
-  <a href="/terms" style="color: var(--primary); text-decoration: none;">Terms of Use</a> &nbsp;·&nbsp;
-  <a href="/" style="color: var(--primary); text-decoration: none;">Back to Home</a>
+  © 2026 OralAI &nbsp;·&nbsp; Swarnandhra College of Engineering and Technology (Autonomous) &nbsp;·&nbsp; Andhra Pradesh, India<br/>
+  <a href="/terms">Terms of Use</a> &nbsp;·&nbsp;
+  <a href="/">Back to Home</a>
 </footer>
 
 </body>

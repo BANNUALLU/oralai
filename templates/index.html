@@ -102,11 +102,6 @@ nav{position:fixed;top:0;left:0;right:0;z-index:100;display:flex;align-items:cen
 .section-title span{color:var(--blue);}
 .section-desc{font-size:15px;color:var(--muted);line-height:1.8;max-width:540px;}
 
-/* TRUSTED */
-.trusted{padding:36px 60px;border-top:1px solid var(--border);border-bottom:1px solid var(--border);}
-.trusted-inner{max-width:1200px;margin:0 auto;display:flex;align-items:center;gap:32px;flex-wrap:wrap;}
-.trusted-label{font-size:13px;color:var(--muted);white-space:nowrap;}
-
 /* FEATURES */
 .features-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:20px;margin-top:56px;}
 .feature-card{background:var(--card);border:1px solid var(--border);border-radius:20px;padding:28px;transition:all .3s;}
@@ -124,6 +119,15 @@ nav{position:fixed;top:0;left:0;right:0;z-index:100;display:flex;align-items:cen
 .step-num{width:70px;height:70px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:26px;margin-bottom:18px;}
 .step-item h3{font-size:15px;font-weight:700;margin-bottom:8px;}
 .step-item p{font-size:13px;color:var(--muted);line-height:1.6;}
+
+/* IMAGE CAPTURE SHOWCASE */
+.capture-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-top:48px;}
+.capture-card{background:var(--card);border:1px solid var(--border);border-radius:18px;padding:22px 16px;text-align:center;transition:all .3s;}
+.capture-card:hover{border-color:rgba(26,111,255,0.4);transform:translateY(-4px);}
+.capture-icon{font-size:36px;margin-bottom:14px;}
+.capture-card h4{font-size:14px;font-weight:700;margin-bottom:6px;}
+.capture-card p{font-size:12px;color:var(--muted);line-height:1.6;}
+.capture-badge{display:inline-block;background:rgba(26,111,255,0.12);border:1px solid rgba(26,111,255,0.25);color:var(--blue2);font-size:11px;font-weight:700;padding:3px 10px;border-radius:999px;margin-top:8px;}
 
 /* LANGUAGES */
 .lang-grid{display:flex;flex-wrap:wrap;gap:10px;margin-top:36px;}
@@ -243,12 +247,13 @@ footer{background:rgba(0,0,0,0.4);border-top:1px solid var(--border);padding:56p
 /* RESPONSIVE */
 @media(max-width:1199px){
   nav{padding:0 32px;}.hero{padding:100px 32px 80px;}.section{padding:80px 32px;}
-  .trusted,.cta-section{padding:36px 32px;}.footer-inner{padding:0;}
+  .cta-section{padding:36px 32px;}.footer-inner{padding:0;}
 }
 @media(max-width:899px){
   .hero-inner{grid-template-columns:1fr;text-align:center;}.hero-btns{justify-content:center;}
   .hero-stats{justify-content:center;}.hero-visual{display:none;}
   .features-grid{grid-template-columns:repeat(2,1fr);}
+  .capture-grid{grid-template-columns:repeat(2,1fr);}
   .steps-grid{grid-template-columns:repeat(2,1fr);gap:40px;}.steps-grid::before{display:none;}
   .dev-inner{grid-template-columns:1fr;}.contact-grid{grid-template-columns:1fr;}
   .footer-top{grid-template-columns:1fr 1fr;gap:36px;}.t-grid{grid-template-columns:1fr 1fr;}
@@ -259,8 +264,9 @@ footer{background:rgba(0,0,0,0.4);border-top:1px solid var(--border);padding:56p
   .nav-links,.nav-cta{display:none;}.hamburger{display:flex;}
   .nav-logo img{height:38px;}
   .hero{padding:88px 20px 60px;}.hero-title{font-size:34px;letter-spacing:-1px;}
-  .section{padding:60px 20px;}.trusted{padding:24px 20px;}.cta-section{padding:60px 20px;}
+  .section{padding:60px 20px;}.cta-section{padding:60px 20px;}
   .features-grid{grid-template-columns:1fr;}.steps-grid{grid-template-columns:1fr;}
+  .capture-grid{grid-template-columns:repeat(2,1fr);}
   .t-grid{grid-template-columns:1fr;}.footer-top{grid-template-columns:1fr;}
   .cta-box{padding:44px 24px;}.cta-box h2{font-size:28px;}
   footer{padding:44px 20px 20px;}.section-title{font-size:30px;}.form-row{grid-template-columns:1fr;}
@@ -281,12 +287,14 @@ footer{background:rgba(0,0,0,0.4);border-top:1px solid var(--border);padding:56p
   .footer-top{grid-template-columns:1fr;gap:28px;}
   .footer-bottom{flex-direction:column;text-align:center;}
   .review-form-box{padding:22px 18px;}
+  .capture-grid{grid-template-columns:1fr 1fr;}
 }
 @media(max-width:360px){
   .hero-title{font-size:24px;}
   .section-title{font-size:22px;}
   .cta-box h2{font-size:20px;}
   .lang-pill{font-size:13px;padding:8px 14px;}
+  .capture-grid{grid-template-columns:1fr;}
 }
 </style>
 </head>
@@ -300,7 +308,8 @@ footer{background:rgba(0,0,0,0.4);border-top:1px solid var(--border);padding:56p
   </div>
   <div class="nav-links">
     <a href="#features">Features</a><a href="#how">How it Works</a>
-    <a href="#languages">Languages</a><a href="#developer">Developer</a><a href="#contact">Contact</a>
+    <a href="#capture">Image Guide</a><a href="#languages">Languages</a>
+    <a href="#developer">Developer</a><a href="#contact">Contact</a>
   </div>
   <div class="nav-cta">
     <a href="#contact" class="btn-nav btn-nav-outline">Contact Us</a>
@@ -310,8 +319,11 @@ footer{background:rgba(0,0,0,0.4);border-top:1px solid var(--border);padding:56p
 </nav>
 
 <div class="mobile-menu" id="mobileMenu">
-  <a href="#features" onclick="closeMenu()">Features</a><a href="#how" onclick="closeMenu()">How it Works</a>
-  <a href="#languages" onclick="closeMenu()">Languages</a><a href="#developer" onclick="closeMenu()">Developer</a>
+  <a href="#features" onclick="closeMenu()">Features</a>
+  <a href="#how" onclick="closeMenu()">How it Works</a>
+  <a href="#capture" onclick="closeMenu()">Image Guide</a>
+  <a href="#languages" onclick="closeMenu()">Languages</a>
+  <a href="#developer" onclick="closeMenu()">Developer</a>
   <a href="#contact" onclick="closeMenu()">Contact</a>
   <a href="/details" class="btn-nav btn-nav-fill" style="padding:11px;text-align:center;border-radius:12px;">Start Screening</a>
 </div>
@@ -323,13 +335,13 @@ footer{background:rgba(0,0,0,0.4);border-top:1px solid var(--border);padding:56p
     <div class="hero-content fade-up">
       <div class="hero-badge">AI-Powered Dental Screening</div>
       <h1 class="hero-title">Detect Oral Issues<br><span class="italic">Before</span> They <span class="accent">Worsen</span></h1>
-      <p class="hero-desc">OralAI uses advanced AI to screen your oral health in seconds. Capture 3 dental images, get instant YOLO detection and AI analysis in your language.</p>
+      <p class="hero-desc">OralAI uses advanced AI to screen your oral health in seconds. Capture 3 dental images and 1 face image, get instant YOLO detection and AI analysis in your language.</p>
       <div class="hero-btns">
         <a href="/details" class="btn-primary">Start Free Screening</a>
         <a href="#how" class="btn-secondary">See How it Works</a>
       </div>
       <div class="hero-stats">
-        <div><div class="stat-num">3</div><div class="stat-label">Photo Views</div></div>
+        <div><div class="stat-num">4</div><div class="stat-label">Photo Captures</div></div>
         <div><div class="stat-num">9+</div><div class="stat-label">Languages</div></div>
         <div><div class="stat-num">60s</div><div class="stat-label">Report Ready</div></div>
         <div><div class="stat-num" id="screeningCount">50</div><div class="stat-label">Screenings Done</div></div>
@@ -346,14 +358,6 @@ footer{background:rgba(0,0,0,0.4);border-top:1px solid var(--border);padding:56p
   </div>
 </section>
 
-<!-- TRUSTED -->
-<div class="trusted">
-  <div class="trusted-inner">
-    <span class="trusted-label">Presented by</span>
-    <span style="font-size:15px;font-weight:700;color:var(--white);opacity:0.8;">Swarnandhra College of Engineering and Technology (Autonomous)</span>
-  </div>
-</div>
-
 <!-- FEATURES -->
 <section class="section" id="features">
   <div class="section-inner">
@@ -363,12 +367,12 @@ footer{background:rgba(0,0,0,0.4);border-top:1px solid var(--border);padding:56p
       <p class="section-desc">From image capture to PDF report — OralAI handles the complete AI screening pipeline.</p>
     </div>
     <div class="features-grid">
-      <div class="feature-card fade-up"><div class="feature-icon" style="background:rgba(26,111,255,0.12)">🤖</div><h3>AI Analysis</h3><p>Our AI Vision observes all 3 dental images and writes a detailed personalised analysis with findings and urgency level.</p></div>
+      <div class="feature-card fade-up"><div class="feature-icon" style="background:rgba(26,111,255,0.12)">🤖</div><h3>AI Analysis</h3><p>Our AI Vision observes all 4 captures — 3 dental views + face image — and writes a detailed personalised analysis with findings and urgency level.</p></div>
       <div class="feature-card fade-up"><div class="feature-icon" style="background:rgba(0,200,224,0.12)">🎯</div><h3>YOLO Detection</h3><p>YOLOv8 detects caries, stains, malalignment and pit fissure caries with bounding boxes and confidence scores.</p></div>
       <div class="feature-card fade-up"><div class="feature-icon" style="background:rgba(245,200,66,0.12)">📄</div><h3>PDF Report</h3><p>Professional multi-page PDF with YOLO images, treatment recommendations and AI analysis in the patient's language.</p></div>
       <div class="feature-card fade-up"><div class="feature-icon" style="background:rgba(34,232,142,0.12)">💬</div><h3>WhatsApp Delivery</h3><p>Send the PDF report directly to the patient's WhatsApp number instantly after screening is complete.</p></div>
       <div class="feature-card fade-up"><div class="feature-icon" style="background:rgba(124,58,237,0.12)">🌍</div><h3>9 Languages</h3><p>Full support for English, Hindi, Telugu, Tamil, Kannada, Malayalam, Marathi, Bengali and Arabic.</p></div>
-      <div class="feature-card fade-up"><div class="feature-icon" style="background:rgba(239,68,68,0.12)">🛡️</div><h3>Image Validation</h3><p>AI validates each image before processing — rejects non-teeth photos automatically.</p></div>
+      <div class="feature-card fade-up"><div class="feature-icon" style="background:rgba(239,68,68,0.12)">🛡️</div><h3>Image Validation</h3><p>AI validates each image before processing — rejects non-teeth and non-face photos automatically.</p></div>
     </div>
   </div>
 </section>
@@ -383,9 +387,46 @@ footer{background:rgba(0,0,0,0.4);border-top:1px solid var(--border);padding:56p
     </div>
     <div class="steps-grid">
       <div class="step-item fade-up"><div class="step-num" style="background:rgba(26,111,255,0.12);border:2px solid rgba(26,111,255,0.3)">📋</div><h3>Enter Details</h3><p>Patient fills name, age, gender, phone, email and preferred language.</p></div>
-      <div class="step-item fade-up"><div class="step-num" style="background:rgba(0,200,224,0.12);border:2px solid rgba(0,200,224,0.3)">📸</div><h3>Capture Images</h3><p>3 guided captures — Upper, Front and Lower teeth with real-time AI validation.</p></div>
-      <div class="step-item fade-up"><div class="step-num" style="background:rgba(245,200,66,0.12);border:2px solid rgba(245,200,66,0.3)">⚡</div><h3>AI Analysis</h3><p>YOLO detects conditions. AI analyses all 3 images and writes a detailed diagnosis.</p></div>
+      <div class="step-item fade-up"><div class="step-num" style="background:rgba(0,200,224,0.12);border:2px solid rgba(0,200,224,0.3)">📸</div><h3>Capture Images</h3><p>4 guided captures — Face first, then Upper, Front and Lower teeth — with real-time AI validation.</p></div>
+      <div class="step-item fade-up"><div class="step-num" style="background:rgba(245,200,66,0.12);border:2px solid rgba(245,200,66,0.3)">⚡</div><h3>AI Analysis</h3><p>YOLO detects conditions. AI analyses all 4 images and writes a detailed diagnosis.</p></div>
       <div class="step-item fade-up"><div class="step-num" style="background:rgba(34,232,142,0.12);border:2px solid rgba(34,232,142,0.3)">📤</div><h3>Get Report</h3><p>Download PDF, receive via Email or WhatsApp in patient's chosen language.</p></div>
+    </div>
+  </div>
+</section>
+
+<!-- IMAGE CAPTURE GUIDE -->
+<section class="section" id="capture">
+  <div class="section-inner">
+    <div class="fade-up" style="text-align:center">
+      <div class="section-tag">Image Guide</div>
+      <h2 class="section-title">4 Images <span>We Capture</span></h2>
+      <p class="section-desc" style="margin:0 auto">Each capture serves a specific purpose in the AI diagnosis. Our guided interface makes it easy.</p>
+    </div>
+    <div class="capture-grid fade-up">
+      <div class="capture-card">
+        <div class="capture-icon">🧑‍⚕️</div>
+        <h4>Face Image</h4>
+        <p>Look straight at the camera in good lighting. Taken first for patient identification and facial symmetry context in the report.</p>
+        <span class="capture-badge">Capture 1 of 4</span>
+      </div>
+      <div class="capture-card">
+        <div class="capture-icon">🦷</div>
+        <h4>Upper Teeth</h4>
+        <p>Tilt head back slightly and open wide. Captures the upper dental arch for caries and stain detection.</p>
+        <span class="capture-badge">Capture 2 of 4</span>
+      </div>
+      <div class="capture-card">
+        <div class="capture-icon">😬</div>
+        <h4>Front Teeth</h4>
+        <p>Smile wide and face the camera straight. Captures the frontal bite, alignment and visible surface conditions.</p>
+        <span class="capture-badge">Capture 3 of 4</span>
+      </div>
+      <div class="capture-card">
+        <div class="capture-icon">👇</div>
+        <h4>Lower Teeth</h4>
+        <p>Tilt head forward and open wide. Captures the lower dental arch for pit fissure caries and malalignment.</p>
+        <span class="capture-badge">Capture 4 of 4</span>
+      </div>
     </div>
   </div>
 </section>
@@ -599,7 +640,8 @@ footer{background:rgba(0,0,0,0.4);border-top:1px solid var(--border);padding:56p
       </div>
       <div class="footer-col"><h4>Product</h4><ul>
         <li><a href="#features">Features</a></li><li><a href="#how">How it Works</a></li>
-        <li><a href="#languages">Languages</a></li><li><a href="/details">Start Screening</a></li>
+        <li><a href="#capture">Image Guide</a></li><li><a href="#languages">Languages</a></li>
+        <li><a href="/details">Start Screening</a></li>
       </ul></div>
       <div class="footer-col"><h4>Company</h4><ul>
         <li><a href="#developer">About Team</a></li><li><a href="#contact">Contact</a></li>
