@@ -6,7 +6,6 @@ numpy
 reportlab
 fpdf2
 pypdf
-Pillow
 requests
 gunicorn
 python-dotenv
