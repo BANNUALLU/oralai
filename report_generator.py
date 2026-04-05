@@ -92,12 +92,25 @@ NON_LATIN_LANGUAGES = {
     "Kannada", "Malayalam", "Bengali", "Arabic"
 }
 
+# ── Smaller font size for tall scripts so MORE fits per page ──
+LANG_FONT_SIZE = {
+    "Telugu":    7.5,
+    "Hindi":     8.0,
+    "Marathi":   8.0,
+    "Tamil":     7.5,
+    "Kannada":   7.5,
+    "Malayalam": 7.5,
+    "Bengali":   8.0,
+    "Arabic":    8.0,
+    "English":   9.0,
+}
+
 # ── Page layout constants ─────────────────────────────────────
-PAGE_H_MM       = 297          # A4 height in mm
-FOOTER_H_MM     = 14           # footer height in mm
-SAFE_BOTTOM_MM  = PAGE_H_MM - FOOTER_H_MM - 8   # = 275 — stop placing content here
-CONTENT_TOP_MM  = 18           # after continuation header
-DISCLAIMER_H_MM = 10           # height of disclaimer box
+PAGE_H_MM       = 297
+FOOTER_H_MM     = 14
+SAFE_BOTTOM_MM  = PAGE_H_MM - FOOTER_H_MM - 6   # 277 mm
+CONTENT_TOP_MM  = 18
+DISCLAIMER_H_MM = 10
 
 
 def sanitize(text):
@@ -121,11 +134,9 @@ def clean_markdown(text, language="English"):
     text = re.sub(r'^[-=]{2,}\s*$', '', text, flags=re.MULTILINE)
     text = re.sub(r'\[([^\]]+)\]\([^\)]+\)', r'\1', text)
     text = text.replace('`', '')
-
     if language not in NON_LATIN_LANGUAGES:
         text = re.sub(r'\?{2,}', '', text)
         text = re.sub(r'^[-_=?#*]+$', '', text, flags=re.MULTILINE)
-
     text = re.sub(r'  +', ' ', text)
     return text.strip()
 
@@ -145,11 +156,6 @@ def wrap_text(text, max_chars=82):
     return lines
 
 
-def hex_to_rgb(hex_color):
-    h = hex_color.lstrip("#")
-    return tuple(int(h[i:i+2], 16) for i in (0, 2, 4))
-
-
 def draw_footer_rl(c, W, report_id, page_num, total_pages):
     c.setFillColor(C_HEADER)
     c.rect(0, 0, W, 42, fill=1, stroke=0)
@@ -162,18 +168,6 @@ def draw_footer_rl(c, W, report_id, page_num, total_pages):
     c.setFillColor(colors.HexColor("#94a3b8"))
     c.drawRightString(W - 16, 16,
         f"Report ID: {report_id}   |   {datetime.now().strftime('%d %b %Y')}   |   Page {page_num} of {total_pages}")
-
-
-def draw_disclaimer_rl(c, W):
-    c.setFillColor(C_WARN_BG)
-    c.roundRect(28, 50, W - 56, 24, 6, fill=1, stroke=0)
-    c.setStrokeColor(C_WARN_BD)
-    c.setLineWidth(0.8)
-    c.roundRect(28, 50, W - 56, 24, 6, fill=0, stroke=1)
-    c.setFillColor(C_WARN_TX)
-    c.setFont("Helvetica-Oblique", 8.5)
-    c.drawCentredString(W / 2, 59,
-        "This is an AI-based screening tool and does not replace a professional dental diagnosis. Please consult a dentist.")
 
 
 def draw_section_bar_rl(c, W, y, title, color=None):
@@ -203,15 +197,13 @@ def get_face_photo_path(screening_id, report_id):
 def draw_patient_info_bar(c, W, H, header_h, name, age, gender, phone, now, face_photo_path=None):
     bar_top = H - header_h
     bar_h   = 54
-
     c.setFillColor(C_SURFACE2)
     c.rect(0, bar_top - bar_h, W, bar_h, fill=1, stroke=0)
     c.setStrokeColor(C_BORDER)
     c.setLineWidth(0.8)
     c.line(0, bar_top - bar_h, W, bar_top - bar_h)
 
-    photo_w = 40
-    photo_h = 44
+    photo_w, photo_h = 40, 44
     photo_x = W - photo_w - 14
     photo_y = bar_top - bar_h + 5
 
@@ -224,7 +216,7 @@ def draw_patient_info_bar(c, W, H, header_h, name, age, gender, phone, now, face
                         width=photo_w, height=photo_h,
                         preserveAspectRatio=True, mask="auto")
         except Exception as e:
-            print(f"[Page1] Face photo draw error: {e}")
+            print(f"[Page1] Face photo error: {e}")
             _draw_face_placeholder(c, photo_x, photo_y, photo_w, photo_h)
     else:
         _draw_face_placeholder(c, photo_x, photo_y, photo_w, photo_h)
@@ -240,11 +232,9 @@ def draw_patient_info_bar(c, W, H, header_h, name, age, gender, phone, now, face
 
     iy1 = bar_top - 22
     iy2 = bar_top - 38
-
     info_pair("Name:",  f"{name}  ({age} / {gender})", 28, iy1)
     info_pair("Phone:", phone, 28, iy2)
     info_pair("Date:",  now,   220, iy2)
-
     return bar_top - bar_h
 
 
@@ -258,30 +248,23 @@ def _draw_face_placeholder(c, x, y, w, h):
 
 
 # ══════════════════════════════════════════════════════════════
-#  PILLOW TEXT IMAGE RENDERER
+#  PILLOW HELPERS
 # ══════════════════════════════════════════════════════════════
 
 def render_text_to_image(text, font_path, font_size_pt=9,
-                          text_color=(15, 23, 42),
-                          bg_color=None,
-                          max_width_mm=183,
-                          dpi=200):
+                          text_color=(15, 23, 42), bg_color=None,
+                          max_width_mm=183, dpi=200):
     try:
         px_per_mm = dpi / 25.4
         max_w_px  = int(max_width_mm * px_per_mm)
         font_px   = max(int(font_size_pt * dpi / 72), 10)
+        pil_font  = ImageFont.truetype(font_path, font_px)
 
-        pil_font = ImageFont.truetype(font_path, font_px)
-
-        words   = text.split()
-        lines   = []
-        current = ""
-
+        words, lines, current = text.split(), [], ""
         dummy = ImageDraw.Draw(Image.new("RGBA", (1, 1)))
         for word in words:
             test = (current + " " + word).strip() if current else word
-            w    = dummy.textlength(test, font=pil_font)
-            if w <= max_w_px:
+            if dummy.textlength(test, font=pil_font) <= max_w_px:
                 current = test
             else:
                 if current:
@@ -297,15 +280,14 @@ def render_text_to_image(text, font_path, font_size_pt=9,
             bbox = dummy.textbbox((0, 0), ln, font=pil_font)
             line_heights.append(bbox[3] - bbox[1])
 
-        line_gap = max(int(font_px * 0.3), 4)
-        total_h  = sum(line_heights) + line_gap * (len(lines) - 1) + int(font_px * 0.4)
+        line_gap = max(int(font_px * 0.28), 3)
+        total_h  = sum(line_heights) + line_gap * (len(lines) - 1) + int(font_px * 0.3)
         total_h  = max(total_h, font_px + 4)
 
         bg  = bg_color if bg_color else (255, 255, 255)
         img = Image.new("RGB", (max_w_px, total_h), bg)
         draw = ImageDraw.Draw(img)
-
-        y = int(font_px * 0.1)
+        y = int(font_px * 0.05)
         for i, ln in enumerate(lines):
             draw.text((0, y), ln, font=pil_font, fill=text_color)
             y += line_heights[i] + line_gap
@@ -313,45 +295,77 @@ def render_text_to_image(text, font_path, font_size_pt=9,
         tmp = tempfile.NamedTemporaryFile(suffix=".png", delete=False)
         img.save(tmp.name, "PNG")
         tmp.close()
-
-        h_mm = total_h  / px_per_mm
-        w_mm = max_w_px / px_per_mm
-
-        return tmp.name, h_mm, w_mm
-
+        return tmp.name, total_h / px_per_mm, max_w_px / px_per_mm
     except Exception as e:
         print(f"[TextImg] render failed: {e}")
         return None
 
 
+def measure_text_height_mm(text, font_path, font_size_pt=9,
+                            max_width_mm=183, dpi=200):
+    """Measure rendered height WITHOUT writing a file."""
+    try:
+        px_per_mm = dpi / 25.4
+        max_w_px  = int(max_width_mm * px_per_mm)
+        font_px   = max(int(font_size_pt * dpi / 72), 10)
+        pil_font  = ImageFont.truetype(font_path, font_px)
+
+        words, lines, current = text.split(), [], ""
+        dummy = ImageDraw.Draw(Image.new("RGBA", (1, 1)))
+        for word in words:
+            test = (current + " " + word).strip() if current else word
+            if dummy.textlength(test, font=pil_font) <= max_w_px:
+                current = test
+            else:
+                if current:
+                    lines.append(current)
+                current = word
+        if current:
+            lines.append(current)
+        if not lines:
+            return None
+
+        line_heights = []
+        for ln in lines:
+            bbox = dummy.textbbox((0, 0), ln, font=pil_font)
+            line_heights.append(bbox[3] - bbox[1])
+
+        line_gap = max(int(font_px * 0.28), 3)
+        total_h  = sum(line_heights) + line_gap * (len(lines) - 1) + int(font_px * 0.3)
+        return max(total_h, font_px + 4) / px_per_mm
+    except Exception as e:
+        print(f"[Measure] failed: {e}")
+        return None
+
+
 # ══════════════════════════════════════════════════════════════
-#  PAGE 2+ GENERATOR using fpdf2
+#  AnalysisPDF class
 # ══════════════════════════════════════════════════════════════
 
 class AnalysisPDF(FPDF):
     def __init__(self, language, font_path, name, age, gender,
                  report_id, logo_path, total_pages):
         super().__init__()
-        self.language    = language
-        self.font_path   = font_path
-        self.pat_name    = name
-        self.pat_age     = str(age)
-        self.pat_gender  = gender
-        self.report_id   = report_id
-        self.logo_path   = logo_path
-        self.total_pages = total_pages
-        self.page_num    = 2
+        self.language     = language
+        self.font_path    = font_path
+        self.pat_name     = name
+        self.pat_age      = str(age)
+        self.pat_gender   = gender
+        self.report_id    = report_id
+        self.logo_path    = logo_path
+        self.total_pages  = total_pages
+        self.page_num     = 2
         self.is_non_latin = language in NON_LATIN_LANGUAGES
         self._tmp_images  = []
+        self.body_font_pt = LANG_FONT_SIZE.get(language, 9.0)
 
         self.font_name = "NotoUni"
-
         if font_path and os.path.exists(font_path):
             try:
                 self.add_font(self.font_name, style="", fname=font_path)
-                print(f"[Font] Loaded: {font_path}")
+                print(f"[Font] Loaded {font_path} @ {self.body_font_pt}pt")
             except Exception as e:
-                print(f"[Font] Failed to load {font_path}: {e}")
+                print(f"[Font] Failed: {e}")
                 self.font_name = None
         else:
             print(f"[Font] NOT FOUND: {font_path}")
@@ -369,18 +383,17 @@ class AnalysisPDF(FPDF):
         if not isinstance(text, str):
             text = str(text)
         if self.is_non_latin:
-            text = re.sub(r'[\x00-\x08\x0b\x0c\x0e-\x1f]', '', text)
-            return text
-        else:
-            return sanitize(text)
+            return re.sub(r'[\x00-\x08\x0b\x0c\x0e-\x1f]', '', text)
+        return sanitize(text)
 
-    def get_font(self, bold=False, size=10):
+    def get_font(self, bold=False, size=None):
+        sz = size if size is not None else self.body_font_pt
         if self.font_name:
-            self.set_font(self.font_name, size=size)
+            self.set_font(self.font_name, size=sz)
         else:
-            self.set_font("Helvetica", style="B" if bold else "", size=size)
+            self.set_font("Helvetica", style="B" if bold else "", size=sz)
 
-    # ── Continuation page header (no analysis header, just minimal bar) ──
+    # ── Page break helpers ────────────────────────────────────
     def _draw_continuation_header(self):
         self.set_fill_color(15, 23, 42)
         self.rect(0, 0, 210, 14, "F")
@@ -394,85 +407,44 @@ class AnalysisPDF(FPDF):
         self.rect(0, 14, 210, 1.5, "F")
         self.set_y(CONTENT_TOP_MM)
 
-    # ── Force a page break and draw the continuation header ──
     def _new_page(self):
         self.draw_footer()
         self.page_num += 1
         self.add_page()
         self._draw_continuation_header()
 
-    # ── Check remaining space; break if needed ──
     def _ensure_space(self, needed_mm):
-        """Break page if `needed_mm` won't fit before the safe bottom."""
         if self.get_y() + needed_mm > SAFE_BOTTOM_MM:
             self._new_page()
 
-    def _measure_text_height_mm(self, text, font_size_pt=9,
-                                max_width_mm=183, dpi=200):
-        """
-        Measure how tall the rendered Pillow image will be (in mm)
-        WITHOUT creating any file. Used for look-ahead page-break decisions.
-        Returns height in mm, or None on failure.
-        """
-        try:
-            px_per_mm = dpi / 25.4
-            max_w_px  = int(max_width_mm * px_per_mm)
-            font_px   = max(int(font_size_pt * dpi / 72), 10)
-            pil_font  = ImageFont.truetype(self.font_path, font_px)
-
-            words, lines, current = text.split(), [], ""
-            dummy = ImageDraw.Draw(Image.new("RGBA", (1, 1)))
-            for word in words:
-                test = (current + " " + word).strip() if current else word
-                if dummy.textlength(test, font=pil_font) <= max_w_px:
-                    current = test
-                else:
-                    if current:
-                        lines.append(current)
-                    current = word
-            if current:
-                lines.append(current)
-            if not lines:
-                return None
-
-            line_heights = []
-            for ln in lines:
-                bbox = dummy.textbbox((0, 0), ln, font=pil_font)
-                line_heights.append(bbox[3] - bbox[1])
-
-            line_gap = max(int(font_px * 0.3), 4)
-            total_h  = sum(line_heights) + line_gap * (len(lines) - 1) + int(font_px * 0.4)
-            total_h  = max(total_h, font_px + 4)
-            return total_h / px_per_mm
-        except Exception as e:
-            print(f"[Measure] failed: {e}")
+    # ── Measure without file ──────────────────────────────────
+    def _measure_h(self, text, max_width_mm=183):
+        if not self.font_path or not os.path.exists(self.font_path):
             return None
+        return measure_text_height_mm(
+            text, self.font_path,
+            font_size_pt=self.body_font_pt,
+            max_width_mm=max_width_mm,
+            dpi=200
+        )
 
-    def _embed_text_image(self, text, font_size_pt=9,
-                          text_color=(15, 23, 42),
-                          bg_color=None,
-                          x_mm=10, max_width_mm=183):
-        """
-        Render text as a Pillow image and embed it.
-        ALWAYS measures height first, breaks page BEFORE drawing anything.
-        Returns height placed (mm), or 0 on failure.
-        """
+    # ── Embed Pillow image — ALWAYS measures first ────────────
+    def _embed_text_image(self, text, text_color=(15, 23, 42),
+                          bg_color=None, x_mm=10, max_width_mm=183):
         if not self.font_path or not os.path.exists(self.font_path):
             return 0
 
-        # ── STEP 1: measure height WITHOUT rendering ──
-        h_preview = self._measure_text_height_mm(
-            text, font_size_pt=font_size_pt,
-            max_width_mm=max_width_mm, dpi=200
-        )
-        # ── STEP 2: decide page break BEFORE any drawing ──
+        # 1. Measure
+        h_preview = self._measure_h(text, max_width_mm=max_width_mm)
+
+        # 2. Break BEFORE drawing anything
         if h_preview is not None and self.get_y() + h_preview > SAFE_BOTTOM_MM:
             self._new_page()
 
-        # ── STEP 3: now render and place ──
+        # 3. Render
         result = render_text_to_image(
             text, self.font_path,
-            font_size_pt=font_size_pt,
+            font_size_pt=self.body_font_pt,
             text_color=text_color,
             bg_color=bg_color if bg_color else (255, 255, 255),
             max_width_mm=max_width_mm,
@@ -484,45 +456,40 @@ class AnalysisPDF(FPDF):
         tmp_path, h_mm, w_mm = result
         self._tmp_images.append(tmp_path)
 
-        # Safety net: if actual height still overflows (measurement was off), break again
+        # 4. Safety net
         if self.get_y() + h_mm > SAFE_BOTTOM_MM:
             self._new_page()
 
         self.image(tmp_path, x=x_mm, y=self.get_y(), w=max_width_mm, h=h_mm)
-        self.set_y(self.get_y() + h_mm + 1)
+        self.set_y(self.get_y() + h_mm + 0.8)
         return h_mm
 
+    # ── Header / Footer / Disclaimer ─────────────────────────
     def draw_header(self):
         self.set_fill_color(15, 23, 42)
         self.rect(0, 0, 210, 22, "F")
         self.set_fill_color(8, 145, 178)
         self.rect(0, 0, 3, 22, "F")
-
         if self.logo_path and os.path.exists(self.logo_path):
             try:
                 self.image(self.logo_path, x=5, y=2, w=40, h=18)
             except:
                 pass
-
         self.set_draw_color(51, 65, 85)
         self.line(50, 3, 50, 19)
-
         self.set_xy(53, 5)
         self.set_text_color(255, 255, 255)
         self.set_font("Helvetica", "B", 14)
         self.cell(0, 8, "AI Detailed Analysis", ln=0)
-
         self.set_xy(53, 14)
         self.set_text_color(167, 139, 250)
         self.set_font("Helvetica", "", 7)
         self.cell(0, 5, sanitize(f"Language: {self.language}   Observing all 3 dental images"), ln=0)
-
         self.set_xy(110, 5)
         self.set_text_color(148, 163, 184)
         self.set_font("Helvetica", "", 7)
         pat_display = f"{self.pat_name} ({self.pat_age}/{self.pat_gender})"
         self.cell(95, 5, pat_display if not self.is_non_latin else "(see report)", ln=0, align="R")
-
         self.set_fill_color(124, 58, 237)
         self.rect(0, 22, 210, 1.5, "F")
         self.set_y(25)
@@ -533,12 +500,10 @@ class AnalysisPDF(FPDF):
         self.rect(0, self.get_y(), 210, 14, "F")
         self.set_fill_color(8, 145, 178)
         self.rect(0, self.get_y(), 2.5, 14, "F")
-
         self.set_xy(5, self.get_y() + 3)
         self.set_text_color(255, 255, 255)
         self.set_font("Helvetica", "B", 8)
         self.cell(100, 5, sanitize("OralAI  -  AI Oral Health Screening  |  www.oralai.site"), ln=0)
-
         self.set_x(110)
         self.set_text_color(148, 163, 184)
         self.set_font("Helvetica", "", 7)
@@ -547,8 +512,7 @@ class AnalysisPDF(FPDF):
             align="R", ln=0)
 
     def draw_disclaimer(self):
-        # Ensure disclaimer fits before placing it
-        self._ensure_space(DISCLAIMER_H_MM)
+        self._ensure_space(DISCLAIMER_H_MM + 2)
         y = self.get_y()
         self.set_fill_color(255, 251, 235)
         self.set_draw_color(252, 211, 77)
@@ -557,114 +521,94 @@ class AnalysisPDF(FPDF):
         self.set_xy(12, y + 1.5)
         self.set_text_color(120, 53, 15)
         self.set_font("Helvetica", "I", 7)
-        self.cell(0, 5,
-            sanitize("This is an AI-based screening tool and does not replace a professional dental diagnosis. Please consult a dentist."),
+        self.cell(0, 5, sanitize(
+            "This is an AI-based screening tool and does not replace a professional dental diagnosis. Please consult a dentist."),
             ln=0)
         self.set_y(y + 9)
 
+    # ── Section heading ───────────────────────────────────────
     def draw_section_heading(self, text):
-        text   = self._safe_text(text)
-        # Headings need ~13 mm (bar + spacing) — ensure space
-        self._ensure_space(13)
-        bar_y  = self.get_y()
-
+        text = self._safe_text(text)
+        self._ensure_space(14)
+        bar_y = self.get_y()
         self.set_fill_color(37, 99, 235)
         self.rect(0, bar_y, 210, 9, "F")
 
         if self.is_non_latin and self.font_path and os.path.exists(self.font_path):
             result = render_text_to_image(
                 text, self.font_path,
-                font_size_pt=10,
+                font_size_pt=self.body_font_pt,
                 text_color=(255, 255, 255),
                 bg_color=(37, 99, 235),
-                max_width_mm=190,
-                dpi=200
+                max_width_mm=190, dpi=200
             )
             if result:
                 tmp_path, h_mm, w_mm = result
                 self._tmp_images.append(tmp_path)
                 img_y = bar_y + max(0, (9 - h_mm) / 2)
-                self.image(tmp_path, x=10, y=img_y, w=190, h=h_mm)
+                self.image(tmp_path, x=10, y=img_y, w=190, h=min(h_mm, 9))
                 self.set_y(bar_y + 9)
-                self.ln(3)
+                self.ln(2)
                 return
 
         self.set_xy(10, bar_y + 1.5)
         self.set_text_color(255, 255, 255)
-        self.get_font(bold=True, size=10)
+        self.get_font(bold=True, size=self.body_font_pt + 0.5)
         self.cell(0, 6, text, ln=1)
-        self.ln(3)
+        self.ln(2)
 
+    # ── Bullet — ATOMIC: measure → break → dot+text together ──
     def draw_bullet(self, text):
         text = self._safe_text(text)
 
         if self.is_non_latin and self.font_path and os.path.exists(self.font_path):
-            # ── STEP 1: measure height BEFORE drawing anything ──
-            h_preview = self._measure_text_height_mm(
-                text, font_size_pt=9, max_width_mm=176, dpi=200
-            )
-            # ── STEP 2: page break BEFORE dot or text ──
-            needed = (h_preview if h_preview is not None else 10) + 2
+            h_preview = self._measure_h(text, max_width_mm=176)
+            needed    = (h_preview if h_preview is not None else 12) + 1.5
+
+            # Break BEFORE drawing anything (dot + text must be on same page)
             if self.get_y() + needed > SAFE_BOTTOM_MM:
                 self._new_page()
 
-            # ── STEP 3: draw dot and text at the SAME Y ──
+            # Draw dot and text together at same Y
             y_start = self.get_y()
             self.set_fill_color(37, 99, 235)
             self.ellipse(12, y_start + 2.5, 2, 2, "F")
-
-            h = self._embed_text_image(
-                text,
-                font_size_pt=9,
-                text_color=(15, 23, 42),
-                x_mm=17,
-                max_width_mm=176
-            )
+            self._embed_text_image(text, text_color=(15, 23, 42), x_mm=17, max_width_mm=176)
             self.set_x(10)
             return
 
-        # Latin fallback — estimate height and break if needed
+        # Latin fallback
         lines_est = max(1, len(text) // 76 + 1)
-        self._ensure_space(lines_est * 5 + 2)
-
+        self._ensure_space(lines_est * 4.5 + 2)
         y = self.get_y()
         self.set_fill_color(37, 99, 235)
         self.ellipse(12, y + 2.5, 2, 2, "F")
         self.set_xy(17, y)
         self.set_text_color(15, 23, 42)
-        self.get_font(size=9)
-        self.multi_cell(183, 5, text, ln=1)
+        self.get_font(size=self.body_font_pt)
+        self.multi_cell(183, 4.5, text, ln=1)
         self.set_x(10)
 
+    # ── Body text ─────────────────────────────────────────────
     def draw_body_text(self, text):
         text = self._safe_text(text)
 
         if self.is_non_latin and self.font_path and os.path.exists(self.font_path):
-            # _embed_text_image now handles page break internally
-            h = self._embed_text_image(
-                text,
-                font_size_pt=9,
-                text_color=(15, 23, 42),
-                x_mm=10,
-                max_width_mm=183
-            )
-            if h > 0:
-                return
+            self._embed_text_image(text, text_color=(15, 23, 42), x_mm=10, max_width_mm=183)
+            return
 
-        # Latin fallback — estimate height and break if needed
         lines_est = max(1, len(text) // 82 + 1)
-        self._ensure_space(lines_est * 5 + 2)
-
+        self._ensure_space(lines_est * 4.5 + 2)
         self.set_x(10)
         self.set_text_color(15, 23, 42)
-        self.get_font(size=9)
-        self.multi_cell(190, 5, text, ln=1)
+        self.get_font(size=self.body_font_pt)
+        self.multi_cell(190, 4.5, text, ln=1)
 
+    # ── Management section ────────────────────────────────────
     def _start_new_page_mgmt(self):
         self.draw_footer()
         self.page_num += 1
         self.add_page()
-
         self.set_fill_color(15, 23, 42)
         self.rect(0, 0, 210, 14, "F")
         self.set_fill_color(8, 145, 178)
@@ -688,14 +632,12 @@ class AnalysisPDF(FPDF):
         config_path = "static/management/config.json"
         if not os.path.exists(config_path):
             return
-
         try:
             with open(config_path) as f:
                 members = json.load(f)
         except Exception as e:
             print(f"[Mgmt] Could not load config.json: {e}")
             return
-
         if not members:
             return
 
@@ -745,43 +687,32 @@ class AnalysisPDF(FPDF):
                 return None
 
         temp_files = []
-
         for row_start in range(0, len(members), per_row):
             row_members = members[row_start: row_start + per_row]
-
             if self.get_y() + ROW_H > SAFE_BOTTOM:
                 self._start_new_page_mgmt()
-
             row_y = self.get_y()
-
             for i, member in enumerate(row_members):
                 cx = 10 + i * col_w + col_w / 2
                 px = cx - photo_d / 2
                 py = row_y
-
                 img_path = os.path.join("static", "management", member.get("file", ""))
-
                 self.set_draw_color(37, 99, 235)
                 self.set_line_width(0.7)
                 self.ellipse(px - 1, py - 1, photo_d + 2, photo_d + 2, "D")
-
                 if os.path.exists(img_path):
-                    if PIL_AVAILABLE:
-                        circle_path = make_circle_img(img_path)
-                    else:
-                        circle_path = None
-
+                    circle_path = make_circle_img(img_path) if PIL_AVAILABLE else None
                     if circle_path:
                         temp_files.append(circle_path)
                         try:
                             self.image(circle_path, x=px, y=py, w=photo_d, h=photo_d)
                         except Exception as e:
-                            print(f"[Mgmt] Image draw error: {e}")
+                            print(f"[Mgmt] Image error: {e}")
                     else:
                         try:
                             self.image(img_path, x=px, y=py, w=photo_d, h=photo_d)
                         except Exception as e:
-                            print(f"[Mgmt] Fallback image draw error: {e}")
+                            print(f"[Mgmt] Fallback error: {e}")
                 else:
                     self.set_fill_color(226, 232, 240)
                     self.ellipse(px, py, photo_d, photo_d, "F")
@@ -789,17 +720,14 @@ class AnalysisPDF(FPDF):
                     self.set_text_color(148, 163, 184)
                     self.set_font("Helvetica", "", 6)
                     self.cell(photo_d, 4, "No Photo", align="C", ln=0)
-
                 self.set_xy(10 + i * col_w, py + photo_d + 2)
                 self.set_text_color(15, 23, 42)
                 self.set_font("Helvetica", "B", 8)
                 self.cell(col_w, 4.5, sanitize(member.get("name", "")), align="C", ln=0)
-
                 self.set_xy(10 + i * col_w, py + photo_d + 7)
                 self.set_text_color(100, 116, 139)
                 self.set_font("Helvetica", "", 6.5)
                 self.multi_cell(col_w, 3.5, sanitize(member.get("title", "")), align="C")
-
             self.set_y(row_y + ROW_H)
 
         for tmp in temp_files:
@@ -815,23 +743,24 @@ class AnalysisPDF(FPDF):
         pass
 
 
+# ══════════════════════════════════════════════════════════════
+#  generate_analysis_pages_fpdf2
+# ══════════════════════════════════════════════════════════════
+
 def generate_analysis_pages_fpdf2(claude_analysis, language, name, age, gender,
                                    report_id, logo_path, start_page, total_pages):
     font_file = LANG_FONT_MAP.get(language, "NotoSans-Regular.ttf")
     font_path = os.path.join(FONTS_DIR, font_file)
-
     if not os.path.exists(font_path):
-        print(f"[Font] WARNING: {font_path} not found — will use Helvetica fallback")
+        print(f"[Font] WARNING: {font_path} not found — Helvetica fallback")
 
     pdf = AnalysisPDF(
-        language=language,
-        font_path=font_path,
+        language=language, font_path=font_path,
         name=name, age=age, gender=gender,
-        report_id=report_id,
-        logo_path=logo_path,
+        report_id=report_id, logo_path=logo_path,
         total_pages=total_pages
     )
-    pdf.set_auto_page_break(auto=False)   # we control page breaks manually
+    pdf.set_auto_page_break(auto=False)
     pdf.add_page()
     pdf.draw_header()
 
@@ -844,7 +773,7 @@ def generate_analysis_pages_fpdf2(claude_analysis, language, name, age, gender,
         if not line:
             render_items.append(("blank", ""))
             continue
-        if re.match(r'^\d+\.\s+[^\s]', line) and len(line) < 80:
+        if re.match(r'^\d+\.\s+[^\s]', line) and len(line) < 90:
             render_items.append(("heading", line))
         elif line.startswith("- ") or line.startswith("• ") or line.startswith("* "):
             render_items.append(("bullet", line[2:].strip()))
@@ -852,38 +781,28 @@ def generate_analysis_pages_fpdf2(claude_analysis, language, name, age, gender,
             render_items.append(("text", line))
 
     for item_type, item_text in render_items:
-
         if item_type == "blank":
-            # Only add spacing if we won't overflow
+            if pdf.get_y() + 2.5 < SAFE_BOTTOM_MM:
+                pdf.ln(2.5)
+        elif item_type == "heading":
             if pdf.get_y() + 3 < SAFE_BOTTOM_MM:
                 pdf.ln(3)
-            continue
-
-        elif item_type == "heading":
-            # draw_section_heading calls _ensure_space internally
-            if pdf.get_y() + 3 < SAFE_BOTTOM_MM:
-                pdf.ln(4)
             pdf.draw_section_heading(item_text)
-            if pdf.get_y() + 2 < SAFE_BOTTOM_MM:
-                pdf.ln(2)
-
+            if pdf.get_y() + 1.5 < SAFE_BOTTOM_MM:
+                pdf.ln(1.5)
         elif item_type == "bullet":
-            # draw_bullet: measures height first, breaks before dot+text together
             pdf.draw_bullet(item_text)
-
         else:
             if item_text:
-                # draw_body_text: measures first, breaks before placing
                 pdf.draw_body_text(item_text)
                 if pdf.get_y() + 1 < SAFE_BOTTOM_MM:
                     pdf.ln(1)
 
-    # ── Disclaimer + management at the very end ──
-    pdf.ln(4)
+    if pdf.get_y() + 3 < SAFE_BOTTOM_MM:
+        pdf.ln(3)
     pdf.draw_disclaimer()
     pdf.draw_management_section()
     pdf.draw_footer()
-
     pdf.cleanup_tmp()
 
     os.makedirs("static/reports", exist_ok=True)
@@ -892,12 +811,15 @@ def generate_analysis_pages_fpdf2(claude_analysis, language, name, age, gender,
     return temp_path, pdf.page_num
 
 
+# ══════════════════════════════════════════════════════════════
+#  PAGE 1
+# ══════════════════════════════════════════════════════════════
+
 def _build_page1(c, W, H, header_h, name, age, gender, phone, now,
                  logo_path, face_photo_path, img_parts, img_w, img_h,
                  card_h, gap, pill_colors, detected_labels,
                  recommendations, no_issues, report_id, total_pages):
 
-    # Header
     c.setFillColor(C_HEADER)
     c.rect(0, H - header_h, W, header_h, fill=1, stroke=0)
     c.setFillColor(colors.HexColor("#1e3a8a"))
@@ -906,11 +828,10 @@ def _build_page1(c, W, H, header_h, name, age, gender, phone, now,
     if os.path.exists(logo_path):
         logo_y = H - header_h + (header_h - 60) / 2
         try:
-            c.drawImage(logo_path, 20, logo_y,
-                        width=180, height=60,
+            c.drawImage(logo_path, 20, logo_y, width=180, height=60,
                         preserveAspectRatio=True, mask="auto")
         except Exception as e:
-            print(f"[Page1] Logo draw error: {e}")
+            print(f"[Page1] Logo error: {e}")
         c.setStrokeColor(colors.HexColor("#334155"))
         c.setLineWidth(1)
         c.line(210, H - header_h + 14, 210, H - 14)
@@ -925,37 +846,28 @@ def _build_page1(c, W, H, header_h, name, age, gender, phone, now,
         c.setFont("Helvetica-Bold", 22)
         c.drawString(30, H - header_h + 44, "Oral Health Screening Report")
 
-    bar_bottom = draw_patient_info_bar(
-        c, W, H, header_h,
-        name, age, gender, phone, now,
-        face_photo_path=face_photo_path
-    )
-
+    bar_bottom = draw_patient_info_bar(c, W, H, header_h, name, age, gender, phone, now,
+                                       face_photo_path=face_photo_path)
     cur_y = bar_bottom
     cur_y = draw_section_bar_rl(c, W, cur_y, "  AI SCREENING REPORT")
-
     card_y = cur_y - 14 - card_h
 
     for i, (lbl, fname) in enumerate(img_parts):
         ix  = 28 + gap + i * (img_w + gap)
         iy2 = card_y
-
         c.setFillColor(colors.HexColor("#cbd5e1"))
         c.roundRect(ix + 3, iy2 - 3, img_w, card_h, 10, fill=1, stroke=0)
         c.setFillColor(C_WHITE)
         c.roundRect(ix, iy2, img_w, card_h, 10, fill=1, stroke=0)
         c.setFillColor(C_SURFACE2)
         c.roundRect(ix + 5, iy2 + 28, img_w - 10, img_h, 8, fill=1, stroke=0)
-
         img_path = os.path.join("static", "results", fname)
         if os.path.exists(img_path):
             try:
-                c.drawImage(img_path, ix + 5, iy2 + 28,
-                            width=img_w - 10, height=img_h,
+                c.drawImage(img_path, ix + 5, iy2 + 28, width=img_w - 10, height=img_h,
                             preserveAspectRatio=True, mask="auto")
             except Exception as e:
-                print(f"[Page1] YOLO image draw error ({fname}): {e}")
-
+                print(f"[Page1] YOLO img error: {e}")
         c.setStrokeColor(C_BORDER)
         c.setLineWidth(0.8)
         c.roundRect(ix, iy2, img_w, card_h, 10, fill=0, stroke=1)
@@ -966,10 +878,7 @@ def _build_page1(c, W, H, header_h, name, age, gender, phone, now,
         c.drawCentredString(ix + img_w / 2, iy2 + 12, lbl)
 
     cur_y = card_y - 18
-
-    # Legend
-    detected = [k for k in ["malaligned", "stains", "caries", "pit_fissure"]
-                if k in detected_labels]
+    detected = [k for k in ["malaligned", "stains", "caries", "pit_fissure"] if k in detected_labels]
     if detected:
         c.setFillColor(C_SURFACE2)
         c.roundRect(28, cur_y - 10, W - 56, 22, 6, fill=1, stroke=0)
@@ -988,7 +897,6 @@ def _build_page1(c, W, H, header_h, name, age, gender, phone, now,
             lx += c.stringWidth(text, "Helvetica", 9) + 34
         cur_y -= 24
 
-    # Treatment Recommendations
     cur_y -= 4
     cur_y = draw_section_bar_rl(c, W, cur_y, "  TREATMENT RECOMMENDATIONS")
     cur_y -= 8
@@ -998,7 +906,6 @@ def _build_page1(c, W, H, header_h, name, age, gender, phone, now,
         lines    = wrap_text(rec_text, 76)
         row_h    = max(52, 22 + len(lines) * 14)
         cur_y   -= row_h + 4
-
         c.setFillColor(C_SUCCESS_BG)
         c.roundRect(28, cur_y, W - 56, row_h, 8, fill=1, stroke=0)
         c.setStrokeColor(C_SUCCESS_BD)
@@ -1028,7 +935,6 @@ def _build_page1(c, W, H, header_h, name, age, gender, phone, now,
             bg        = COND_BG.get(label, C_SURFACE)
             bd        = COND_BD.get(label, C_BORDER)
             label_txt = COND_LABEL.get(label, label.title())
-
             cur_y -= row_h + 8
             c.setFillColor(bg)
             c.roundRect(28, cur_y, W - 56, row_h, 8, fill=1, stroke=0)
@@ -1059,6 +965,10 @@ def _build_page1(c, W, H, header_h, name, age, gender, phone, now,
     c.save()
 
 
+# ══════════════════════════════════════════════════════════════
+#  generate_pdf  (main entry point)
+# ══════════════════════════════════════════════════════════════
+
 def generate_pdf(user_data, detected_labels, report_id,
                  recommendations=None, claude_analysis=None, screening_id=None):
 
@@ -1075,13 +985,12 @@ def generate_pdf(user_data, detected_labels, report_id,
     os.makedirs("static/reports", exist_ok=True)
     report_path = f"static/reports/{report_id}.pdf"
     logo_path   = "static/logo.png"
-
     face_photo_path = get_face_photo_path(screening_id, report_id)
 
-    img_h    = 152
-    img_w    = 152
-    gap      = (595.27 - 56 - img_w * 3) / 4
-    card_h   = img_h + 34
+    img_h       = 152
+    img_w       = 152
+    gap         = (595.27 - 56 - img_w * 3) / 4
+    card_h      = img_h + 34
     pill_colors = [C_ACCENT, C_TEAL, C_PURPLE]
 
     if screening_id:
@@ -1100,77 +1009,58 @@ def generate_pdf(user_data, detected_labels, report_id,
     no_issues = (not recommendations or
                  (len(recommendations) == 1 and recommendations[0]["label"] == "none"))
 
-    # ── Build Page 1 ───────────────────────────────────────────
     try:
         c = rl_canvas.Canvas(report_path, pagesize=A4)
         W, H = A4
         header_h = 90
-
-        _build_page1(
-            c, W, H, header_h, name, age, gender, phone, now,
-            logo_path, face_photo_path, img_parts,
-            img_w, img_h, card_h, gap, pill_colors,
-            detected_labels, recommendations, no_issues,
-            report_id, total_pages=99
-        )
-        print(f"[PDF] Page 1 built successfully")
+        _build_page1(c, W, H, header_h, name, age, gender, phone, now,
+                     logo_path, face_photo_path, img_parts,
+                     img_w, img_h, card_h, gap, pill_colors,
+                     detected_labels, recommendations, no_issues,
+                     report_id, total_pages=99)
+        print(f"[PDF] Page 1 OK")
     except Exception as e:
-        print(f"[PDF] Page 1 build FAILED: {e}")
+        print(f"[PDF] Page 1 FAILED: {e}")
         traceback.print_exc()
         raise
 
-    # ── Merge analysis pages ────────────────────────────────────
     if claude_analysis:
         if PdfWriter is None or PdfReader is None:
-            print("[PDF] WARNING: No PDF merge library available — skipping analysis pages")
+            print("[PDF] No merge library — skipping analysis pages")
             return report_path
-
         try:
-            temp_path, last_fpdf_page = generate_analysis_pages_fpdf2(
-                claude_analysis=claude_analysis,
-                language=language,
+            temp_path, _ = generate_analysis_pages_fpdf2(
+                claude_analysis=claude_analysis, language=language,
                 name=name, age=age, gender=gender,
-                report_id=report_id,
-                logo_path=logo_path,
-                start_page=2,
-                total_pages=99
+                report_id=report_id, logo_path=logo_path,
+                start_page=2, total_pages=99
             )
-            print(f"[PDF] Analysis pages generated: {temp_path}")
+            print(f"[PDF] Analysis pages OK")
 
-            # Count actual pages
             writer = PdfWriter()
             for page in PdfReader(report_path).pages:
                 writer.add_page(page)
             for page in PdfReader(temp_path).pages:
                 writer.add_page(page)
-
             actual_pages = len(writer.pages)
-            print(f"[PDF] Total pages: {actual_pages}, language={language}")
+            print(f"[PDF] Total pages: {actual_pages}")
 
-            # Rebuild page 1 with correct total page count
             c2 = rl_canvas.Canvas(report_path, pagesize=A4)
-            _build_page1(
-                c2, W, H, header_h, name, age, gender, phone, now,
-                logo_path, face_photo_path, img_parts,
-                img_w, img_h, card_h, gap, pill_colors,
-                detected_labels, recommendations, no_issues,
-                report_id, total_pages=actual_pages
-            )
-
-            # Remove first temp and regenerate with correct page count
+            _build_page1(c2, W, H, header_h, name, age, gender, phone, now,
+                         logo_path, face_photo_path, img_parts,
+                         img_w, img_h, card_h, gap, pill_colors,
+                         detected_labels, recommendations, no_issues,
+                         report_id, total_pages=actual_pages)
             try:
                 os.remove(temp_path)
             except:
                 pass
 
             temp_path2, _ = generate_analysis_pages_fpdf2(
-                claude_analysis=claude_analysis,
-                language=language,
+                claude_analysis=claude_analysis, language=language,
                 name=name, age=age, gender=gender,
-                report_id=report_id,
-                logo_path=logo_path,
-                start_page=2,
-                total_pages=actual_pages
+                report_id=report_id, logo_path=logo_path,
+                start_page=2, total_pages=actual_pages
             )
 
             writer2 = PdfWriter()
@@ -1178,20 +1068,18 @@ def generate_pdf(user_data, detected_labels, report_id,
                 writer2.add_page(page)
             for page in PdfReader(temp_path2).pages:
                 writer2.add_page(page)
-
             with open(report_path, "wb") as f:
                 writer2.write(f)
-
             try:
                 os.remove(temp_path2)
             except:
                 pass
 
-            print(f"[PDF] Final report saved: {report_path}")
+            print(f"[PDF] Final saved: {report_path}")
 
         except Exception as e:
-            print(f"[PDF] Analysis page merge failed: {e}")
+            print(f"[PDF] Merge failed: {e}")
             traceback.print_exc()
-            print("[PDF] Returning page-1-only report as fallback")
+            print("[PDF] Returning page-1-only fallback")
 
     return report_path

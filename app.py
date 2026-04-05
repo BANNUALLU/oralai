@@ -463,11 +463,19 @@ def validate():
 # ════════════════════════════════════════════════════════════
 #  CLAUDE ANALYSIS (English)
 # ════════════════════════════════════════════════════════════
+NON_LATIN_LANGUAGES = {
+    "Hindi", "Marathi", "Telugu", "Tamil",
+    "Kannada", "Malayalam", "Bengali", "Arabic"
+}
+
 def analyse_with_claude(yolo_image_paths, patient_info):
     try:
-        age    = patient_info.get("age", "unknown")
-        gender = patient_info.get("gender", "unknown")
-        name   = patient_info.get("name", "Patient")
+        age      = patient_info.get("age", "unknown")
+        gender   = patient_info.get("gender", "unknown")
+        name     = patient_info.get("name", "Patient")
+        language = patient_info.get("language", "English")
+        # Non-Latin scripts render MUCH taller in PDF — use tighter limit
+        word_limit = 450 if language in NON_LATIN_LANGUAGES else 700
         content = []
         labels  = ["Upper Teeth", "Front Teeth", "Lower Teeth"]
         paths   = [yolo_image_paths.get("upper"), yolo_image_paths.get("front"), yolo_image_paths.get("lower")]
@@ -506,15 +514,15 @@ Month 3: [clinic] + [home] | Products: [2 Indian products with Rs. prices]
 - Standard total: Rs.[min]-Rs.[max]
 
 6. CONCLUSION
-3 warm sentences: overall status, encourage {name}, most important first action.
+2 warm sentences: overall status, encourage {name}, most important first action.
 
-RULES: English only. No markdown. All 6 sections. Under 700 words."""})
+RULES: English only. No markdown. ALL 6 sections required. Under {word_limit} words total. Keep each bullet SHORT — 1 line max per bullet."""})
 
-        print(f"[Claude] Analysing images...")
+        print(f"[Claude] Analysing images (word limit: {word_limit})...")
         message = client.messages.create(
             model="claude-haiku-4-5-20251001",
             max_tokens=2500,
-            system="You are a concise expert dental AI. English only. No markdown. All 6 sections required.",
+            system=f"You are a concise expert dental AI. English only. No markdown. All 6 sections required. Under {word_limit} words. Short bullets.",
             messages=[{"role": "user", "content": content}]
         )
         analysis = message.content[0].text.strip()
