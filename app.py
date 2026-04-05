@@ -35,7 +35,7 @@ os.makedirs(REPORT_DIR, exist_ok=True)
 
 report_semaphore = threading.Semaphore(3)
 
-# ── In-memory report status store ────────────────────────────
+# ── In-memory status (per-worker fallback) ────────────────────
 report_status = {}
 
 # ── Screening counter ─────────────────────────────────────────
@@ -66,7 +66,6 @@ EMAIL_USER      = os.getenv("EMAIL_USER", "oralai.site@gmail.com")
 EMAIL_PASS      = os.getenv("EMAIL_PASS", "")
 DEVELOPER_EMAIL = os.getenv("DEVELOPER_EMAIL", "bannuallu123@gmail.com")
 
-# ── File-based phone session store ──
 PHONE_SESSIONS_DIR = "static/phone_sessions"
 os.makedirs(PHONE_SESSIONS_DIR, exist_ok=True)
 phone_sessions_lock = threading.Lock()
@@ -95,7 +94,20 @@ def delete_phone_session(token):
         pass
 
 
-# ── HTML error/done helpers ───────────────────────────────────
+# ── Disk helpers — work across ALL gunicorn workers ───────────
+def report_pdf_path(report_id):
+    return os.path.join(REPORT_DIR, f"{report_id}.pdf")
+
+def report_marker_path(report_id):
+    return os.path.join(REPORT_DIR, f"{report_id}.processing")
+
+def report_error_path(report_id):
+    return os.path.join(REPORT_DIR, f"{report_id}.error")
+
+def report_is_done(report_id):
+    return os.path.exists(report_pdf_path(report_id))
+
+
 def html_error(title, message, status=400):
     html = f"""<!DOCTYPE html>
 <html>
@@ -161,7 +173,6 @@ def html_done(title, message):
     return html, 200
 
 
-# ── Delete uploaded + YOLO result images for a screening ──────
 def cleanup_old_files(screening_id):
     if not screening_id:
         return
@@ -177,16 +188,15 @@ def cleanup_old_files(screening_id):
                 deleted += 1
             except Exception as e:
                 print(f"[Cleanup] Could not delete {f}: {e}")
-    print(f"[Cleanup] {deleted} file(s) removed for screening {screening_id[:8]}...")
+    print(f"[Cleanup] {deleted} file(s) removed for {screening_id[:8]}...")
 
 
 # ════════════════════════════════════════════════════════════
-#  DEBUG ROUTE — visit /debug to diagnose 500 errors
+#  DEBUG
 # ════════════════════════════════════════════════════════════
 @app.route("/debug")
 def debug_route():
     errors = []
-
     try:
         from pypdf import PdfWriter, PdfReader
         errors.append("✅ pypdf OK")
@@ -197,68 +207,56 @@ def debug_route():
             errors.append("✅ PyPDF2 OK (fallback)")
         except Exception as e2:
             errors.append(f"❌ PyPDF2 also failed: {e2}")
-
     try:
         from fpdf import FPDF
         errors.append("✅ fpdf2 OK")
     except Exception as e:
         errors.append(f"❌ fpdf: {e}")
-
     try:
         from reportlab.pdfgen import canvas
         errors.append("✅ reportlab OK")
     except Exception as e:
         errors.append(f"❌ reportlab: {e}")
-
     try:
         from PIL import Image, ImageDraw, ImageFont
         errors.append("✅ Pillow OK")
     except Exception as e:
         errors.append(f"❌ Pillow: {e}")
-
     fonts_dir = "static/fonts"
     if os.path.exists(fonts_dir):
-        fonts = os.listdir(fonts_dir)
-        errors.append(f"✅ Fonts dir exists: {fonts}")
+        errors.append(f"✅ Fonts dir exists: {os.listdir(fonts_dir)}")
     else:
         errors.append(f"❌ Fonts dir MISSING: {fonts_dir}")
-
     if os.path.exists("static/management/config.json"):
         errors.append("✅ management/config.json exists")
     else:
         errors.append("⚠️ management/config.json missing (optional)")
-
     try:
         from report_generator import generate_pdf
         errors.append("✅ report_generator import OK")
     except Exception as e:
-        errors.append(f"❌ report_generator import FAILED: {e}")
+        errors.append(f"❌ report_generator: {e}")
         errors.append(traceback.format_exc().replace("\n", "<br>"))
-
     try:
         from ai_recommendation import generate_recommendations
         errors.append("✅ ai_recommendation import OK")
     except Exception as e:
         errors.append(f"❌ ai_recommendation: {e}")
-
     try:
         from detect import run_yolo
         errors.append("✅ detect import OK")
     except Exception as e:
         errors.append(f"❌ detect: {e}")
-
     try:
         from whatsapp_sender import send_whatsapp_report
         errors.append("✅ whatsapp_sender import OK")
     except Exception as e:
         errors.append(f"❌ whatsapp_sender: {e}")
-
     api_key = os.getenv("ANTHROPIC_API_KEY", "")
     if api_key and len(api_key) > 10:
         errors.append(f"✅ ANTHROPIC_API_KEY set (starts: {api_key[:8]}...)")
     else:
         errors.append("❌ ANTHROPIC_API_KEY missing or empty!")
-
     return "<br><br>".join(errors)
 
 
@@ -269,21 +267,17 @@ def debug_route():
 def index():
     return render_template("index.html")
 
-
 @app.route("/screening_count")
 def screening_count():
     return jsonify({"count": get_screening_count()})
-
 
 @app.route("/start")
 def start():
     return render_template("start.html")
 
-
 @app.route("/privacy")
 def privacy():
     return render_template("privacy.html")
-
 
 @app.route("/terms")
 def terms():
@@ -299,9 +293,7 @@ def details():
         old_screening_id = session.get("screening_id")
         if old_screening_id:
             cleanup_old_files(old_screening_id)
-
         session.clear()
-
         session["patient_name"]   = request.form.get("name", "").strip()
         session["patient_age"]    = request.form.get("age", "").strip()
         session["patient_gender"] = request.form.get("gender", "").strip()
@@ -310,96 +302,79 @@ def details():
         session["language"]       = request.form.get("language", "English").strip()
         session["screening_id"]   = str(uuid.uuid4())
         session["session_token"]  = str(uuid.uuid4())
-
         session.permanent = True
         session.modified  = True
-
         token = session["session_token"]
-
         save_phone_session(token, {
             "screening_id": session["screening_id"],
             "language":     session["language"],
-            "face":         False,
-            "upper":        False,
-            "front":        False,
-            "lower":        False,
-            "face_thumb":   "",
-            "upper_thumb":  "",
-            "front_thumb":  "",
-            "lower_thumb":  "",
-            "expired":      False,
+            "face": False, "upper": False, "front": False, "lower": False,
+            "face_thumb": "", "upper_thumb": "", "front_thumb": "", "lower_thumb": "",
+            "expired": False,
         })
-
         return redirect("/capture")
     return render_template("details.html")
 
 
 # ════════════════════════════════════════════════════════════
-#  CAPTURE PAGE
+#  CAPTURE
 # ════════════════════════════════════════════════════════════
 @app.route("/capture")
 def capture_page():
     if not session.get("patient_name"):
         return redirect("/details")
-    language      = session.get("language", "English")
-    session_token = session.get("session_token", "")
-    return render_template("capture.html", session_language=language, session_token=session_token)
+    return render_template("capture.html",
+        session_language=session.get("language", "English"),
+        session_token=session.get("session_token", ""))
+
+@app.route("/capture", methods=["POST"])
+def capture_image():
+    data         = request.get_json()
+    image_type   = data["type"]
+    image_base64 = data["image"].split(",")[1]
+    image_bytes  = base64.b64decode(image_base64)
+    screening_id = session.get("screening_id", "default")
+    image_path   = os.path.join(UPLOAD_DIR, f"{screening_id}_{image_type}.jpg")
+    with open(image_path, "wb") as f:
+        f.write(image_bytes)
+    print(f"[Capture] Saved: {image_path}")
+    return jsonify({"status": "saved"})
 
 
 # ════════════════════════════════════════════════════════════
-#  PHONE CAPTURE PAGE
+#  PHONE CAPTURE
 # ════════════════════════════════════════════════════════════
 @app.route("/phone_capture")
 def phone_capture():
     token = request.args.get("token", "").strip()
-
     if not token:
-        return html_error(
-            "Missing Session Token",
-            "This link is incomplete. It must be opened by scanning the QR code shown at the clinic."
-        )
-
+        return html_error("Missing Session Token",
+            "This link is incomplete. It must be opened by scanning the QR code shown at the clinic.")
     ps = get_phone_session(token)
-
     if not ps:
-        return html_error(
-            "Session Expired or Not Found",
-            "This QR code session has expired or is no longer valid. Please ask the operator to start a new screening.",
-            404
-        )
-
+        return html_error("Session Expired or Not Found",
+            "This QR code session has expired or is no longer valid.", 404)
     if ps.get("expired"):
-        return html_done(
-            "All Photos Received!",
-            "All 4 photos have been successfully sent to the operator. You can return the phone."
-        )
-
-    language = ps.get("language", "English")
-    return render_template("phone_capture.html", token=token, session_language=language)
-
+        return html_done("All Photos Received!",
+            "All 4 photos have been successfully sent to the operator.")
+    return render_template("phone_capture.html",
+        token=token, session_language=ps.get("language", "English"))
 
 @app.route("/phone_status")
 def phone_status():
     token = request.args.get("token", "").strip()
     if not token:
         return jsonify({"error": "missing token"}), 400
-
     ps = get_phone_session(token)
     if not ps:
         return jsonify({"error": "session not found"}), 404
-
     return jsonify({
-        "face":        ps.get("face", False),
-        "upper":       ps.get("upper", False),
-        "front":       ps.get("front", False),
-        "lower":       ps.get("lower", False),
-        "face_thumb":  ps.get("face_thumb", ""),
-        "upper_thumb": ps.get("upper_thumb", ""),
-        "front_thumb": ps.get("front_thumb", ""),
-        "lower_thumb": ps.get("lower_thumb", ""),
-        "expired":     ps.get("expired", False),
+        "face": ps.get("face", False), "upper": ps.get("upper", False),
+        "front": ps.get("front", False), "lower": ps.get("lower", False),
+        "face_thumb": ps.get("face_thumb", ""), "upper_thumb": ps.get("upper_thumb", ""),
+        "front_thumb": ps.get("front_thumb", ""), "lower_thumb": ps.get("lower_thumb", ""),
+        "expired": ps.get("expired", False),
     })
-
 
 @app.route("/phone_expire", methods=["POST"])
 def phone_expire():
@@ -408,18 +383,14 @@ def phone_expire():
         token = data.get("token", "").strip()
         if not token:
             return jsonify({"status": "error", "msg": "missing token"}), 400
-
         ps = get_phone_session(token)
         if not ps:
             return jsonify({"status": "already_expired"})
-
         ps["expired"] = True
         save_phone_session(token, ps)
         return jsonify({"status": "expired"})
-
     except Exception as e:
         return jsonify({"status": "error", "msg": str(e)}), 500
-
 
 @app.route("/phone_save", methods=["POST"])
 def phone_save():
@@ -428,54 +399,42 @@ def phone_save():
         token      = data.get("token", "").strip()
         image_type = data.get("type", "")
         image_b64  = data.get("image", "")
-
         if not token or image_type not in ("face", "upper", "front", "lower") or not image_b64:
             return jsonify({"status": "error", "msg": "bad params"}), 400
-
         ps = get_phone_session(token)
         if not ps:
             return jsonify({"status": "error", "msg": "session expired"}), 404
-
         if ps.get("expired"):
             return jsonify({"status": "error", "msg": "session already expired"}), 403
-
         if "," in image_b64:
             image_b64 = image_b64.split(",")[1]
-
         image_bytes  = base64.b64decode(image_b64)
         screening_id = ps["screening_id"]
         image_path   = os.path.join(UPLOAD_DIR, f"{screening_id}_{image_type}.jpg")
-
         with open(image_path, "wb") as f:
             f.write(image_bytes)
-
         thumb_b64 = "data:image/jpeg;base64," + image_b64
-
         with phone_sessions_lock:
             ps = get_phone_session(token) or ps
             ps[image_type]            = True
             ps[image_type + "_thumb"] = thumb_b64
             save_phone_session(token, ps)
-
         return jsonify({"status": "saved"})
-
     except Exception as e:
         print("PHONE_SAVE ERROR:", str(e))
         return jsonify({"status": "error", "msg": str(e)}), 500
 
 
 # ════════════════════════════════════════════════════════════
-#  VALIDATE IMAGE
+#  VALIDATE
 # ════════════════════════════════════════════════════════════
 @app.route("/validate", methods=["POST"])
 def validate():
     try:
         data      = request.get_json()
         image_b64 = data.get("image", "")
-
         if "," in image_b64:
             image_b64 = image_b64.split(",")[1]
-
         message = client.messages.create(
             model="claude-haiku-4-5-20251001",
             max_tokens=150,
@@ -487,26 +446,14 @@ def validate():
                 "or\n"
                 '{"isTeeth": false, "reason": "No teeth visible"}'
             ),
-            messages=[{
-                "role": "user",
-                "content": [
-                    {
-                        "type": "image",
-                        "source": {
-                            "type": "base64",
-                            "media_type": "image/jpeg",
-                            "data": image_b64
-                        }
-                    },
-                    {"type": "text", "text": "Does this image show human teeth? Reply only with raw JSON."}
-                ]
-            }]
+            messages=[{"role": "user", "content": [
+                {"type": "image", "source": {"type": "base64", "media_type": "image/jpeg", "data": image_b64}},
+                {"type": "text", "text": "Does this image show human teeth? Reply only with raw JSON."}
+            ]}]
         )
-
         raw   = message.content[0].text.strip()
         clean = raw.replace("```json", "").replace("```", "").strip()
         return jsonify(json.loads(clean))
-
     except json.JSONDecodeError:
         return jsonify({"isTeeth": True, "reason": "Validation inconclusive"})
     except Exception as e:
@@ -514,177 +461,101 @@ def validate():
 
 
 # ════════════════════════════════════════════════════════════
-#  SAVE CAPTURED IMAGE
-# ════════════════════════════════════════════════════════════
-@app.route("/capture", methods=["POST"])
-def capture_image():
-    data         = request.get_json()
-    image_type   = data["type"]
-    image_base64 = data["image"].split(",")[1]
-    image_bytes  = base64.b64decode(image_base64)
-
-    screening_id = session.get("screening_id", "default")
-    image_path   = os.path.join(UPLOAD_DIR, f"{screening_id}_{image_type}.jpg")
-
-    with open(image_path, "wb") as f:
-        f.write(image_bytes)
-
-    print(f"[Capture] Saved: {image_path}")
-    return jsonify({"status": "saved"})
-
-
-# ════════════════════════════════════════════════════════════
-#  STEP 1 — CLAUDE VISION ANALYSIS (always in English)
+#  CLAUDE ANALYSIS (English)
 # ════════════════════════════════════════════════════════════
 def analyse_with_claude(yolo_image_paths, patient_info):
     try:
         age    = patient_info.get("age", "unknown")
         gender = patient_info.get("gender", "unknown")
         name   = patient_info.get("name", "Patient")
-
         content = []
         labels  = ["Upper Teeth", "Front Teeth", "Lower Teeth"]
-        paths   = [
-            yolo_image_paths.get("upper"),
-            yolo_image_paths.get("front"),
-            yolo_image_paths.get("lower"),
-        ]
-
+        paths   = [yolo_image_paths.get("upper"), yolo_image_paths.get("front"), yolo_image_paths.get("lower")]
         for i, (path, label) in enumerate(zip(paths, labels)):
             if path and os.path.exists(path):
                 with open(path, "rb") as f:
                     img_b64 = base64.b64encode(f.read()).decode("utf-8")
                 content.append({"type": "text", "text": f"Image {i+1} - {label}:"})
-                content.append({
-                    "type": "image",
-                    "source": {
-                        "type": "base64",
-                        "media_type": "image/jpeg",
-                        "data": img_b64
-                    }
-                })
-
-        content.append({
-            "type": "text",
-            "text": f"""You are an expert dental AI assistant reviewing 3 dental images for a patient.
+                content.append({"type": "image", "source": {"type": "base64", "media_type": "image/jpeg", "data": img_b64}})
+        content.append({"type": "text", "text": f"""You are an expert dental AI assistant reviewing 3 dental images for a patient.
 
 Patient: {name}, Age: {age}, Gender: {gender}
 
-The images have green bounding boxes drawn by a YOLO model showing detected dental issues.
-
-Write EXACTLY these 6 sections in English language. No markdown symbols (no **, ##, *, _). Use plain text with numbered sections and - bullet points only.
+Write EXACTLY these 6 sections in English. No markdown (no **, ##, *, _). Numbered sections and - bullets only.
 
 1. DETECTED PROBLEMS
-For each detected problem write one bullet like this:
-- [Condition name] | Area: [upper/front/lower teeth] | Observed: [what is visually seen - color, position, shape, texture in 1-2 lines] | Affected teeth: [estimate which teeth eg. front 2, molars, gumline] | Confidence: [High/Medium/Low] | Risk: [why this needs attention in 1 line]
-List max 4 problems actually seen. Be specific about what the AI saw visually.
+- [Condition] | Area: [upper/front/lower] | Observed: [visual details] | Affected teeth: [estimate] | Confidence: [High/Medium/Low] | Risk: [1 line]
+Max 4 problems.
 
 2. PROBLEM STATUS
-For each problem write one bullet like this:
-- [Condition name]: [Starting/Middle/Advanced] Stage | Signs: [2-3 visible signs that indicate this stage] | Est. duration: [how long it may have been developing] | If untreated: [what will happen in 1 line]
-Be detailed — explain WHY it is at that stage based on visual evidence.
+- [Condition]: [Starting/Middle/Advanced] Stage | Signs: [2-3 visible signs] | Est. duration: [time] | If untreated: [1 line]
 
 3. SUGGESTIONS TO OVERCOME
-For each problem write one bullet:
-- [Condition name]: Dentist: [specific treatment needed] | Urgency: [Routine/Soon/Urgent] | Home: [2 specific tips] | Avoid: [1 thing to avoid] | Tip: [1 motivating tip]
+- [Condition]: Dentist: [treatment] | Urgency: [Routine/Soon/Urgent] | Home: [2 tips] | Avoid: [1 thing] | Tip: [motivation]
 
 4. MONTHLY RECOVERY PLAN
-Month 1: [clinic action] + [home routine] | Products: [2 specific Indian products with prices eg. Colgate Total Rs.120, Oral-B brush Rs.250]
-Month 2: [clinic action] + [home routine] | Products: [2 specific Indian products with prices]
-Month 3: [clinic action] + [home routine] | Products: [2 specific Indian products with prices]
+Month 1: [clinic] + [home] | Products: [2 Indian products with Rs. prices]
+Month 2: [clinic] + [home] | Products: [2 Indian products with Rs. prices]
+Month 3: [clinic] + [home] | Products: [2 Indian products with Rs. prices]
 
 5. TOTAL COST ESTIMATE
-Write a detailed cost breakdown:
-- [Condition 1 treatment]: Rs.[min]-Rs.[max] (eg. Scaling & Polishing: Rs.800-Rs.1500)
-- [Condition 2 treatment]: Rs.[min]-Rs.[max]
-- [Condition 3 treatment if any]: Rs.[min]-Rs.[max]
-- Monthly dental products: Rs.[amount] per month (list 2-3 products with prices)
-- One-time product cost: Rs.[amount] (eg. electric toothbrush, flosser)
-- Budget option total: Rs.[min]-Rs.[max]
-- Standard option total: Rs.[min]-Rs.[max]
-Use realistic Indian clinic prices.
+- [Treatment 1]: Rs.[min]-Rs.[max]
+- [Treatment 2]: Rs.[min]-Rs.[max]
+- Monthly products: Rs.[amount]/month
+- Budget total: Rs.[min]-Rs.[max]
+- Standard total: Rs.[min]-Rs.[max]
 
 6. CONCLUSION
-Write exactly 3 warm sentences: summarise the overall oral health status, encourage {name} with what can be improved, and state the single most important first action to take now.
+3 warm sentences: overall status, encourage {name}, most important first action.
 
-STRICT RULES:
-- Write entire response in English only
-- No markdown, no asterisks, no hashtags
-- All 6 sections must be present
-- Total response under 700 words
-"""
-        })
+RULES: English only. No markdown. All 6 sections. Under 700 words."""})
 
-        print(f"[Claude] Sending 3 YOLO images for analysis in English...")
-
+        print(f"[Claude] Analysing images...")
         message = client.messages.create(
             model="claude-haiku-4-5-20251001",
             max_tokens=2500,
-            system=(
-                "You are a concise expert dental AI assistant. "
-                "Always respond in English only. "
-                "Never use markdown symbols like **, ##, *, _ in your response. "
-                "Use plain text with numbered sections and simple - bullet points only. "
-                "All 6 sections must be present. Be specific and informative but concise."
-            ),
+            system="You are a concise expert dental AI. English only. No markdown. All 6 sections required.",
             messages=[{"role": "user", "content": content}]
         )
-
         analysis = message.content[0].text.strip()
-        print(f"[Claude] English analysis done — {len(analysis)} chars")
+        print(f"[Claude] Done — {len(analysis)} chars")
         return analysis
-
     except Exception as e:
-        print(f"[Claude] Analysis error: {e}")
+        print(f"[Claude] Error: {e}")
         traceback.print_exc()
         return None
 
 
 # ════════════════════════════════════════════════════════════
-#  STEP 2 — TRANSLATE English analysis to target language
+#  TRANSLATE
 # ════════════════════════════════════════════════════════════
 def translate_analysis(english_text, target_language):
     if target_language == "English":
         return english_text
-
     try:
         print(f"[Translate] Translating to {target_language}...")
-
         message = client.messages.create(
             model="claude-haiku-4-5-20251001",
             max_tokens=3000,
             system=(
-                f"You are an expert translator specialising in medical and dental content. "
-                f"Translate the given dental health report accurately into {target_language}. "
-                f"STRICT RULES: "
-                f"1. Translate EVERYTHING including section numbers and bullet points. "
-                f"2. Keep the same structure — numbered sections, dash bullets. "
-                f"3. Do NOT use any markdown (no **, ##, *, _). "
-                f"4. Output ONLY the translated text, nothing else — no preamble, no explanation. "
-                f"5. Preserve all numbers, prices (Rs. amounts), and medical/dental terms accurately. "
-                f"6. Make the translation natural and easy to read for a patient."
+                f"You are an expert medical translator. Translate to {target_language}. "
+                f"Rules: 1. Translate everything. 2. Keep numbered sections and dash bullets. "
+                f"3. No markdown. 4. Output translated text only. "
+                f"5. Preserve all numbers and Rs. prices."
             ),
-            messages=[{
-                "role": "user",
-                "content": (
-                    f"Translate the following dental report to {target_language}. "
-                    f"Output only the translated text:\n\n{english_text}"
-                )
-            }]
+            messages=[{"role": "user", "content": f"Translate to {target_language}:\n\n{english_text}"}]
         )
-
         translated = message.content[0].text.strip()
-        print(f"[Translate] Done — {len(translated)} chars in {target_language}")
+        print(f"[Translate] Done — {len(translated)} chars")
         return translated
-
     except Exception as e:
-        print(f"[Translate] Failed: {e} — falling back to English")
+        print(f"[Translate] Failed: {e}")
         return english_text
 
 
 # ════════════════════════════════════════════════════════════
-#  GENERATE REPORT — returns immediately, processes in background
-#  Pipeline: YOLO → Claude (English) → Translate → PDF
+#  GENERATE — returns immediately, processes in background
+#  Uses DISK FILES for status — works across all gunicorn workers
 # ════════════════════════════════════════════════════════════
 @app.route("/generate", methods=["POST"])
 def generate():
@@ -707,7 +578,6 @@ def generate():
                     session.modified = True
 
         if not name or not screening_id:
-            print(f"[Generate] Missing name or screening_id — redirecting to /details")
             return redirect("/details")
 
         report_id = str(uuid.uuid4())
@@ -715,24 +585,23 @@ def generate():
         session.modified = True
 
         patient_info = {
-            "name":     name,
-            "age":      age,
-            "gender":   gender,
-            "phone":    phone,
-            "email":    email,
-            "language": language,
+            "name": name, "age": age, "gender": gender,
+            "phone": phone, "email": email, "language": language,
         }
 
-        # Mark as processing immediately
-        report_status[report_id] = {"status": "processing", "error": None}
+        # Write processing marker to disk so ALL workers can see it
+        try:
+            with open(report_marker_path(report_id), "w") as f:
+                f.write("processing")
+        except:
+            pass
 
-        print(f"[Generate] Starting background job: {name} | lang: {language} | id: {screening_id[:8]}...")
+        report_status[report_id] = {"status": "processing"}
+        print(f"[Generate] Starting: {name} | {language} | {screening_id[:8]}")
 
-        # ── Background thread — no nginx timeout possible ──────────
         def background_generate():
             try:
                 with report_semaphore:
-                    # Step 1: YOLO detection
                     all_detections  = []
                     detected_labels = []
                     yolo_paths      = {}
@@ -740,53 +609,35 @@ def generate():
                     for part in ["upper", "front", "lower"]:
                         img_path = os.path.join(UPLOAD_DIR, f"{screening_id}_{part}.jpg")
                         out_path = os.path.join(RESULT_DIR, f"{screening_id}_{part}_yolo.jpg")
-
                         if not os.path.exists(img_path):
-                            print(f"[BG] Missing image for {part}, skipping")
+                            print(f"[BG] Missing: {part}")
                             continue
-
-                        print(f"[BG YOLO] Running on {part}...")
                         try:
                             detections = run_yolo(img_path, out_path)
-                        except Exception as yolo_err:
-                            print(f"[BG YOLO] Error on {part}: {yolo_err}")
+                        except Exception as e:
+                            print(f"[BG YOLO] {part} error: {e}")
                             detections = []
-
                         yolo_paths[part] = out_path
-
                         if detections:
                             all_detections.extend(detections)
                             for d in detections:
                                 if d["label"] not in detected_labels:
                                     detected_labels.append(d["label"])
-                            print(f"[BG YOLO] {part}: {len(detections)} detection(s)")
-                        else:
-                            print(f"[BG YOLO] {part}: no detections")
+                            print(f"[BG YOLO] {part}: {len(detections)} detections")
 
-                    # Step 2: Recommendations
                     try:
                         recommendations = generate_recommendations(
-                            detections=all_detections,
-                            age=age,
-                            gender=gender
-                        )
-                        print(f"[BG Rec] {len(recommendations)} generated")
-                    except Exception as rec_err:
-                        print(f"[BG Rec] Error: {rec_err}")
+                            detections=all_detections, age=age, gender=gender)
+                    except Exception as e:
+                        print(f"[BG Rec] Error: {e}")
                         recommendations = []
 
-                    # Step 3: Claude analysis (English)
-                    claude_analysis = analyse_with_claude(
-                        yolo_image_paths=yolo_paths,
-                        patient_info=patient_info
-                    )
+                    claude_analysis = analyse_with_claude(yolo_paths, patient_info)
 
-                    # Step 4: Translate to patient language
                     if claude_analysis and language != "English":
                         claude_analysis = translate_analysis(claude_analysis, language)
 
-                    # Step 5: Build PDF
-                    print(f"[BG PDF] Building report: {report_id[:8]}...")
+                    print(f"[BG PDF] Building {report_id[:8]}...")
                     report_path = generate_pdf(
                         user_data=patient_info,
                         detected_labels=detected_labels,
@@ -795,86 +646,128 @@ def generate():
                         claude_analysis=claude_analysis,
                         screening_id=screening_id
                     )
-                    print(f"[BG PDF] Created: {report_path}")
 
-                    # Step 6: Cleanup
                     cleanup_old_files(screening_id)
                     if session_token:
                         delete_phone_session(session_token)
                     increment_screening_count()
 
-                    # Mark done
-                    report_status[report_id] = {
-                        "status": "done",
-                        "path":   report_path,
-                        "error":  None
-                    }
-                    print(f"[BG] ✅ Report complete: {report_id[:8]}")
+                    # Remove processing marker
+                    try:
+                        os.remove(report_marker_path(report_id))
+                    except:
+                        pass
+
+                    report_status[report_id] = {"status": "done", "path": report_path}
+                    print(f"[BG] ✅ Done: {report_id[:8]}")
 
             except Exception as e:
                 err_msg = str(e)
-                print(f"[BG] ❌ FATAL ERROR: {err_msg}")
+                print(f"[BG] ❌ FATAL: {err_msg}")
                 traceback.print_exc()
-                report_status[report_id] = {
-                    "status": "error",
-                    "error":  err_msg,
-                    "path":   None
-                }
+                # Write error to disk so all workers can read it
+                try:
+                    with open(report_error_path(report_id), "w") as f:
+                        f.write(err_msg)
+                    os.remove(report_marker_path(report_id))
+                except:
+                    pass
+                report_status[report_id] = {"status": "error", "error": err_msg}
 
-        t = threading.Thread(target=background_generate, daemon=True)
-        t.start()
-
-        # Return processing page immediately — no timeout possible
+        threading.Thread(target=background_generate, daemon=True).start()
         return render_template("processing.html", report_id=report_id)
 
     except Exception as e:
         traceback.print_exc()
-        return render_template("result.html", error=f"Failed to start report: {str(e)}"), 500
+        return render_template("result.html", error=f"Failed to start: {str(e)}"), 500
 
 
 # ════════════════════════════════════════════════════════════
-#  REPORT STATUS — polled by processing.html every 3 seconds
+#  REPORT STATUS — checks DISK first (works across workers)
 # ════════════════════════════════════════════════════════════
 @app.route("/report_status/<report_id>")
 def check_report_status(report_id):
-    status = report_status.get(report_id, {"status": "not_found"})
-    if status.get("status") == "done":
-        session["report_path"] = status.get("path", "")
+    # 1. PDF exists on disk = done
+    pdf_path = report_pdf_path(report_id)
+    if os.path.exists(pdf_path):
+        session["report_path"] = pdf_path
         session["report_id"]   = report_id
         session.modified = True
-    return jsonify(status)
+        return jsonify({"status": "done", "path": pdf_path})
+
+    # 2. Error file on disk
+    err_path = report_error_path(report_id)
+    if os.path.exists(err_path):
+        try:
+            with open(err_path) as f:
+                err_msg = f.read()
+        except:
+            err_msg = "Unknown error"
+        return jsonify({"status": "error", "error": err_msg})
+
+    # 3. In-memory error (same worker)
+    mem = report_status.get(report_id, {})
+    if mem.get("status") == "error":
+        return jsonify(mem)
+
+    # 4. Still processing
+    return jsonify({"status": "processing"})
 
 
 # ════════════════════════════════════════════════════════════
-#  RESULT PAGE — shown after processing completes
+#  RESULT PAGE — checks DISK directly (works across workers)
 # ════════════════════════════════════════════════════════════
 @app.route("/result")
 def result_page():
     report_id = request.args.get("report_id", "") or session.get("report_id", "")
-    status    = report_status.get(report_id, {})
 
-    if status.get("status") == "done":
-        session["report_path"] = status.get("path", "")
-        session["report_id"]   = report_id
+    if not report_id:
+        return render_template("result.html", error="Report not found. Please try again.")
+
+    session["report_id"] = report_id
+    session.modified = True
+
+    # ✅ Check PDF on disk — reliable across ALL gunicorn workers
+    pdf_path = report_pdf_path(report_id)
+    if os.path.exists(pdf_path):
+        session["report_path"] = pdf_path
         session.modified = True
         return render_template("result.html", success=True, report_id=report_id)
 
-    elif status.get("status") == "error":
+    # Check error file on disk
+    err_path = report_error_path(report_id)
+    if os.path.exists(err_path):
+        try:
+            with open(err_path) as f:
+                err_msg = f.read()
+        except:
+            err_msg = "Unknown error"
         return render_template("result.html",
-            error=f"Report generation failed: {status.get('error', 'Unknown error')}")
+            error=f"Report generation failed: {err_msg}")
+
+    # Check in-memory error
+    mem = report_status.get(report_id, {})
+    if mem.get("status") == "error":
+        return render_template("result.html",
+            error=f"Report generation failed: {mem.get('error', 'Unknown error')}")
+
+    # Still processing
+    if os.path.exists(report_marker_path(report_id)):
+        return render_template("result.html",
+            error="Report is still generating. Please wait and refresh.")
 
     return render_template("result.html", error="Report not found. Please try again.")
 
 
 # ════════════════════════════════════════════════════════════
-#  DOWNLOAD REPORT
+#  DOWNLOAD
 # ════════════════════════════════════════════════════════════
 @app.route("/report/<report_id>")
 def view_report(report_id):
-    report_path = f"{REPORT_DIR}/{report_id}.pdf"
-    if not os.path.exists(report_path):
-        return "Report not found"
-    return send_file(report_path, as_attachment=True, download_name="OralAI_Report.pdf")
+    path = report_pdf_path(report_id)
+    if not os.path.exists(path):
+        return "Report not found", 404
+    return send_file(path, as_attachment=True, download_name="OralAI_Report.pdf")
 
 
 # ════════════════════════════════════════════════════════════
@@ -883,17 +776,12 @@ def view_report(report_id):
 @app.route("/send_email", methods=["POST"])
 def send_email_route():
     email       = session.get("patient_email", "").strip()
-    report_path = session.get("report_path", "")
     report_id   = session.get("report_id", "")
-
-    if not report_path and report_id:
-        report_path = f"{REPORT_DIR}/{report_id}.pdf"
-
+    report_path = session.get("report_path", "") or report_pdf_path(report_id)
     if not email:
-        return "❌ Patient email not found. Please start a new screening."
+        return "❌ Patient email not found."
     if not report_path or not os.path.exists(report_path):
-        return "❌ Report not found. Please generate the report first."
-
+        return "❌ Report not found."
     try:
         send_report(email, report_path)
         return "✅ Report sent successfully to " + email
@@ -909,88 +797,69 @@ def send_whatsapp_route():
     phone       = session.get("patient_phone", "").strip()
     name        = session.get("patient_name", "Patient")
     report_id   = session.get("report_id", "")
-    report_path = session.get("report_path", "")
-
-    if not report_path and report_id:
-        report_path = f"{REPORT_DIR}/{report_id}.pdf"
-
+    report_path = session.get("report_path", "") or report_pdf_path(report_id)
     if not phone:
-        return "❌ No phone number found. Please re-enter patient details."
-    if not report_id or not report_path:
-        return "❌ Report not found. Please generate the report first."
+        return "❌ No phone number found."
+    if not report_id:
+        return "❌ Report not found."
     if not os.path.exists(report_path):
         return "❌ Report file missing on server."
-
     try:
         success, message = send_whatsapp_report(
-            phone_number=phone,
-            patient_name=name,
-            report_id=report_id,
-            report_path=report_path
-        )
+            phone_number=phone, patient_name=name,
+            report_id=report_id, report_path=report_path)
         return message
     except Exception as e:
         return f"❌ WhatsApp failed: {str(e)}"
 
 
 # ════════════════════════════════════════════════════════════
-#  REVIEW FORM
+#  REVIEW
 # ════════════════════════════════════════════════════════════
 @app.route("/review", methods=["POST"])
 def review():
     try:
-        data    = request.get_json()
-        name    = data.get("name", "Anonymous")
-        contact = data.get("contact", "N/A")
-        review  = data.get("review", "")
-        rtype   = data.get("type", "General")
-        rating  = data.get("rating", "N/A")
-        stars   = data.get("stars", "")
-
+        data   = request.get_json()
+        name   = data.get("name", "Anonymous")
+        contact= data.get("contact", "N/A")
+        review = data.get("review", "")
+        rtype  = data.get("type", "General")
+        rating = data.get("rating", "N/A")
+        stars  = data.get("stars", "")
         if not review.strip():
             return jsonify({"success": False, "error": "Review cannot be empty."})
-
         msg = MIMEMultipart("alternative")
-        msg["Subject"]  = f"⭐ OralAI Review ({rating}/5) — {name}"
-        msg["From"]     = EMAIL_USER
-        msg["To"]       = EMAIL_USER
-
-        html_body = f"""
-        <html><body style="font-family:Arial,sans-serif;background:#f4f7ff;padding:20px;">
-          <div style="max-width:560px;margin:0 auto;background:#ffffff;border-radius:12px;overflow:hidden;box-shadow:0 4px 20px rgba(0,0,0,0.08);">
-            <div style="background:#0a1628;padding:24px 28px;">
-              <h2 style="color:#ffffff;margin:0;font-size:20px;">⭐ New OralAI Review</h2>
-            </div>
+        msg["Subject"] = f"⭐ OralAI Review ({rating}/5) — {name}"
+        msg["From"]    = EMAIL_USER
+        msg["To"]      = EMAIL_USER
+        html_body = f"""<html><body style="font-family:Arial,sans-serif;background:#f4f7ff;padding:20px;">
+          <div style="max-width:560px;margin:0 auto;background:#fff;border-radius:12px;overflow:hidden;">
+            <div style="background:#0a1628;padding:24px 28px;"><h2 style="color:#fff;margin:0;">⭐ New OralAI Review</h2></div>
             <div style="padding:28px;">
-              <div style="text-align:center;font-size:32px;margin-bottom:8px;">{stars}</div>
+              <div style="text-align:center;font-size:32px;">{stars}</div>
               <div style="text-align:center;font-size:15px;font-weight:700;color:#1a6fff;margin-bottom:24px;">{rating} / 5 Stars</div>
               <table style="width:100%;border-collapse:collapse;">
-                <tr><td style="padding:8px 0;font-size:13px;color:#64748b;width:120px;">Name</td><td style="font-size:14px;color:#0f172a;font-weight:700;">{name}</td></tr>
-                <tr style="border-top:1px solid #f1f5f9;"><td style="padding:8px 0;font-size:13px;color:#64748b;">Contact</td><td style="font-size:14px;color:#0f172a;">{contact}</td></tr>
+                <tr><td style="padding:8px 0;font-size:13px;color:#64748b;width:120px;">Name</td><td style="font-size:14px;font-weight:700;">{name}</td></tr>
+                <tr style="border-top:1px solid #f1f5f9;"><td style="padding:8px 0;font-size:13px;color:#64748b;">Contact</td><td style="font-size:14px;">{contact}</td></tr>
                 <tr style="border-top:1px solid #f1f5f9;"><td style="padding:8px 0;font-size:13px;color:#64748b;">Used for</td><td style="font-size:14px;color:#1a6fff;">{rtype}</td></tr>
               </table>
               <div style="margin-top:20px;padding:18px;background:#f8fafc;border-radius:10px;border-left:4px solid #f5c842;">
-                <p style="font-size:15px;color:#0f172a;line-height:1.8;margin:0;font-style:italic;">"{review}"</p>
+                <p style="font-size:15px;line-height:1.8;margin:0;font-style:italic;">"{review}"</p>
               </div>
             </div>
-          </div>
-        </body></html>
-        """
-
+          </div></body></html>"""
         msg.attach(MIMEText(html_body, "html"))
         with smtplib.SMTP("smtp.gmail.com", 587) as server:
             server.starttls()
             server.login(EMAIL_USER, EMAIL_PASS)
             server.sendmail(EMAIL_USER, EMAIL_USER, msg.as_string())
-
         return jsonify({"success": True})
-
     except Exception as e:
         return jsonify({"success": False, "error": str(e)})
 
 
 # ════════════════════════════════════════════════════════════
-#  CONTACT FORM
+#  CONTACT
 # ════════════════════════════════════════════════════════════
 @app.route("/contact", methods=["POST"])
 def contact():
@@ -1001,45 +870,34 @@ def contact():
         email   = data.get("email", "N/A")
         subject = data.get("subject", "General Inquiry")
         message = data.get("message", "")
-
         if not message.strip():
             return jsonify({"success": False, "error": "Message cannot be empty."})
-
         msg = MIMEMultipart("alternative")
         msg["Subject"]  = f"OralAI Contact: {subject}"
         msg["From"]     = EMAIL_USER
         msg["To"]       = DEVELOPER_EMAIL
         msg["Reply-To"] = email
-
-        html_body = f"""
-        <html><body style="font-family:Arial,sans-serif;background:#f4f7ff;padding:20px;">
-          <div style="max-width:560px;margin:0 auto;background:#ffffff;border-radius:12px;overflow:hidden;">
-            <div style="background:#0a1628;padding:24px 28px;">
-              <h2 style="color:#ffffff;margin:0;font-size:20px;">OralAI — New Contact Message</h2>
-            </div>
+        html_body = f"""<html><body style="font-family:Arial,sans-serif;background:#f4f7ff;padding:20px;">
+          <div style="max-width:560px;margin:0 auto;background:#fff;border-radius:12px;overflow:hidden;">
+            <div style="background:#0a1628;padding:24px 28px;"><h2 style="color:#fff;margin:0;">OralAI — Contact</h2></div>
             <div style="padding:28px;">
               <table style="width:100%;border-collapse:collapse;">
-                <tr><td style="padding:8px 0;font-size:13px;color:#64748b;width:100px;">Name</td><td style="font-size:14px;color:#0f172a;">{name}</td></tr>
-                <tr style="border-top:1px solid #f1f5f9;"><td style="padding:8px 0;font-size:13px;color:#64748b;">Email</td><td style="font-size:14px;color:#0f172a;">{email}</td></tr>
-                <tr style="border-top:1px solid #f1f5f9;"><td style="padding:8px 0;font-size:13px;color:#64748b;">Phone</td><td style="font-size:14px;color:#0f172a;">{phone}</td></tr>
+                <tr><td style="padding:8px 0;font-size:13px;color:#64748b;width:100px;">Name</td><td style="font-size:14px;">{name}</td></tr>
+                <tr style="border-top:1px solid #f1f5f9;"><td style="padding:8px 0;font-size:13px;color:#64748b;">Email</td><td style="font-size:14px;">{email}</td></tr>
+                <tr style="border-top:1px solid #f1f5f9;"><td style="padding:8px 0;font-size:13px;color:#64748b;">Phone</td><td style="font-size:14px;">{phone}</td></tr>
                 <tr style="border-top:1px solid #f1f5f9;"><td style="padding:8px 0;font-size:13px;color:#64748b;">Subject</td><td style="font-size:14px;color:#1a6fff;">{subject}</td></tr>
               </table>
               <div style="margin-top:20px;padding:16px;background:#f8fafc;border-radius:10px;border-left:4px solid #1a6fff;">
-                <p style="font-size:14px;color:#0f172a;line-height:1.7;margin:0;">{message}</p>
+                <p style="font-size:14px;line-height:1.7;margin:0;">{message}</p>
               </div>
             </div>
-          </div>
-        </body></html>
-        """
-
+          </div></body></html>"""
         msg.attach(MIMEText(html_body, "html"))
         with smtplib.SMTP("smtp.gmail.com", 587) as server:
             server.starttls()
             server.login(EMAIL_USER, EMAIL_PASS)
             server.sendmail(EMAIL_USER, DEVELOPER_EMAIL, msg.as_string())
-
         return jsonify({"success": True})
-
     except smtplib.SMTPAuthenticationError:
         return jsonify({"success": False, "error": "Email configuration error."})
     except Exception as e:
@@ -1047,7 +905,7 @@ def contact():
 
 
 # ════════════════════════════════════════════════════════════
-#  RUN APP
+#  RUN
 # ════════════════════════════════════════════════════════════
 if __name__ == "__main__":
     debug_mode = os.getenv("FLASK_DEBUG", "false").lower() == "true"
