@@ -92,23 +92,25 @@ NON_LATIN_LANGUAGES = {
     "Kannada", "Malayalam", "Bengali", "Arabic"
 }
 
-# ── Smaller font size for tall scripts so MORE fits per page ──
+# ── Font sizes — kept small so more fits per page ─────────────
 LANG_FONT_SIZE = {
-    "Telugu":    7.5,
-    "Hindi":     8.0,
-    "Marathi":   8.0,
-    "Tamil":     7.5,
-    "Kannada":   7.5,
-    "Malayalam": 7.5,
-    "Bengali":   8.0,
-    "Arabic":    8.0,
+    "Telugu":    7.0,
+    "Hindi":     7.5,
+    "Marathi":   7.5,
+    "Tamil":     7.0,
+    "Kannada":   7.0,
+    "Malayalam": 7.0,
+    "Bengali":   7.5,
+    "Arabic":    7.5,
     "English":   9.0,
 }
 
-# ── Page layout constants ─────────────────────────────────────
+# ── Page layout constants ──────────────────────────────────────
 PAGE_H_MM       = 297
 FOOTER_H_MM     = 14
-SAFE_BOTTOM_MM  = PAGE_H_MM - FOOTER_H_MM - 6   # 277 mm
+# Pull safe bottom UP by extra 8mm for non-Latin to prevent clip
+SAFE_BOTTOM_LATIN     = PAGE_H_MM - FOOTER_H_MM - 6    # 277 mm
+SAFE_BOTTOM_NON_LATIN = PAGE_H_MM - FOOTER_H_MM - 20   # 263 mm  ← tighter
 CONTENT_TOP_MM  = 18
 DISCLAIMER_H_MM = 10
 
@@ -359,6 +361,10 @@ class AnalysisPDF(FPDF):
         self._tmp_images  = []
         self.body_font_pt = LANG_FONT_SIZE.get(language, 9.0)
 
+        # ── Use tighter safe bottom for non-Latin scripts ──────
+        self.safe_bottom = (SAFE_BOTTOM_NON_LATIN if self.is_non_latin
+                            else SAFE_BOTTOM_LATIN)
+
         self.font_name = "NotoUni"
         if font_path and os.path.exists(font_path):
             try:
@@ -414,7 +420,7 @@ class AnalysisPDF(FPDF):
         self._draw_continuation_header()
 
     def _ensure_space(self, needed_mm):
-        if self.get_y() + needed_mm > SAFE_BOTTOM_MM:
+        if self.get_y() + needed_mm > self.safe_bottom:
             self._new_page()
 
     # ── Measure without file ──────────────────────────────────
@@ -428,20 +434,26 @@ class AnalysisPDF(FPDF):
             dpi=200
         )
 
-    # ── Embed Pillow image — ALWAYS measures first ────────────
+    # ── Embed Pillow image ─────────────────────────────────────
     def _embed_text_image(self, text, text_color=(15, 23, 42),
                           bg_color=None, x_mm=10, max_width_mm=183):
         if not self.font_path or not os.path.exists(self.font_path):
             return 0
 
-        # 1. Measure
+        # 1. Measure first
         h_preview = self._measure_h(text, max_width_mm=max_width_mm)
 
-        # 2. Break BEFORE drawing anything
-        if h_preview is not None and self.get_y() + h_preview > SAFE_BOTTOM_MM:
+        # 2. Add safety margin: actual render often slightly taller
+        if h_preview is not None:
+            h_with_margin = h_preview * 1.15 + 2.0
+        else:
+            h_with_margin = 15
+
+        # 3. Break BEFORE drawing if not enough room
+        if self.get_y() + h_with_margin > self.safe_bottom:
             self._new_page()
 
-        # 3. Render
+        # 4. Render to image
         result = render_text_to_image(
             text, self.font_path,
             font_size_pt=self.body_font_pt,
@@ -456,12 +468,12 @@ class AnalysisPDF(FPDF):
         tmp_path, h_mm, w_mm = result
         self._tmp_images.append(tmp_path)
 
-        # 4. Safety net
-        if self.get_y() + h_mm > SAFE_BOTTOM_MM:
+        # 5. Final safety net after render
+        if self.get_y() + h_mm > self.safe_bottom:
             self._new_page()
 
         self.image(tmp_path, x=x_mm, y=self.get_y(), w=max_width_mm, h=h_mm)
-        self.set_y(self.get_y() + h_mm + 0.8)
+        self.set_y(self.get_y() + h_mm + 1.0)
         return h_mm
 
     # ── Header / Footer / Disclaimer ─────────────────────────
@@ -512,7 +524,7 @@ class AnalysisPDF(FPDF):
             align="R", ln=0)
 
     def draw_disclaimer(self):
-        self._ensure_space(DISCLAIMER_H_MM + 2)
+        self._ensure_space(DISCLAIMER_H_MM + 4)
         y = self.get_y()
         self.set_fill_color(255, 251, 235)
         self.set_draw_color(252, 211, 77)
@@ -529,7 +541,8 @@ class AnalysisPDF(FPDF):
     # ── Section heading ───────────────────────────────────────
     def draw_section_heading(self, text):
         text = self._safe_text(text)
-        self._ensure_space(14)
+        # Always ensure at least 25mm free so heading + first bullet fit
+        self._ensure_space(25)
         bar_y = self.get_y()
         self.set_fill_color(37, 99, 235)
         self.rect(0, bar_y, 210, 9, "F")
@@ -557,19 +570,20 @@ class AnalysisPDF(FPDF):
         self.cell(0, 6, text, ln=1)
         self.ln(2)
 
-    # ── Bullet — ATOMIC: measure → break → dot+text together ──
+    # ── Bullet — atomic: measure → break → dot+text together ──
     def draw_bullet(self, text):
         text = self._safe_text(text)
 
         if self.is_non_latin and self.font_path and os.path.exists(self.font_path):
             h_preview = self._measure_h(text, max_width_mm=176)
-            needed    = (h_preview if h_preview is not None else 12) + 1.5
+            # Add 15% margin + 3mm buffer for dot + spacing
+            needed = (h_preview * 1.15 + 3.0) if h_preview is not None else 14
 
-            # Break BEFORE drawing anything (dot + text must be on same page)
-            if self.get_y() + needed > SAFE_BOTTOM_MM:
+            # Break BEFORE drawing anything (dot + text must stay together)
+            if self.get_y() + needed > self.safe_bottom:
                 self._new_page()
 
-            # Draw dot and text together at same Y
+            # Draw dot and text at same Y
             y_start = self.get_y()
             self.set_fill_color(37, 99, 235)
             self.ellipse(12, y_start + 2.5, 2, 2, "F")
@@ -782,23 +796,23 @@ def generate_analysis_pages_fpdf2(claude_analysis, language, name, age, gender,
 
     for item_type, item_text in render_items:
         if item_type == "blank":
-            if pdf.get_y() + 2.5 < SAFE_BOTTOM_MM:
+            if pdf.get_y() + 2.5 < pdf.safe_bottom:
                 pdf.ln(2.5)
         elif item_type == "heading":
-            if pdf.get_y() + 3 < SAFE_BOTTOM_MM:
+            if pdf.get_y() + 3 < pdf.safe_bottom:
                 pdf.ln(3)
             pdf.draw_section_heading(item_text)
-            if pdf.get_y() + 1.5 < SAFE_BOTTOM_MM:
+            if pdf.get_y() + 1.5 < pdf.safe_bottom:
                 pdf.ln(1.5)
         elif item_type == "bullet":
             pdf.draw_bullet(item_text)
         else:
             if item_text:
                 pdf.draw_body_text(item_text)
-                if pdf.get_y() + 1 < SAFE_BOTTOM_MM:
+                if pdf.get_y() + 1 < pdf.safe_bottom:
                     pdf.ln(1)
 
-    if pdf.get_y() + 3 < SAFE_BOTTOM_MM:
+    if pdf.get_y() + 3 < pdf.safe_bottom:
         pdf.ln(3)
     pdf.draw_disclaimer()
     pdf.draw_management_section()
