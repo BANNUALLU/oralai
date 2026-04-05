@@ -108,9 +108,8 @@ LANG_FONT_SIZE = {
 # ── Page layout constants ──────────────────────────────────────
 PAGE_H_MM       = 297
 FOOTER_H_MM     = 14
-# Pull safe bottom UP by extra 8mm for non-Latin to prevent clip
-SAFE_BOTTOM_LATIN     = PAGE_H_MM - FOOTER_H_MM - 6    # 277 mm
-SAFE_BOTTOM_NON_LATIN = PAGE_H_MM - FOOTER_H_MM - 20   # 263 mm  ← tighter
+SAFE_BOTTOM_LATIN     = PAGE_H_MM - FOOTER_H_MM - 6
+SAFE_BOTTOM_NON_LATIN = PAGE_H_MM - FOOTER_H_MM - 20
 CONTENT_TOP_MM  = 18
 DISCLAIMER_H_MM = 10
 
@@ -158,18 +157,42 @@ def wrap_text(text, max_chars=82):
     return lines
 
 
+# ══════════════════════════════════════════════════════════════
+#  PAGE 1 FOOTER  (dark navy, 3-section layout)
+# ══════════════════════════════════════════════════════════════
+
 def draw_footer_rl(c, W, report_id, page_num, total_pages):
+    footer_h = 22
+
+    # Dark navy background
     c.setFillColor(C_HEADER)
-    c.rect(0, 0, W, 42, fill=1, stroke=0)
-    c.setFillColor(C_TEAL)
-    c.rect(0, 0, 6, 42, fill=1, stroke=0)
+    c.rect(0, 0, W, footer_h, fill=1, stroke=0)
+
+    # Thin accent line on top
+    c.setStrokeColor(C_ACCENT)
+    c.setLineWidth(1)
+    c.line(0, footer_h, W, footer_h)
+
+    mid_y = 7  # vertical text baseline
+
+    # ── Left: Branding ──────────────────────────────────────
     c.setFillColor(C_WHITE)
-    c.setFont("Helvetica-Bold", 10)
-    c.drawString(18, 22, "OralAI  -  AI Oral Health Screening  |  www.oralai.site")
-    c.setFont("Helvetica", 9)
+    c.setFont("Helvetica-Bold", 8)
+    c.drawString(14, mid_y, "OralAI  -  AI Oral Health Screening")
+    c.setFillColor(C_MUTED)
+    c.setFont("Helvetica", 8)
+    c.drawString(14 + 178, mid_y, "|  www.oralai.site")
+
+    # ── Center: Report ID ───────────────────────────────────
     c.setFillColor(colors.HexColor("#94a3b8"))
-    c.drawRightString(W - 16, 16,
-        f"Report ID: {report_id}   |   {datetime.now().strftime('%d %b %Y')}   |   Page {page_num} of {total_pages}")
+    c.setFont("Helvetica", 7.5)
+    c.drawCentredString(W / 2, mid_y, f"Report ID: {report_id}")
+
+    # ── Right: Date | Page ──────────────────────────────────
+    c.setFillColor(C_WHITE)
+    c.setFont("Helvetica", 7.5)
+    c.drawRightString(W - 14, mid_y,
+        f"{datetime.now().strftime('%d %b %Y')}   |   Page {page_num} of {total_pages}")
 
 
 def draw_section_bar_rl(c, W, y, title, color=None):
@@ -196,23 +219,28 @@ def get_face_photo_path(screening_id, report_id):
     return None
 
 
+# ══════════════════════════════════════════════════════════════
+#  PATIENT INFO BAR  (bigger photo, Name bold, Phone+Date row)
+# ══════════════════════════════════════════════════════════════
+
 def draw_patient_info_bar(c, W, H, header_h, name, age, gender, phone, now, face_photo_path=None):
     bar_top = H - header_h
-    bar_h   = 54
+    bar_h   = 70  # increased for bigger photo
     c.setFillColor(C_SURFACE2)
     c.rect(0, bar_top - bar_h, W, bar_h, fill=1, stroke=0)
     c.setStrokeColor(C_BORDER)
     c.setLineWidth(0.8)
     c.line(0, bar_top - bar_h, W, bar_top - bar_h)
 
-    photo_w, photo_h = 40, 44
+    # ── Bigger face photo ──────────────────────────────────
+    photo_w, photo_h = 58, 62
     photo_x = W - photo_w - 14
-    photo_y = bar_top - bar_h + 5
+    photo_y = bar_top - bar_h + 4
 
     if face_photo_path and os.path.exists(face_photo_path):
-        c.setStrokeColor(C_BORDER)
-        c.setLineWidth(1)
-        c.roundRect(photo_x - 2, photo_y - 2, photo_w + 4, photo_h + 4, 4, fill=0, stroke=1)
+        c.setStrokeColor(C_ACCENT)
+        c.setLineWidth(1.5)
+        c.roundRect(photo_x - 2, photo_y - 2, photo_w + 4, photo_h + 4, 5, fill=0, stroke=1)
         try:
             c.drawImage(face_photo_path, photo_x, photo_y,
                         width=photo_w, height=photo_h,
@@ -223,20 +251,41 @@ def draw_patient_info_bar(c, W, H, header_h, name, age, gender, phone, now, face
     else:
         _draw_face_placeholder(c, photo_x, photo_y, photo_w, photo_h)
 
-    def info_pair(label, value, x, y):
-        c.setFillColor(C_MUTED)
-        c.setFont("Helvetica", 9)
-        lw = c.stringWidth(label, "Helvetica", 9)
-        c.drawString(x, y, label)
-        c.setFillColor(C_TEXT)
-        c.setFont("Helvetica-Bold", 10)
-        c.drawString(x + lw + 3, y, value)
+    # ── Text content ───────────────────────────────────────
+    text_x = 20
 
-    iy1 = bar_top - 22
-    iy2 = bar_top - 38
-    info_pair("Name:",  f"{name}  ({age} / {gender})", 28, iy1)
-    info_pair("Phone:", phone, 28, iy2)
-    info_pair("Date:",  now,   220, iy2)
+    # Name label + value
+    c.setFillColor(C_MUTED)
+    c.setFont("Helvetica", 8)
+    c.drawString(text_x, bar_top - 18, "NAME")
+    c.setFillColor(C_TEXT)
+    c.setFont("Helvetica-Bold", 12)
+    c.drawString(text_x, bar_top - 30, f"{name}")
+
+    # Age / Gender pill badge
+    c.setFillColor(C_ACCENT)
+    c.roundRect(text_x, bar_top - 46, 52, 13, 4, fill=1, stroke=0)
+    c.setFillColor(C_WHITE)
+    c.setFont("Helvetica-Bold", 8)
+    c.drawCentredString(text_x + 26, bar_top - 38, f"{age} yrs  •  {gender}")
+
+    # Phone
+    c.setFillColor(C_MUTED)
+    c.setFont("Helvetica", 8)
+    c.drawString(text_x, bar_top - 56, "PHONE")
+    c.setFillColor(C_TEXT)
+    c.setFont("Helvetica-Bold", 9.5)
+    c.drawString(text_x, bar_top - 66, f"{phone}")
+
+    # Date — right-aligned before photo
+    date_x = photo_x - 20
+    c.setFillColor(C_MUTED)
+    c.setFont("Helvetica", 8)
+    c.drawRightString(date_x, bar_top - 56, "DATE")
+    c.setFillColor(C_TEXT)
+    c.setFont("Helvetica-Bold", 9.5)
+    c.drawRightString(date_x, bar_top - 66, now)
+
     return bar_top - bar_h
 
 
@@ -361,7 +410,6 @@ class AnalysisPDF(FPDF):
         self._tmp_images  = []
         self.body_font_pt = LANG_FONT_SIZE.get(language, 9.0)
 
-        # ── Use tighter safe bottom for non-Latin scripts ──────
         self.safe_bottom = (SAFE_BOTTOM_NON_LATIN if self.is_non_latin
                             else SAFE_BOTTOM_LATIN)
 
@@ -423,7 +471,6 @@ class AnalysisPDF(FPDF):
         if self.get_y() + needed_mm > self.safe_bottom:
             self._new_page()
 
-    # ── Measure without file ──────────────────────────────────
     def _measure_h(self, text, max_width_mm=183):
         if not self.font_path or not os.path.exists(self.font_path):
             return None
@@ -434,26 +481,20 @@ class AnalysisPDF(FPDF):
             dpi=200
         )
 
-    # ── Embed Pillow image ─────────────────────────────────────
     def _embed_text_image(self, text, text_color=(15, 23, 42),
                           bg_color=None, x_mm=10, max_width_mm=183):
         if not self.font_path or not os.path.exists(self.font_path):
             return 0
 
-        # 1. Measure first
         h_preview = self._measure_h(text, max_width_mm=max_width_mm)
-
-        # 2. Add safety margin: actual render often slightly taller
         if h_preview is not None:
             h_with_margin = h_preview * 1.15 + 2.0
         else:
             h_with_margin = 15
 
-        # 3. Break BEFORE drawing if not enough room
         if self.get_y() + h_with_margin > self.safe_bottom:
             self._new_page()
 
-        # 4. Render to image
         result = render_text_to_image(
             text, self.font_path,
             font_size_pt=self.body_font_pt,
@@ -468,7 +509,6 @@ class AnalysisPDF(FPDF):
         tmp_path, h_mm, w_mm = result
         self._tmp_images.append(tmp_path)
 
-        # 5. Final safety net after render
         if self.get_y() + h_mm > self.safe_bottom:
             self._new_page()
 
@@ -541,7 +581,6 @@ class AnalysisPDF(FPDF):
     # ── Section heading ───────────────────────────────────────
     def draw_section_heading(self, text):
         text = self._safe_text(text)
-        # Always ensure at least 25mm free so heading + first bullet fit
         self._ensure_space(25)
         bar_y = self.get_y()
         self.set_fill_color(37, 99, 235)
@@ -570,20 +609,17 @@ class AnalysisPDF(FPDF):
         self.cell(0, 6, text, ln=1)
         self.ln(2)
 
-    # ── Bullet — atomic: measure → break → dot+text together ──
+    # ── Bullet ────────────────────────────────────────────────
     def draw_bullet(self, text):
         text = self._safe_text(text)
 
         if self.is_non_latin and self.font_path and os.path.exists(self.font_path):
             h_preview = self._measure_h(text, max_width_mm=176)
-            # Add 15% margin + 3mm buffer for dot + spacing
             needed = (h_preview * 1.15 + 3.0) if h_preview is not None else 14
 
-            # Break BEFORE drawing anything (dot + text must stay together)
             if self.get_y() + needed > self.safe_bottom:
                 self._new_page()
 
-            # Draw dot and text at same Y
             y_start = self.get_y()
             self.set_fill_color(37, 99, 235)
             self.ellipse(12, y_start + 2.5, 2, 2, "F")
@@ -591,7 +627,6 @@ class AnalysisPDF(FPDF):
             self.set_x(10)
             return
 
-        # Latin fallback
         lines_est = max(1, len(text) // 76 + 1)
         self._ensure_space(lines_est * 4.5 + 2)
         y = self.get_y()
@@ -834,6 +869,7 @@ def _build_page1(c, W, H, header_h, name, age, gender, phone, now,
                  card_h, gap, pill_colors, detected_labels,
                  recommendations, no_issues, report_id, total_pages):
 
+    # ── Header bar ───────────────────────────────────────────
     c.setFillColor(C_HEADER)
     c.rect(0, H - header_h, W, header_h, fill=1, stroke=0)
     c.setFillColor(colors.HexColor("#1e3a8a"))
@@ -860,12 +896,14 @@ def _build_page1(c, W, H, header_h, name, age, gender, phone, now,
         c.setFont("Helvetica-Bold", 22)
         c.drawString(30, H - header_h + 44, "Oral Health Screening Report")
 
+    # ── Patient info bar ─────────────────────────────────────
     bar_bottom = draw_patient_info_bar(c, W, H, header_h, name, age, gender, phone, now,
                                        face_photo_path=face_photo_path)
     cur_y = bar_bottom
     cur_y = draw_section_bar_rl(c, W, cur_y, "  AI SCREENING REPORT")
     card_y = cur_y - 14 - card_h
 
+    # ── YOLO image cards ─────────────────────────────────────
     for i, (lbl, fname) in enumerate(img_parts):
         ix  = 28 + gap + i * (img_w + gap)
         iy2 = card_y
@@ -891,6 +929,7 @@ def _build_page1(c, W, H, header_h, name, age, gender, phone, now,
         c.setFont("Helvetica-Bold", 9)
         c.drawCentredString(ix + img_w / 2, iy2 + 12, lbl)
 
+    # ── Detected conditions legend ────────────────────────────
     cur_y = card_y - 18
     detected = [k for k in ["malaligned", "stains", "caries", "pit_fissure"] if k in detected_labels]
     if detected:
@@ -911,6 +950,7 @@ def _build_page1(c, W, H, header_h, name, age, gender, phone, now,
             lx += c.stringWidth(text, "Helvetica", 9) + 34
         cur_y -= 24
 
+    # ── Recommendations ───────────────────────────────────────
     cur_y -= 4
     cur_y = draw_section_bar_rl(c, W, cur_y, "  TREATMENT RECOMMENDATIONS")
     cur_y -= 8
@@ -975,6 +1015,7 @@ def _build_page1(c, W, H, header_h, name, age, gender, phone, now,
                 c.drawString(68, ty, ln)
                 ty -= 13
 
+    # ── Page 1 footer ─────────────────────────────────────────
     draw_footer_rl(c, W, report_id, 1, total_pages)
     c.save()
 
