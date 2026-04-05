@@ -461,7 +461,8 @@ def validate():
 
 
 # ════════════════════════════════════════════════════════════
-#  CLAUDE ANALYSIS (English)
+#  CLAUDE ANALYSIS
+#  — No word limits, max_tokens=8000, all 6 sections guaranteed
 # ════════════════════════════════════════════════════════════
 NON_LATIN_LANGUAGES = {
     "Hindi", "Marathi", "Telugu", "Tamil",
@@ -474,8 +475,7 @@ def analyse_with_claude(yolo_image_paths, patient_info):
         gender   = patient_info.get("gender", "unknown")
         name     = patient_info.get("name", "Patient")
         language = patient_info.get("language", "English")
-        # Non-Latin scripts render MUCH taller in PDF — use tighter limit
-        word_limit = 450 if language in NON_LATIN_LANGUAGES else 700
+
         content = []
         labels  = ["Upper Teeth", "Front Teeth", "Lower Teeth"]
         paths   = [yolo_image_paths.get("upper"), yolo_image_paths.get("front"), yolo_image_paths.get("lower")]
@@ -485,6 +485,7 @@ def analyse_with_claude(yolo_image_paths, patient_info):
                     img_b64 = base64.b64encode(f.read()).decode("utf-8")
                 content.append({"type": "text", "text": f"Image {i+1} - {label}:"})
                 content.append({"type": "image", "source": {"type": "base64", "media_type": "image/jpeg", "data": img_b64}})
+
         content.append({"type": "text", "text": f"""You are an expert dental AI assistant reviewing 3 dental images for a patient.
 
 Patient: {name}, Age: {age}, Gender: {gender}
@@ -516,17 +517,46 @@ Month 3: [clinic] + [home] | Products: [2 Indian products with Rs. prices]
 6. CONCLUSION
 2 warm sentences: overall status, encourage {name}, most important first action.
 
-RULES: English only. No markdown. ALL 6 sections required. Under {word_limit} words total. Keep each bullet SHORT — 1 line max per bullet."""})
+RULES: English only. No markdown. ALL 6 sections are REQUIRED — do not stop until all 6 are complete. Each bullet 1 line max."""})
 
-        print(f"[Claude] Analysing images (word limit: {word_limit})...")
+        print(f"[Claude] Analysing images for {name} ({language})...")
         message = client.messages.create(
             model="claude-haiku-4-5-20251001",
-            max_tokens=2500,
-            system=f"You are a concise expert dental AI. English only. No markdown. All 6 sections required. Under {word_limit} words. Short bullets.",
+            max_tokens=8000,
+            system=(
+                "You are an expert dental AI. English only. No markdown. "
+                "You MUST write ALL 6 sections completely. "
+                "Do not stop or truncate. All 6 sections are required."
+            ),
             messages=[{"role": "user", "content": content}]
         )
         analysis = message.content[0].text.strip()
-        print(f"[Claude] Done — {len(analysis)} chars")
+        print(f"[Claude] Done — {len(analysis)} chars, {len(analysis.split())} words")
+
+        # ── Verify all 6 sections are present ─────────────────
+        missing = []
+        for i in range(1, 7):
+            if not any(f"{i}." in line for line in analysis.split("\n")):
+                missing.append(i)
+        if missing:
+            print(f"[Claude] WARNING: Missing sections {missing} — retrying...")
+            # Retry with explicit continuation
+            retry_msg = client.messages.create(
+                model="claude-haiku-4-5-20251001",
+                max_tokens=8000,
+                system=(
+                    "You are an expert dental AI. English only. No markdown. "
+                    "You MUST write ALL 6 sections completely. Never stop early."
+                ),
+                messages=[
+                    {"role": "user", "content": content},
+                    {"role": "assistant", "content": analysis},
+                    {"role": "user", "content": f"You are missing sections {missing}. Please write those missing sections now, completely."}
+                ]
+            )
+            analysis = analysis + "\n" + retry_msg.content[0].text.strip()
+            print(f"[Claude] Retry done — {len(analysis)} chars total")
+
         return analysis
     except Exception as e:
         print(f"[Claude] Error: {e}")
@@ -536,6 +566,7 @@ RULES: English only. No markdown. ALL 6 sections required. Under {word_limit} wo
 
 # ════════════════════════════════════════════════════════════
 #  TRANSLATE
+#  — max_tokens=8000, full translation guaranteed
 # ════════════════════════════════════════════════════════════
 def translate_analysis(english_text, target_language):
     if target_language == "English":
@@ -544,17 +575,45 @@ def translate_analysis(english_text, target_language):
         print(f"[Translate] Translating to {target_language}...")
         message = client.messages.create(
             model="claude-haiku-4-5-20251001",
-            max_tokens=3000,
+            max_tokens=8000,
             system=(
                 f"You are an expert medical translator. Translate to {target_language}. "
-                f"Rules: 1. Translate everything. 2. Keep numbered sections and dash bullets. "
-                f"3. No markdown. 4. Output translated text only. "
-                f"5. Preserve all numbers and Rs. prices."
+                f"Rules: "
+                f"1. Translate EVERYTHING completely — all 6 sections. "
+                f"2. Keep numbered sections (1. 2. 3. 4. 5. 6.) and dash bullets (-). "
+                f"3. No markdown. "
+                f"4. Output translated text only — no English, no preamble. "
+                f"5. Preserve all numbers and Rs. prices exactly. "
+                f"6. Do NOT stop until ALL 6 sections are fully translated. "
+                f"7. Section 6 CONCLUSION must be the last thing you write."
             ),
-            messages=[{"role": "user", "content": f"Translate to {target_language}:\n\n{english_text}"}]
+            messages=[{"role": "user", "content": (
+                f"Translate ALL 6 sections completely to {target_language}. "
+                f"Do not stop until Section 6. CONCLUSION is done.\n\n{english_text}"
+            )}]
         )
         translated = message.content[0].text.strip()
         print(f"[Translate] Done — {len(translated)} chars")
+
+        # ── Verify translation is not truncated ───────────────
+        if len(translated) < len(english_text) * 0.5:
+            print(f"[Translate] WARNING: Translation seems truncated, retrying...")
+            retry = client.messages.create(
+                model="claude-haiku-4-5-20251001",
+                max_tokens=8000,
+                system=(
+                    f"You are an expert medical translator to {target_language}. "
+                    f"Complete the translation. No markdown. Preserve section numbers and Rs. prices."
+                ),
+                messages=[
+                    {"role": "user", "content": f"Translate to {target_language}:\n\n{english_text}"},
+                    {"role": "assistant", "content": translated},
+                    {"role": "user", "content": "Continue and complete the remaining sections of the translation."}
+                ]
+            )
+            translated = translated + "\n" + retry.content[0].text.strip()
+            print(f"[Translate] Retry done — {len(translated)} chars total")
+
         return translated
     except Exception as e:
         print(f"[Translate] Failed: {e}")
@@ -673,7 +732,6 @@ def generate():
                 err_msg = str(e)
                 print(f"[BG] ❌ FATAL: {err_msg}")
                 traceback.print_exc()
-                # Write error to disk so all workers can read it
                 try:
                     with open(report_error_path(report_id), "w") as f:
                         f.write(err_msg)
@@ -695,7 +753,6 @@ def generate():
 # ════════════════════════════════════════════════════════════
 @app.route("/report_status/<report_id>")
 def check_report_status(report_id):
-    # 1. PDF exists on disk = done
     pdf_path = report_pdf_path(report_id)
     if os.path.exists(pdf_path):
         session["report_path"] = pdf_path
@@ -703,7 +760,6 @@ def check_report_status(report_id):
         session.modified = True
         return jsonify({"status": "done", "path": pdf_path})
 
-    # 2. Error file on disk
     err_path = report_error_path(report_id)
     if os.path.exists(err_path):
         try:
@@ -713,17 +769,15 @@ def check_report_status(report_id):
             err_msg = "Unknown error"
         return jsonify({"status": "error", "error": err_msg})
 
-    # 3. In-memory error (same worker)
     mem = report_status.get(report_id, {})
     if mem.get("status") == "error":
         return jsonify(mem)
 
-    # 4. Still processing
     return jsonify({"status": "processing"})
 
 
 # ════════════════════════════════════════════════════════════
-#  RESULT PAGE — checks DISK directly (works across workers)
+#  RESULT PAGE
 # ════════════════════════════════════════════════════════════
 @app.route("/result")
 def result_page():
@@ -735,14 +789,12 @@ def result_page():
     session["report_id"] = report_id
     session.modified = True
 
-    # ✅ Check PDF on disk — reliable across ALL gunicorn workers
     pdf_path = report_pdf_path(report_id)
     if os.path.exists(pdf_path):
         session["report_path"] = pdf_path
         session.modified = True
         return render_template("result.html", success=True, report_id=report_id)
 
-    # Check error file on disk
     err_path = report_error_path(report_id)
     if os.path.exists(err_path):
         try:
@@ -753,13 +805,11 @@ def result_page():
         return render_template("result.html",
             error=f"Report generation failed: {err_msg}")
 
-    # Check in-memory error
     mem = report_status.get(report_id, {})
     if mem.get("status") == "error":
         return render_template("result.html",
             error=f"Report generation failed: {mem.get('error', 'Unknown error')}")
 
-    # Still processing
     if os.path.exists(report_marker_path(report_id)):
         return render_template("result.html",
             error="Report is still generating. Please wait and refresh.")
