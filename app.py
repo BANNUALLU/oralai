@@ -271,10 +271,6 @@ def index():
 def screening_count():
     return jsonify({"count": get_screening_count()})
 
-@app.route("/start")
-def start():
-    return render_template("start.html")
-
 @app.route("/privacy")
 def privacy():
     return render_template("privacy.html")
@@ -540,7 +536,6 @@ RULES: English only. No markdown. ALL 6 sections are REQUIRED — do not stop un
                 missing.append(i)
         if missing:
             print(f"[Claude] WARNING: Missing sections {missing} — retrying...")
-            # Retry with explicit continuation
             retry_msg = client.messages.create(
                 model="claude-haiku-4-5-20251001",
                 max_tokens=8000,
