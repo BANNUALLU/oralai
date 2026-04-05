@@ -92,6 +92,13 @@ NON_LATIN_LANGUAGES = {
     "Kannada", "Malayalam", "Bengali", "Arabic"
 }
 
+# ── Page layout constants ─────────────────────────────────────
+PAGE_H_MM       = 297          # A4 height in mm
+FOOTER_H_MM     = 14           # footer height in mm
+SAFE_BOTTOM_MM  = PAGE_H_MM - FOOTER_H_MM - 8   # = 275 — stop placing content here
+CONTENT_TOP_MM  = 18           # after continuation header
+DISCLAIMER_H_MM = 10           # height of disclaimer box
+
 
 def sanitize(text):
     if not isinstance(text, str):
@@ -373,10 +380,42 @@ class AnalysisPDF(FPDF):
         else:
             self.set_font("Helvetica", style="B" if bold else "", size=size)
 
+    # ── Continuation page header (no analysis header, just minimal bar) ──
+    def _draw_continuation_header(self):
+        self.set_fill_color(15, 23, 42)
+        self.rect(0, 0, 210, 14, "F")
+        self.set_fill_color(8, 145, 178)
+        self.rect(0, 0, 2.5, 14, "F")
+        self.set_xy(5, 3)
+        self.set_text_color(255, 255, 255)
+        self.set_font("Helvetica", "B", 11)
+        self.cell(130, 8, sanitize("AI Detailed Analysis (continued)"))
+        self.set_fill_color(124, 58, 237)
+        self.rect(0, 14, 210, 1.5, "F")
+        self.set_y(CONTENT_TOP_MM)
+
+    # ── Force a page break and draw the continuation header ──
+    def _new_page(self):
+        self.draw_footer()
+        self.page_num += 1
+        self.add_page()
+        self._draw_continuation_header()
+
+    # ── Check remaining space; break if needed ──
+    def _ensure_space(self, needed_mm):
+        """Break page if `needed_mm` won't fit before the safe bottom."""
+        if self.get_y() + needed_mm > SAFE_BOTTOM_MM:
+            self._new_page()
+
     def _embed_text_image(self, text, font_size_pt=9,
                           text_color=(15, 23, 42),
                           bg_color=None,
                           x_mm=10, max_width_mm=183):
+        """
+        Render text as a Pillow image and embed it.
+        Automatically triggers a page break if the image won't fit.
+        Returns height placed (mm), or 0 on failure.
+        """
         if not self.font_path or not os.path.exists(self.font_path):
             return 0
 
@@ -393,6 +432,10 @@ class AnalysisPDF(FPDF):
 
         tmp_path, h_mm, w_mm = result
         self._tmp_images.append(tmp_path)
+
+        # ── KEY FIX: check ACTUAL rendered height before placing ──
+        if self.get_y() + h_mm > SAFE_BOTTOM_MM:
+            self._new_page()
 
         self.image(tmp_path, x=x_mm, y=self.get_y(), w=max_width_mm, h=h_mm)
         self.set_y(self.get_y() + h_mm + 1)
@@ -453,6 +496,8 @@ class AnalysisPDF(FPDF):
             align="R", ln=0)
 
     def draw_disclaimer(self):
+        # Ensure disclaimer fits before placing it
+        self._ensure_space(DISCLAIMER_H_MM)
         y = self.get_y()
         self.set_fill_color(255, 251, 235)
         self.set_draw_color(252, 211, 77)
@@ -468,6 +513,8 @@ class AnalysisPDF(FPDF):
 
     def draw_section_heading(self, text):
         text   = self._safe_text(text)
+        # Headings need ~13 mm (bar + spacing) — ensure space
+        self._ensure_space(13)
         bar_y  = self.get_y()
 
         self.set_fill_color(37, 99, 235)
@@ -499,12 +546,9 @@ class AnalysisPDF(FPDF):
 
     def draw_bullet(self, text):
         text = self._safe_text(text)
-        y    = self.get_y()
-
-        self.set_fill_color(37, 99, 235)
-        self.ellipse(12, y + 2.5, 2, 2, "F")
 
         if self.is_non_latin and self.font_path and os.path.exists(self.font_path):
+            # _embed_text_image now handles page break internally
             h = self._embed_text_image(
                 text,
                 font_size_pt=9,
@@ -513,9 +557,20 @@ class AnalysisPDF(FPDF):
                 max_width_mm=176
             )
             if h > 0:
+                # Draw bullet dot at the correct Y (after possible page break)
+                bullet_y = self.get_y() - h - 1 + 2.5
+                self.set_fill_color(37, 99, 235)
+                self.ellipse(12, bullet_y, 2, 2, "F")
                 self.set_x(10)
                 return
 
+        # Latin fallback — estimate height and break if needed
+        lines_est = max(1, len(text) // 76 + 1)
+        self._ensure_space(lines_est * 5 + 2)
+
+        y = self.get_y()
+        self.set_fill_color(37, 99, 235)
+        self.ellipse(12, y + 2.5, 2, 2, "F")
         self.set_xy(17, y)
         self.set_text_color(15, 23, 42)
         self.get_font(size=9)
@@ -526,6 +581,7 @@ class AnalysisPDF(FPDF):
         text = self._safe_text(text)
 
         if self.is_non_latin and self.font_path and os.path.exists(self.font_path):
+            # _embed_text_image now handles page break internally
             h = self._embed_text_image(
                 text,
                 font_size_pt=9,
@@ -535,6 +591,10 @@ class AnalysisPDF(FPDF):
             )
             if h > 0:
                 return
+
+        # Latin fallback — estimate height and break if needed
+        lines_est = max(1, len(text) // 82 + 1)
+        self._ensure_space(lines_est * 5 + 2)
 
         self.set_x(10)
         self.set_text_color(15, 23, 42)
@@ -712,14 +772,12 @@ def generate_analysis_pages_fpdf2(claude_analysis, language, name, age, gender,
         logo_path=logo_path,
         total_pages=total_pages
     )
-    pdf.set_auto_page_break(auto=False)
+    pdf.set_auto_page_break(auto=False)   # we control page breaks manually
     pdf.add_page()
     pdf.draw_header()
 
     cleaned   = clean_markdown(claude_analysis, language=language)
     lines_raw = cleaned.split("\n")
-
-    BOTTOM_LIMIT = 252
 
     render_items = []
     for raw_line in lines_raw:
@@ -736,35 +794,30 @@ def generate_analysis_pages_fpdf2(claude_analysis, language, name, age, gender,
 
     for item_type, item_text in render_items:
 
-        if pdf.get_y() > BOTTOM_LIMIT:
-            pdf.draw_footer()
-            pdf.page_num += 1
-            pdf.add_page()
-            pdf.set_fill_color(15, 23, 42)
-            pdf.rect(0, 0, 210, 14, "F")
-            pdf.set_fill_color(8, 145, 178)
-            pdf.rect(0, 0, 2.5, 14, "F")
-            pdf.set_xy(5, 3)
-            pdf.set_text_color(255, 255, 255)
-            pdf.set_font("Helvetica", "B", 11)
-            pdf.cell(130, 8, sanitize("AI Detailed Analysis (continued)"))
-            pdf.set_fill_color(124, 58, 237)
-            pdf.rect(0, 14, 210, 1.5, "F")
-            pdf.set_y(18)
-
         if item_type == "blank":
-            pdf.ln(3)
+            # Only add spacing if we won't overflow
+            if pdf.get_y() + 3 < SAFE_BOTTOM_MM:
+                pdf.ln(3)
+            continue
+
         elif item_type == "heading":
+            # draw_section_heading calls _ensure_space internally
             pdf.ln(4)
             pdf.draw_section_heading(item_text)
             pdf.ln(2)
+
         elif item_type == "bullet":
+            # draw_bullet calls _ensure_space / _embed_text_image internally
             pdf.draw_bullet(item_text)
+
         else:
             if item_text:
+                # draw_body_text calls _ensure_space / _embed_text_image internally
                 pdf.draw_body_text(item_text)
                 pdf.ln(1)
 
+    # ── Disclaimer + management at the very end ──
+    pdf.ln(4)
     pdf.draw_disclaimer()
     pdf.draw_management_section()
     pdf.draw_footer()
@@ -1077,7 +1130,6 @@ def generate_pdf(user_data, detected_labels, report_id,
         except Exception as e:
             print(f"[PDF] Analysis page merge failed: {e}")
             traceback.print_exc()
-            # Page 1 already saved — return it without analysis pages
             print("[PDF] Returning page-1-only report as fallback")
 
     return report_path
