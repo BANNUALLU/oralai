@@ -35,6 +35,9 @@ os.makedirs(REPORT_DIR, exist_ok=True)
 
 report_semaphore = threading.Semaphore(3)
 
+# ── In-memory report status store ────────────────────────────
+report_status = {}
+
 # ── Screening counter ─────────────────────────────────────────
 COUNTER_FILE  = "static/screening_count.txt"
 COUNTER_START = 50
@@ -680,22 +683,21 @@ def translate_analysis(english_text, target_language):
 
 
 # ════════════════════════════════════════════════════════════
-#  GENERATE REPORT
+#  GENERATE REPORT — returns immediately, processes in background
 #  Pipeline: YOLO → Claude (English) → Translate → PDF
 # ════════════════════════════════════════════════════════════
 @app.route("/generate", methods=["POST"])
 def generate():
-    # ── Outermost safety net: catches ANY unhandled crash ──────
     try:
-        name     = session.get("patient_name", "")
-        age      = session.get("patient_age", "25")
-        gender   = session.get("patient_gender", "Other")
-        phone    = session.get("patient_phone", "")
-        email    = session.get("patient_email", "")
-        language = session.get("language", "English")
-        screening_id = session.get("screening_id", "")
-
+        name          = session.get("patient_name", "")
+        age           = session.get("patient_age", "25")
+        gender        = session.get("patient_gender", "Other")
+        phone         = session.get("patient_phone", "")
+        email         = session.get("patient_email", "")
+        language      = session.get("language", "English")
+        screening_id  = session.get("screening_id", "")
         session_token = session.get("session_token", "")
+
         if session_token and not screening_id:
             ps = get_phone_session(session_token)
             if ps:
@@ -708,7 +710,9 @@ def generate():
             print(f"[Generate] Missing name or screening_id — redirecting to /details")
             return redirect("/details")
 
-        print(f"[Generate] Starting: {name} | lang: {language} | id: {screening_id[:8]}...")
+        report_id = str(uuid.uuid4())
+        session["report_id"] = report_id
+        session.modified = True
 
         patient_info = {
             "name":     name,
@@ -719,99 +723,147 @@ def generate():
             "language": language,
         }
 
-        with report_semaphore:
+        # Mark as processing immediately
+        report_status[report_id] = {"status": "processing", "error": None}
 
-            # ── Step 1: Run YOLO on all 3 teeth images ─────────────
-            all_detections  = []
-            detected_labels = []
-            yolo_paths      = {}
+        print(f"[Generate] Starting background job: {name} | lang: {language} | id: {screening_id[:8]}...")
 
-            for part in ["upper", "front", "lower"]:
-                img_path = os.path.join(UPLOAD_DIR, f"{screening_id}_{part}.jpg")
-                out_path = os.path.join(RESULT_DIR, f"{screening_id}_{part}_yolo.jpg")
-
-                if not os.path.exists(img_path):
-                    msg = f"Missing image for '{part}'. Please go back and capture all 3 images."
-                    print(f"[Generate] {msg}")
-                    return render_template("result.html", error=msg)
-
-                print(f"[YOLO] Running on {part} image...")
-                try:
-                    detections = run_yolo(img_path, out_path)
-                except Exception as yolo_err:
-                    print(f"[YOLO] Error on {part}: {yolo_err}")
-                    traceback.print_exc()
-                    detections = []
-
-                yolo_paths[part] = out_path
-
-                if detections:
-                    all_detections.extend(detections)
-                    for d in detections:
-                        if d["label"] not in detected_labels:
-                            detected_labels.append(d["label"])
-                    print(f"[YOLO] {part}: {len(detections)} detection(s)")
-                else:
-                    print(f"[YOLO] {part}: no detections")
-
-            # ── Step 2: Generate recommendations ──────────────────
+        # ── Background thread — no nginx timeout possible ──────────
+        def background_generate():
             try:
-                recommendations = generate_recommendations(
-                    detections=all_detections,
-                    age=age,
-                    gender=gender
-                )
-                print(f"[Recommendations] {len(recommendations)} generated")
-            except Exception as rec_err:
-                print(f"[Recommendations] Error: {rec_err}")
+                with report_semaphore:
+                    # Step 1: YOLO detection
+                    all_detections  = []
+                    detected_labels = []
+                    yolo_paths      = {}
+
+                    for part in ["upper", "front", "lower"]:
+                        img_path = os.path.join(UPLOAD_DIR, f"{screening_id}_{part}.jpg")
+                        out_path = os.path.join(RESULT_DIR, f"{screening_id}_{part}_yolo.jpg")
+
+                        if not os.path.exists(img_path):
+                            print(f"[BG] Missing image for {part}, skipping")
+                            continue
+
+                        print(f"[BG YOLO] Running on {part}...")
+                        try:
+                            detections = run_yolo(img_path, out_path)
+                        except Exception as yolo_err:
+                            print(f"[BG YOLO] Error on {part}: {yolo_err}")
+                            detections = []
+
+                        yolo_paths[part] = out_path
+
+                        if detections:
+                            all_detections.extend(detections)
+                            for d in detections:
+                                if d["label"] not in detected_labels:
+                                    detected_labels.append(d["label"])
+                            print(f"[BG YOLO] {part}: {len(detections)} detection(s)")
+                        else:
+                            print(f"[BG YOLO] {part}: no detections")
+
+                    # Step 2: Recommendations
+                    try:
+                        recommendations = generate_recommendations(
+                            detections=all_detections,
+                            age=age,
+                            gender=gender
+                        )
+                        print(f"[BG Rec] {len(recommendations)} generated")
+                    except Exception as rec_err:
+                        print(f"[BG Rec] Error: {rec_err}")
+                        recommendations = []
+
+                    # Step 3: Claude analysis (English)
+                    claude_analysis = analyse_with_claude(
+                        yolo_image_paths=yolo_paths,
+                        patient_info=patient_info
+                    )
+
+                    # Step 4: Translate to patient language
+                    if claude_analysis and language != "English":
+                        claude_analysis = translate_analysis(claude_analysis, language)
+
+                    # Step 5: Build PDF
+                    print(f"[BG PDF] Building report: {report_id[:8]}...")
+                    report_path = generate_pdf(
+                        user_data=patient_info,
+                        detected_labels=detected_labels,
+                        report_id=report_id,
+                        recommendations=recommendations,
+                        claude_analysis=claude_analysis,
+                        screening_id=screening_id
+                    )
+                    print(f"[BG PDF] Created: {report_path}")
+
+                    # Step 6: Cleanup
+                    cleanup_old_files(screening_id)
+                    if session_token:
+                        delete_phone_session(session_token)
+                    increment_screening_count()
+
+                    # Mark done
+                    report_status[report_id] = {
+                        "status": "done",
+                        "path":   report_path,
+                        "error":  None
+                    }
+                    print(f"[BG] ✅ Report complete: {report_id[:8]}")
+
+            except Exception as e:
+                err_msg = str(e)
+                print(f"[BG] ❌ FATAL ERROR: {err_msg}")
                 traceback.print_exc()
-                recommendations = []
+                report_status[report_id] = {
+                    "status": "error",
+                    "error":  err_msg,
+                    "path":   None
+                }
 
-            # ── Step 3: Claude analyses YOLO images — always English
-            claude_analysis = analyse_with_claude(
-                yolo_image_paths=yolo_paths,
-                patient_info=patient_info
-            )
+        t = threading.Thread(target=background_generate, daemon=True)
+        t.start()
 
-            # ── Step 4: Translate to patient's language ────────────
-            if claude_analysis and language != "English":
-                claude_analysis = translate_analysis(claude_analysis, language)
-
-            # ── Step 5: Build PDF ──────────────────────────────────
-            report_id   = str(uuid.uuid4())
-            print(f"[Generate] Building PDF: {report_id[:8]}...")
-            report_path = generate_pdf(
-                user_data=patient_info,
-                detected_labels=detected_labels,
-                report_id=report_id,
-                recommendations=recommendations,
-                claude_analysis=claude_analysis,
-                screening_id=screening_id
-            )
-            print(f"[Generate] PDF created: {report_path}")
-
-            # ── Step 6: Delete uploaded + YOLO images ─────────────
-            cleanup_old_files(screening_id)
-
-        session["report_path"] = report_path
-        session["report_id"]   = report_id
-        session.modified       = True
-
-        if session_token:
-            delete_phone_session(session_token)
-
-        increment_screening_count()
-        print(f"[Generate] Done — report_id: {report_id}")
-
-        return render_template("result.html", success=True, report_id=report_id)
+        # Return processing page immediately — no timeout possible
+        return render_template("processing.html", report_id=report_id)
 
     except Exception as e:
-        # ── Show the REAL error instead of a blank 500 page ──────
-        err_msg  = str(e)
-        err_full = traceback.format_exc()
-        print(f"[Generate] FATAL ERROR: {err_msg}")
-        print(err_full)
-        return render_template("result.html", error=f"Report generation failed: {err_msg}"), 500
+        traceback.print_exc()
+        return render_template("result.html", error=f"Failed to start report: {str(e)}"), 500
+
+
+# ════════════════════════════════════════════════════════════
+#  REPORT STATUS — polled by processing.html every 3 seconds
+# ════════════════════════════════════════════════════════════
+@app.route("/report_status/<report_id>")
+def check_report_status(report_id):
+    status = report_status.get(report_id, {"status": "not_found"})
+    if status.get("status") == "done":
+        session["report_path"] = status.get("path", "")
+        session["report_id"]   = report_id
+        session.modified = True
+    return jsonify(status)
+
+
+# ════════════════════════════════════════════════════════════
+#  RESULT PAGE — shown after processing completes
+# ════════════════════════════════════════════════════════════
+@app.route("/result")
+def result_page():
+    report_id = request.args.get("report_id", "") or session.get("report_id", "")
+    status    = report_status.get(report_id, {})
+
+    if status.get("status") == "done":
+        session["report_path"] = status.get("path", "")
+        session["report_id"]   = report_id
+        session.modified = True
+        return render_template("result.html", success=True, report_id=report_id)
+
+    elif status.get("status") == "error":
+        return render_template("result.html",
+            error=f"Report generation failed: {status.get('error', 'Unknown error')}")
+
+    return render_template("result.html", error="Report not found. Please try again.")
 
 
 # ════════════════════════════════════════════════════════════

@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>OralAI — Generating Report</title>
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;700;800&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;margin:0;padding:0;}
+:root{
+  --navy:#0a1628;--blue:#1a6fff;--blue2:#4d9fff;--cyan:#00c8e0;
+  --white:#ffffff;--muted:#8a9bb5;--border:rgba(255,255,255,0.08);
+  --green:#22e88e;--green-bg:rgba(34,232,142,0.08);--green-bd:rgba(34,232,142,0.2);
+  --red:#ef4444;--red-bg:rgba(239,68,68,0.08);--red-bd:rgba(239,68,68,0.2);
+  --font:'Outfit',sans-serif;
+}
+body{
+  font-family:var(--font);background:var(--navy);color:var(--white);
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  min-height:100vh;padding:24px;text-align:center;
+}
+body::before{content:'';position:fixed;inset:0;z-index:0;
+  background:radial-gradient(ellipse 60% 50% at 20% 20%,rgba(26,111,255,0.1) 0%,transparent 60%),
+  radial-gradient(ellipse 40% 40% at 80% 80%,rgba(0,200,224,0.07) 0%,transparent 60%);pointer-events:none;}
+
+.logo{font-size:24px;font-weight:800;margin-bottom:40px;position:relative;z-index:1;}
+.logo span{color:var(--blue);}
+
+/* Triple ring spinner */
+.spinner-wrap{position:relative;width:100px;height:100px;margin:0 auto 32px;z-index:1;}
+.ring{position:absolute;inset:0;border-radius:50%;border:4px solid transparent;}
+.ring1{border-top-color:var(--blue);animation:spin 1s linear infinite;}
+.ring2{border-right-color:var(--cyan);animation:spin 1.5s linear infinite reverse;inset:10px;}
+.ring3{border-bottom-color:var(--green);animation:spin 2s linear infinite;inset:20px;}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+h1{font-size:24px;font-weight:800;margin-bottom:8px;position:relative;z-index:1;}
+.sub{color:var(--muted);font-size:14px;margin-bottom:32px;position:relative;z-index:1;}
+
+/* Status card */
+.status-box{
+  background:rgba(26,111,255,0.06);border:1px solid rgba(26,111,255,0.2);
+  border-radius:16px;padding:20px 28px;max-width:360px;width:100%;
+  position:relative;z-index:1;
+}
+.status-step{font-size:14px;font-weight:700;color:var(--blue2);margin-bottom:6px;}
+.status-desc{font-size:12px;color:var(--muted);line-height:1.6;}
+
+/* Progress bar */
+.progress-bar{
+  width:100%;height:5px;background:rgba(255,255,255,0.06);
+  border-radius:999px;margin-top:18px;overflow:hidden;
+}
+.progress-fill{
+  height:100%;
+  background:linear-gradient(90deg,var(--blue),var(--cyan),var(--green));
+  border-radius:999px;
+  width:5%;
+  transition:width 10s ease;
+}
+
+/* Steps list */
+.steps-list{
+  display:flex;flex-direction:column;gap:8px;margin-top:20px;
+  max-width:360px;width:100%;position:relative;z-index:1;
+}
+.step-item{
+  display:flex;align-items:center;gap:10px;padding:8px 14px;
+  border-radius:10px;font-size:12px;font-weight:600;
+  background:rgba(255,255,255,0.03);border:1px solid var(--border);
+  color:var(--muted);transition:all .4s;
+}
+.step-item.active{
+  background:rgba(26,111,255,0.1);border-color:rgba(26,111,255,0.3);
+  color:var(--blue2);
+}
+.step-item.done{
+  background:var(--green-bg);border-color:var(--green-bd);color:var(--green);
+}
+.step-dot{width:8px;height:8px;border-radius:50%;background:currentColor;flex-shrink:0;}
+.step-item.active .step-dot{animation:pulse 1s ease-in-out infinite;}
+@keyframes pulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.4;transform:scale(.7)}}
+
+/* Error box */
+.error-box{
+  display:none;background:var(--red-bg);border:1px solid var(--red-bd);
+  border-radius:14px;padding:18px 24px;max-width:360px;width:100%;
+  margin-top:16px;position:relative;z-index:1;
+}
+.error-box.show{display:block;}
+.error-box p{color:var(--red);font-size:13px;margin-bottom:12px;line-height:1.5;}
+.btn-retry{
+  display:inline-block;padding:10px 24px;background:var(--blue);
+  color:var(--white);border-radius:10px;font-weight:700;font-size:13px;
+  text-decoration:none;border:none;cursor:pointer;font-family:var(--font);
+}
+
+/* Footer */
+.footer{
+  position:fixed;bottom:0;left:0;right:0;padding:12px 24px;
+  border-top:1px solid var(--border);background:rgba(8,18,34,0.95);
+  font-size:12px;color:var(--muted);text-align:center;z-index:1;
+}
+</style>
+</head>
+<body>
+
+<div class="logo">Oral<span>AI</span></div>
+
+<div class="spinner-wrap">
+  <div class="ring ring1"></div>
+  <div class="ring ring2"></div>
+  <div class="ring ring3"></div>
+</div>
+
+<h1>Generating Your Report</h1>
+<p class="sub">AI is analysing your dental images. Please do not close this tab.</p>
+
+<div class="status-box">
+  <div class="status-step" id="stepText">🔍 Running YOLO detection...</div>
+  <div class="status-desc" id="descText">Detecting dental conditions in your 3 images</div>
+  <div class="progress-bar">
+    <div class="progress-fill" id="progressFill"></div>
+  </div>
+</div>
+
+<div class="steps-list">
+  <div class="step-item active" id="s0"><div class="step-dot"></div>YOLO Detection</div>
+  <div class="step-item" id="s1"><div class="step-dot"></div>AI Analysis</div>
+  <div class="step-item" id="s2"><div class="step-dot"></div>Translation</div>
+  <div class="step-item" id="s3"><div class="step-dot"></div>PDF Generation</div>
+</div>
+
+<div class="error-box" id="errorBox">
+  <p id="errorMsg">Something went wrong generating your report.</p>
+  <a href="/capture" class="btn-retry">↩ Try Again</a>
+</div>
+
+<div class="footer">OralAI — AI Oral Health Screening &nbsp;|&nbsp; www.oralai.site</div>
+
+<script>
+const REPORT_ID = "{{ report_id }}";
+
+const stepEl   = document.getElementById("stepText");
+const descEl   = document.getElementById("descText");
+const fillEl   = document.getElementById("progressFill");
+const errorBox = document.getElementById("errorBox");
+const errorMsg = document.getElementById("errorMsg");
+
+// Timeline of status messages
+const timeline = [
+  { t:0,     step:"🔍 Running YOLO detection...",       desc:"Detecting dental conditions in all 3 images",     pct:"15%", si:0 },
+  { t:5000,  step:"🦷 Processing detections...",        desc:"Analysing detected dental conditions",             pct:"28%", si:0 },
+  { t:12000, step:"🤖 AI reviewing images...",          desc:"Claude AI analysing all dental photos",            pct:"42%", si:1 },
+  { t:25000, step:"✍️ Writing dental analysis...",      desc:"Generating your personalised 6-section report",   pct:"58%", si:1 },
+  { t:45000, step:"🌐 Translating report...",           desc:"Converting analysis to your language",             pct:"72%", si:2 },
+  { t:65000, step:"📄 Building PDF report...",          desc:"Creating your multi-page dental report",           pct:"86%", si:3 },
+  { t:90000, step:"⏳ Finalising report...",            desc:"Almost ready — please wait a moment",              pct:"95%", si:3 },
+];
+
+function setStepDone(idx) {
+  const el = document.getElementById("s" + idx);
+  if (el) { el.className = "step-item done"; }
+}
+function setStepActive(idx) {
+  for (let i = 0; i < 4; i++) {
+    const el = document.getElementById("s" + i);
+    if (!el) continue;
+    if (i < idx)       el.className = "step-item done";
+    else if (i === idx) el.className = "step-item active";
+    else                el.className = "step-item";
+  }
+}
+
+timeline.forEach(s => {
+  setTimeout(() => {
+    stepEl.textContent = s.step;
+    descEl.textContent = s.desc;
+    fillEl.style.width = s.pct;
+    setStepActive(s.si);
+  }, s.t);
+});
+
+// Poll server every 3 seconds
+function poll() {
+  fetch("/report_status/" + REPORT_ID)
+    .then(r => r.json())
+    .then(data => {
+      if (data.status === "done") {
+        // All steps done
+        for (let i = 0; i < 4; i++) setStepDone(i);
+        fillEl.style.width = "100%";
+        fillEl.style.transition = "width 0.5s ease";
+        stepEl.textContent = "✅ Report ready!";
+        descEl.textContent = "Redirecting to your report...";
+        setTimeout(() => {
+          window.location.href = "/result?report_id=" + REPORT_ID;
+        }, 1000);
+      } else if (data.status === "error") {
+        errorBox.classList.add("show");
+        errorMsg.textContent = "Error: " + (data.error || "Unknown error occurred");
+      } else {
+        // Still processing — poll again
+        setTimeout(poll, 3000);
+      }
+    })
+    .catch(err => {
+      console.warn("Poll error:", err);
+      setTimeout(poll, 4000);
+    });
+}
+
+// Start polling after 5 seconds
+setTimeout(poll, 5000);
+</script>
+</body>
+</html>
