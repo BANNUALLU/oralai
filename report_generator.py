@@ -225,17 +225,17 @@ def get_face_photo_path(screening_id, report_id):
 
 def draw_patient_info_bar(c, W, H, header_h, name, age, gender, phone, now, face_photo_path=None):
     bar_top = H - header_h
-    bar_h   = 70  # increased for bigger photo
+    bar_h   = 60
     c.setFillColor(C_SURFACE2)
     c.rect(0, bar_top - bar_h, W, bar_h, fill=1, stroke=0)
     c.setStrokeColor(C_BORDER)
     c.setLineWidth(0.8)
     c.line(0, bar_top - bar_h, W, bar_top - bar_h)
 
-    # ── Bigger face photo ──────────────────────────────────
-    photo_w, photo_h = 58, 62
+    # ── Face photo ─────────────────────────────────────────
+    photo_w, photo_h = 52, 54
     photo_x = W - photo_w - 14
-    photo_y = bar_top - bar_h + 4
+    photo_y = bar_top - bar_h + 3
 
     if face_photo_path and os.path.exists(face_photo_path):
         c.setStrokeColor(C_ACCENT)
@@ -254,37 +254,36 @@ def draw_patient_info_bar(c, W, H, header_h, name, age, gender, phone, now, face
     # ── Text content ───────────────────────────────────────
     text_x = 20
 
-    # Name label + value
+    # NAME label
     c.setFillColor(C_MUTED)
     c.setFont("Helvetica", 8)
-    c.drawString(text_x, bar_top - 18, "NAME")
+    c.drawString(text_x, bar_top - 16, "NAME")
+
+    # Name bold + age/gender inline
     c.setFillColor(C_TEXT)
     c.setFont("Helvetica-Bold", 12)
-    c.drawString(text_x, bar_top - 30, f"{name}")
+    c.drawString(text_x, bar_top - 28, f"{name}")
+    name_w = c.stringWidth(f"{name}", "Helvetica-Bold", 12)
+    c.setFillColor(C_MUTED)
+    c.setFont("Helvetica", 9)
+    c.drawString(text_x + name_w + 8, bar_top - 26, f"{age} yrs  •  {gender}")
 
-    # Age / Gender pill badge
-    c.setFillColor(C_ACCENT)
-    c.roundRect(text_x, bar_top - 46, 52, 13, 4, fill=1, stroke=0)
-    c.setFillColor(C_WHITE)
-    c.setFont("Helvetica-Bold", 8)
-    c.drawCentredString(text_x + 26, bar_top - 38, f"{age} yrs  •  {gender}")
-
-    # Phone
+    # PHONE label + value
     c.setFillColor(C_MUTED)
     c.setFont("Helvetica", 8)
-    c.drawString(text_x, bar_top - 56, "PHONE")
+    c.drawString(text_x, bar_top - 44, "PHONE")
     c.setFillColor(C_TEXT)
-    c.setFont("Helvetica-Bold", 9.5)
-    c.drawString(text_x, bar_top - 66, f"{phone}")
+    c.setFont("Helvetica-Bold", 10)
+    c.drawString(text_x, bar_top - 54, f"{phone}")
 
-    # Date — right-aligned before photo
+    # DATE — right-aligned before photo
     date_x = photo_x - 20
     c.setFillColor(C_MUTED)
     c.setFont("Helvetica", 8)
-    c.drawRightString(date_x, bar_top - 56, "DATE")
+    c.drawRightString(date_x, bar_top - 44, "DATE")
     c.setFillColor(C_TEXT)
-    c.setFont("Helvetica-Bold", 9.5)
-    c.drawRightString(date_x, bar_top - 66, now)
+    c.setFont("Helvetica-Bold", 10)
+    c.drawRightString(date_x, bar_top - 54, now)
 
     return bar_top - bar_h
 
