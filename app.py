@@ -813,14 +813,25 @@ def result_page():
 
 
 # ════════════════════════════════════════════════════════════
-#  DOWNLOAD
+#  DOWNLOAD — FIXED for mobile (Android + iOS)
 # ════════════════════════════════════════════════════════════
 @app.route("/report/<report_id>")
 def view_report(report_id):
     path = report_pdf_path(report_id)
     if not os.path.exists(path):
         return "Report not found", 404
-    return send_file(path, as_attachment=True, download_name="OralAI_Report.pdf")
+
+    # Read bytes so we can set Content-Length (required by Android Chrome)
+    with open(path, "rb") as f:
+        pdf_bytes = f.read()
+
+    from flask import make_response
+    response = make_response(pdf_bytes)
+    response.headers["Content-Type"]        = "application/pdf"
+    response.headers["Content-Disposition"] = 'attachment; filename="OralAI_Report.pdf"'
+    response.headers["Content-Length"]      = len(pdf_bytes)
+    response.headers["Cache-Control"]       = "no-store"
+    return response
 
 
 # ════════════════════════════════════════════════════════════

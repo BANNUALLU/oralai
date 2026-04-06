@@ -166,7 +166,15 @@ h2{font-size:22px;font-weight:800;letter-spacing:-0.5px;margin-bottom:8px;}
     <p class="subtitle">Your AI oral health screening is complete.<br>Download or share your report below.</p>
     <div class="divider"></div>
     <div class="actions">
-      <button class="btn btn-primary" onclick="window.location.href='/report/{{ report_id }}'">⬇️ Download Report</button>
+
+      <!-- ✅ FIXED: <a> with download attr works on mobile (Android + iOS) -->
+      <a class="btn btn-primary"
+         href="/report/{{ report_id }}"
+         download="OralAI_Report.pdf"
+         id="downloadBtn">
+        ⬇️ Download Report
+      </a>
+
       <div class="btn-row">
         <button class="btn btn-email" id="emailBtn" onclick="sendEmail(this)">📧 Send Email</button>
         <button class="btn btn-wa" id="waBtn" onclick="sendWhatsApp(this)">
