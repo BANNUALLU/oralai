@@ -350,7 +350,7 @@ footer{background:rgba(0,0,0,0.4);border-top:1px solid var(--border);padding:56p
         <div><div class="stat-num">4</div><div class="stat-label">Photo Captures</div></div>
         <div><div class="stat-num">9+</div><div class="stat-label">Languages</div></div>
         <div><div class="stat-num">60s</div><div class="stat-label">Report Ready</div></div>
-        <div><div class="stat-num" id="screeningCount">500+</div><div class="stat-label">Screenings Done</div></div>
+        <div><div class="stat-num" id="screeningCount">500</div><div class="stat-label">Screenings Done</div></div>
       </div>
     </div>
     <div class="hero-visual fade-up">
@@ -537,8 +537,6 @@ footer{background:rgba(0,0,0,0.4);border-top:1px solid var(--border);padding:56p
           </div>
           <div><div style="font-size:16px;font-weight:800;">Chalamalasetti Kundhana</div></div>
         </div>
-
-        <!-- PROJECT GUIDE — HOD badges removed -->
         <div style="margin-top:20px;padding-top:20px;border-top:1px solid var(--border);">
           <div style="font-size:12px;font-weight:700;color:var(--muted);letter-spacing:0.08em;text-transform:uppercase;margin-bottom:14px;">Project Guide</div>
           <div style="display:flex;align-items:center;gap:14px;padding:16px;background:rgba(245,200,66,0.06);border:1px solid rgba(245,200,66,0.22);border-radius:16px;">
@@ -550,7 +548,6 @@ footer{background:rgba(0,0,0,0.4);border-top:1px solid var(--border);padding:56p
             </div>
           </div>
         </div>
-
         <div class="dev-skills">
           <span class="dev-skill">Python</span><span class="dev-skill">Flask</span>
           <span class="dev-skill">YOLOv8</span><span class="dev-skill">Claude AI</span>
@@ -609,7 +606,7 @@ footer{background:rgba(0,0,0,0.4);border-top:1px solid var(--border);padding:56p
   </div>
 </section>
 
-<!-- DISCLAIMER BAR — just before footer -->
+<!-- DISCLAIMER BAR -->
 <div class="disclaimer-bar">
   ⚠️ <strong>Medical Disclaimer:</strong> OralAI is a screening tool for awareness only. It is <strong>not a substitute for professional dental advice, diagnosis, or treatment.</strong> Please consult a qualified dentist for any oral health concerns.
 </div>
@@ -670,23 +667,40 @@ window.addEventListener('scroll', function() {
 function toggleMenu() { document.getElementById('mobileMenu').classList.toggle('open'); }
 function closeMenu() { document.getElementById('mobileMenu').classList.remove('open'); }
 
-/* ── SCREENING COUNT COUNTER ── */
+/* ── SCREENING COUNT COUNTER ──
+   Logic:
+   - BASE = 500 (starting display number, always shown first)
+   - Fetches real report count from your Flask /screening_count API
+   - target = 500 + realCount  (e.g. 500 + 53 = 553)
+   - Animates from 500 → 553 smoothly
+   - As new reports are added (54, 55, 200...), target grows automatically
+   - On API failure → safely shows 500
+── */
 fetch('/screening_count')
   .then(function(r) { return r.json(); })
   .then(function(data) {
     var el = document.getElementById('screeningCount');
     if (el && data.count !== undefined) {
-      var target = data.count;
-      var current = Math.max(0, target - 10);
+      var BASE = 500;
+      var realCount = data.count;
+      var target = BASE + realCount;
+      var current = BASE;
       el.innerText = current;
+      if (realCount <= 0) return; // nothing to animate
       var interval = setInterval(function() {
         current++;
         el.innerText = current;
-        if (current >= target) { el.innerText = target; clearInterval(interval); }
+        if (current >= target) {
+          el.innerText = target;
+          clearInterval(interval);
+        }
       }, 80);
     }
   })
-  .catch(function() { document.getElementById('screeningCount').innerText = '0'; });
+  .catch(function() {
+    var el = document.getElementById('screeningCount');
+    if (el) el.innerText = '500';
+  });
 
 /* ── CONTACT FORM ── */
 function submitForm(e) {
