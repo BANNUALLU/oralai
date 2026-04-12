@@ -25,7 +25,6 @@ body::after{content:'';position:fixed;inset:0;z-index:0;
   linear-gradient(90deg,rgba(26,111,255,0.04) 1px,transparent 1px);
   background-size:60px 60px;pointer-events:none;}
 
-/* NAV */
 nav{position:fixed;top:0;left:0;right:0;z-index:100;display:flex;align-items:center;
   justify-content:space-between;padding:0 60px;height:72px;
   background:rgba(10,22,40,0.9);backdrop-filter:blur(20px);
@@ -48,11 +47,9 @@ nav{position:fixed;top:0;left:0;right:0;z-index:100;display:flex;align-items:cen
 .mobile-menu a{font-size:15px;font-weight:500;color:var(--muted);padding:4px 0;}
 .mobile-menu a:hover{color:var(--white);}
 
-/* MAIN */
 .main{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;
   padding:100px 24px 40px;text-align:center;position:relative;z-index:1;}
 
-/* Triple ring spinner */
 .spinner-wrap{position:relative;width:100px;height:100px;margin:0 auto 32px;}
 .ring{position:absolute;inset:0;border-radius:50%;border:4px solid transparent;}
 .ring1{border-top-color:var(--blue);animation:spin 1s linear infinite;}
@@ -63,15 +60,13 @@ nav{position:fixed;top:0;left:0;right:0;z-index:100;display:flex;align-items:cen
 h1{font-size:24px;font-weight:800;margin-bottom:8px;}
 .sub{color:var(--muted);font-size:14px;margin-bottom:32px;}
 
-/* Status card */
 .status-box{background:rgba(26,111,255,0.06);border:1px solid rgba(26,111,255,0.2);
   border-radius:16px;padding:20px 28px;max-width:380px;width:100%;}
 .status-step{font-size:14px;font-weight:700;color:var(--blue2);margin-bottom:6px;}
 .status-desc{font-size:12px;color:var(--muted);line-height:1.6;}
 .progress-bar{width:100%;height:5px;background:rgba(255,255,255,0.06);border-radius:999px;margin-top:18px;overflow:hidden;}
-.progress-fill{height:100%;background:linear-gradient(90deg,var(--blue),var(--cyan),var(--green));border-radius:999px;width:5%;transition:width 10s ease;}
+.progress-fill{height:100%;background:linear-gradient(90deg,var(--blue),var(--cyan),var(--green));border-radius:999px;width:5%;transition:width 1.5s ease;}
 
-/* Steps list */
 .steps-list{display:flex;flex-direction:column;gap:8px;margin-top:20px;max-width:380px;width:100%;}
 .step-item{display:flex;align-items:center;gap:10px;padding:8px 14px;border-radius:10px;font-size:12px;font-weight:600;background:rgba(255,255,255,0.03);border:1px solid var(--border);color:var(--muted);transition:all .4s;}
 .step-item.active{background:rgba(26,111,255,0.1);border-color:rgba(26,111,255,0.3);color:var(--blue2);}
@@ -80,30 +75,25 @@ h1{font-size:24px;font-weight:800;margin-bottom:8px;}
 .step-item.active .step-dot{animation:pulse 1s ease-in-out infinite;}
 @keyframes pulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.4;transform:scale(.7)}}
 
-/* Error box */
 .error-box{display:none;background:var(--red-bg);border:1px solid var(--red-bd);border-radius:14px;padding:18px 24px;max-width:380px;width:100%;margin-top:16px;}
 .error-box.show{display:block;}
 .error-box p{color:var(--red);font-size:13px;margin-bottom:12px;line-height:1.5;}
 .btn-retry{display:inline-block;padding:10px 24px;background:var(--blue);color:var(--white);border-radius:10px;font-weight:700;font-size:13px;text-decoration:none;border:none;cursor:pointer;font-family:var(--font);}
 
-/* FOOTER */
 .site-footer{position:relative;z-index:1;border-top:1px solid var(--border);
   background:rgba(8,18,34,0.95);padding:18px 40px;}
 .footer-inner{max-width:1400px;margin:0 auto;display:flex;align-items:center;
   justify-content:space-between;flex-wrap:wrap;gap:10px;}
-.footer-copy{font-size:13px;color:var(--muted);font-weight:400;}
+.footer-copy{font-size:13px;color:var(--muted);}
 .footer-powered{font-size:13px;color:var(--muted);}
 .footer-powered a{color:var(--blue2);text-decoration:none;font-weight:500;transition:color .2s;}
 .footer-powered a:hover{color:var(--white);}
-
-/* SCROLL TOP */
 .scroll-top{position:fixed;bottom:24px;right:24px;z-index:200;width:44px;height:44px;
   border-radius:50%;background:var(--blue);border:none;cursor:pointer;
   display:flex;align-items:center;justify-content:center;
   box-shadow:0 4px 16px rgba(26,111,255,0.5);transition:all .2s;font-size:18px;color:var(--white);}
 .scroll-top:hover{background:var(--blue2);transform:translateY(-3px);}
 
-/* RESPONSIVE */
 @media(max-width:1199px){nav{padding:0 32px;}}
 @media(max-width:767px){
   nav{padding:0 20px;height:60px;}.mobile-menu{top:60px;}
@@ -122,7 +112,6 @@ h1{font-size:24px;font-weight:800;margin-bottom:8px;}
 </head>
 <body>
 
-<!-- NAV -->
 <nav id="navbar">
   <div class="nav-logo">
     <a href="/"><span class="nav-logo-text">Oral<span>AI</span></span></a>
@@ -148,17 +137,15 @@ h1{font-size:24px;font-weight:800;margin-bottom:8px;}
   <a href="/#contact" onclick="closeMenu()">Contact</a>
 </div>
 
-<!-- MAIN -->
 <main class="main">
-
   <div class="spinner-wrap">
     <div class="ring ring1"></div>
     <div class="ring ring2"></div>
     <div class="ring ring3"></div>
   </div>
 
-  <h1>Generating Your Report</h1>
-  <p class="sub">AI is analysing your dental images. Please do not close this tab.</p>
+  <h1 id="mainTitle">Generating Your Report</h1>
+  <p class="sub" id="mainSub">AI is analysing your dental images. Please do not close this tab.</p>
 
   <div class="status-box">
     <div class="status-step" id="stepText">🔍 Running YOLO detection...</div>
@@ -169,31 +156,53 @@ h1{font-size:24px;font-weight:800;margin-bottom:8px;}
   </div>
 
   <div class="steps-list">
-    <div class="step-item active" id="s0"><div class="step-dot"></div>YOLO Detection</div>
-    <div class="step-item" id="s1"><div class="step-dot"></div>AI Analysis</div>
-    <div class="step-item" id="s2"><div class="step-dot"></div>Translation</div>
-    <div class="step-item" id="s3"><div class="step-dot"></div>PDF Generation</div>
+    <div class="step-item active" id="s0"><div class="step-dot"></div><span id="s0label">YOLO Detection</span></div>
+    <div class="step-item" id="s1"><div class="step-dot"></div><span id="s1label">AI Analysis</span></div>
+    <div class="step-item" id="s2"><div class="step-dot"></div><span id="s2label">Translation</span></div>
+    <div class="step-item" id="s3"><div class="step-dot"></div><span id="s3label">PDF Generation</span></div>
   </div>
 
   <div class="error-box" id="errorBox">
     <p id="errorMsg">Something went wrong generating your report.</p>
-    <a href="/capture" class="btn-retry">↩ Try Again</a>
+    <a href="/capture" class="btn-retry" id="retryBtn">↩ Try Again</a>
   </div>
-
 </main>
 
-<!-- FOOTER -->
 <footer class="site-footer">
   <div class="footer-inner">
     <span class="footer-copy">© 2026 OralAI. All rights reserved.</span>
     <span class="footer-powered">Powered by <a href="https://www.oralai.site" target="_blank">oralai.site</a></span>
   </div>
 </footer>
-
 <button class="scroll-top" onclick="window.scrollTo({top:0,behavior:'smooth'})" title="Back to top">↑</button>
 
 <script>
 const REPORT_ID = "{{ report_id }}";
+const LANG = "{{ session.get('language', 'English') }}";
+
+/* ── Processing page translations ── */
+const PT = {
+  "English":  { title:"Generating Your Report", sub:"AI is analysing your dental images. Please do not close this tab.", s0:"YOLO Detection", s1:"AI Analysis", s2:"Translation", s3:"PDF Generation", ready:"✅ Report ready!", redirecting:"Redirecting to your report...", retry:"↩ Try Again" },
+  "Telugu":   { title:"మీ నివేదిక రూపొందిస్తున్నాం", sub:"AI మీ దంత చిత్రాలను విశ్లేషిస్తోంది. ఈ ట్యాబ్‌ను మూసివేయవద్దు.", s0:"YOLO గుర్తింపు", s1:"AI విశ్లేషణ", s2:"అనువాదం", s3:"PDF రూపకల్పన", ready:"✅ నివేదిక సిద్ధంగా ఉంది!", redirecting:"మీ నివేదికకు దారి మళ్ళిస్తున్నాం...", retry:"↩ మళ్ళీ ప్రయత్నించు" },
+  "Hindi":    { title:"आपकी रिपोर्ट तैयार हो रही है", sub:"AI आपकी दांतों की छवियों का विश्लेषण कर रहा है। कृपया इस टैब को बंद न करें।", s0:"YOLO जांच", s1:"AI विश्लेषण", s2:"अनुवाद", s3:"PDF निर्माण", ready:"✅ रिपोर्ट तैयार है!", redirecting:"आपकी रिपोर्ट पर जा रहे हैं...", retry:"↩ फिर से कोशिश करें" },
+  "Tamil":    { title:"உங்கள் அறிக்கை உருவாகிறது", sub:"AI உங்கள் பல் படங்களை பகுப்பாய்வு செய்கிறது. இந்த தாவலை மூடாதீர்கள்.", s0:"YOLO கண்டறிதல்", s1:"AI பகுப்பாய்வு", s2:"மொழிபெயர்ப்பு", s3:"PDF உருவாக்கம்", ready:"✅ அறிக்கை தயார்!", redirecting:"உங்கள் அறிக்கைக்கு திருப்பி விடுகிறோம்...", retry:"↩ மீண்டும் முயற்சி" },
+  "Kannada":  { title:"ನಿಮ್ಮ ವರದಿ ರಚಿಸಲಾಗುತ್ತಿದೆ", sub:"AI ನಿಮ್ಮ ದಂತ ಚಿತ್ರಗಳನ್ನು ವಿಶ್ಲೇಷಿಸುತ್ತಿದೆ. ಈ ಟ್ಯಾಬ್ ಮುಚ್ಚಬೇಡಿ.", s0:"YOLO ಪತ್ತೆ", s1:"AI ವಿಶ್ಲೇಷಣೆ", s2:"ಅನುವಾದ", s3:"PDF ರಚನೆ", ready:"✅ ವರದಿ ಸಿದ್ಧವಾಗಿದೆ!", redirecting:"ನಿಮ್ಮ ವರದಿಗೆ ಮರುನಿರ್ದೇಶಿಸಲಾಗುತ್ತಿದೆ...", retry:"↩ ಮತ್ತೆ ಪ್ರಯತ್ನಿಸಿ" },
+  "Malayalam":{ title:"നിങ്ങളുടെ റിപ്പോർട്ട് തയ്യാറാക്കുന്നു", sub:"AI നിങ്ങളുടെ ദന്ത ചിത്രങ്ങൾ വിശകലനം ചെയ്യുന്നു. ഈ ടാബ് അടയ്ക്കരുത്.", s0:"YOLO കണ്ടെത്തൽ", s1:"AI വിശകലനം", s2:"വിവർത്തനം", s3:"PDF നിർമ്മാണം", ready:"✅ റിപ്പോർട്ട് തയ്യാർ!", redirecting:"നിങ്ങളുടെ റിപ്പോർട്ടിലേക്ക് പോകുന്നു...", retry:"↩ വീണ്ടും ശ്രമിക്കുക" },
+  "Marathi":  { title:"तुमचा अहवाल तयार होत आहे", sub:"AI तुमच्या दंत प्रतिमांचे विश्लेषण करत आहे. हा टॅब बंद करू नका.", s0:"YOLO शोध", s1:"AI विश्लेषण", s2:"भाषांतर", s3:"PDF निर्मिती", ready:"✅ अहवाल तयार!", redirecting:"तुमच्या अहवालावर जात आहोत...", retry:"↩ पुन्हा प्रयत्न करा" },
+  "Bengali":  { title:"আপনার রিপোর্ট তৈরি হচ্ছে", sub:"AI আপনার দাঁতের ছবি বিশ্লেষণ করছে। এই ট্যাবটি বন্ধ করবেন না।", s0:"YOLO সনাক্তকরণ", s1:"AI বিশ্লেষণ", s2:"অনুবাদ", s3:"PDF তৈরি", ready:"✅ রিপোর্ট প্রস্তুত!", redirecting:"আপনার রিপোর্টে যাচ্ছি...", retry:"↩ আবার চেষ্টা করুন" },
+  "Arabic":   { title:"جارٍ إنشاء تقريرك", sub:"يقوم الذكاء الاصطناعي بتحليل صور أسنانك. يرجى عدم إغلاق هذه التبويبة.", s0:"كشف YOLO", s1:"تحليل AI", s2:"الترجمة", s3:"إنشاء PDF", ready:"✅ التقرير جاهز!", redirecting:"جارٍ التحويل إلى تقريرك...", retry:"↩ حاول مرة أخرى" }
+};
+
+const PL = PT[LANG] || PT["English"];
+
+/* Apply translations */
+document.getElementById('mainTitle').innerText  = PL.title;
+document.getElementById('mainSub').innerText    = PL.sub;
+document.getElementById('s0label').innerText    = PL.s0;
+document.getElementById('s1label').innerText    = PL.s1;
+document.getElementById('s2label').innerText    = PL.s2;
+document.getElementById('s3label').innerText    = PL.s3;
+document.getElementById('retryBtn').innerText   = PL.retry;
 
 const stepEl   = document.getElementById("stepText");
 const descEl   = document.getElementById("descText");
@@ -201,20 +210,35 @@ const fillEl   = document.getElementById("progressFill");
 const errorBox = document.getElementById("errorBox");
 const errorMsg = document.getElementById("errorMsg");
 
+/*
+ * FIX: Cosmetic timeline still runs so the UI feels alive,
+ * but actual step transitions now also happen on poll "stage" field.
+ * Poll drives truth; timeline drives visual progress between polls.
+ */
 const timeline = [
-  { t:0,     step:"🔍 Running YOLO detection...",       desc:"Detecting dental conditions in all 3 images",     pct:"15%", si:0 },
-  { t:5000,  step:"🦷 Processing detections...",        desc:"Analysing detected dental conditions",             pct:"28%", si:0 },
-  { t:12000, step:"🤖 AI reviewing images...",          desc:"Claude AI analysing all dental photos",            pct:"42%", si:1 },
-  { t:25000, step:"✍️ Writing dental analysis...",      desc:"Generating your personalised 6-section report",   pct:"58%", si:1 },
-  { t:45000, step:"🌐 Translating report...",           desc:"Converting analysis to your language",             pct:"72%", si:2 },
-  { t:65000, step:"📄 Building PDF report...",          desc:"Creating your multi-page dental report",           pct:"86%", si:3 },
-  { t:90000, step:"⏳ Finalising report...",            desc:"Almost ready — please wait a moment",              pct:"95%", si:3 },
+  { t:0,     step:"🔍 " + PL.s0 + "...", desc:"Detecting dental conditions in all 3 images",     pct:"15%", si:0 },
+  { t:5000,  step:"🦷 Processing detections...",                                                   pct:"28%", si:0 },
+  { t:14000, step:"🤖 " + PL.s1 + "...",  desc:"Claude AI analysing all dental photos",           pct:"42%", si:1 },
+  { t:28000, step:"✍️ Writing dental analysis...",                                                 pct:"58%", si:1 },
+  { t:48000, step:"🌐 " + PL.s2 + "...",  desc:"Converting analysis to your language",            pct:"72%", si:2 },
+  { t:68000, step:"📄 " + PL.s3 + "...",  desc:"Creating your multi-page dental report",          pct:"86%", si:3 },
+  { t:95000, step:"⏳ Finalising...",      desc:"Almost ready — please wait a moment",             pct:"95%", si:3 },
 ];
 
-function setStepDone(idx){
-  var el=document.getElementById("s"+idx);
-  if(el){el.className="step-item done";}
-}
+var timelineTimers = [];
+timeline.forEach(function(s){
+  var t = setTimeout(function(){
+    if(s.step) stepEl.textContent = s.step;
+    if(s.desc) descEl.textContent = s.desc;
+    fillEl.style.width = s.pct;
+    setStepActive(s.si);
+  }, s.t);
+  timelineTimers.push(t);
+});
+
+function clearTimeline(){ timelineTimers.forEach(clearTimeout); }
+
+function setStepDone(idx){ var el=document.getElementById("s"+idx); if(el)el.className="step-item done"; }
 function setStepActive(idx){
   for(var i=0;i<4;i++){
     var el=document.getElementById("s"+i);
@@ -225,47 +249,49 @@ function setStepActive(idx){
   }
 }
 
-timeline.forEach(function(s){
-  setTimeout(function(){
-    stepEl.textContent=s.step;
-    descEl.textContent=s.desc;
-    fillEl.style.width=s.pct;
-    setStepActive(s.si);
-  },s.t);
-});
+/* Stage map from server stage string → step index */
+var stageMap = { "detecting":0, "analysing":1, "translating":2, "generating":3, "done":3 };
 
 function poll(){
-  fetch("/report_status/"+REPORT_ID)
-    .then(function(r){return r.json();})
+  fetch("/report_status/" + REPORT_ID)
+    .then(function(r){ return r.json(); })
     .then(function(data){
-      if(data.status==="done"){
-        for(var i=0;i<4;i++)setStepDone(i);
-        fillEl.style.width="100%";
-        fillEl.style.transition="width 0.5s ease";
-        stepEl.textContent="✅ Report ready!";
-        descEl.textContent="Redirecting to your report...";
-        setTimeout(function(){window.location.href="/result?report_id="+REPORT_ID;},1000);
-      }else if(data.status==="error"){
+      /* FIX: Advance UI based on server-reported stage */
+      if(data.stage && stageMap[data.stage] !== undefined){
+        setStepActive(stageMap[data.stage]);
+      }
+      if(data.progress){ fillEl.style.width = data.progress + "%"; }
+
+      if(data.status === "done"){
+        clearTimeline();
+        for(var i=0;i<4;i++) setStepDone(i);
+        fillEl.style.width = "100%";
+        fillEl.style.transition = "width 0.5s ease";
+        stepEl.textContent = PL.ready;
+        descEl.textContent = PL.redirecting;
+        setTimeout(function(){ window.location.href = "/result?report_id=" + REPORT_ID; }, 1000);
+      } else if(data.status === "error"){
+        clearTimeline();
         errorBox.classList.add("show");
-        errorMsg.textContent="Error: "+(data.error||"Unknown error occurred");
-      }else{
-        setTimeout(poll,3000);
+        errorMsg.textContent = "Error: " + (data.error || "Unknown error occurred");
+      } else {
+        setTimeout(poll, 3000);
       }
     })
     .catch(function(err){
-      console.warn("Poll error:",err);
-      setTimeout(poll,4000);
+      console.warn("Poll error:", err);
+      setTimeout(poll, 4000);
     });
 }
 
-setTimeout(poll,5000);
+setTimeout(poll, 5000);
 
-function toggleMenu(){document.getElementById('mobileMenu').classList.toggle('open');}
-function closeMenu(){document.getElementById('mobileMenu').classList.remove('open');}
-window.addEventListener('scroll',function(){
-  var nav=document.getElementById('navbar');
-  nav.style.background=window.scrollY>50?'rgba(10,22,40,0.98)':'rgba(10,22,40,0.9)';
-  nav.style.boxShadow=window.scrollY>50?'0 4px 30px rgba(0,0,0,0.3)':'none';
+function toggleMenu(){ document.getElementById('mobileMenu').classList.toggle('open'); }
+function closeMenu(){  document.getElementById('mobileMenu').classList.remove('open'); }
+window.addEventListener('scroll', function(){
+  var nav = document.getElementById('navbar');
+  nav.style.background = window.scrollY > 50 ? 'rgba(10,22,40,0.98)' : 'rgba(10,22,40,0.9)';
+  nav.style.boxShadow  = window.scrollY > 50 ? '0 4px 30px rgba(0,0,0,0.3)' : 'none';
 });
 </script>
 </body>

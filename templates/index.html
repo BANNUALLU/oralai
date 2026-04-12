@@ -4,6 +4,11 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>OralAI – AI Oral Health Screening</title>
+<meta name="description" content="OralAI uses advanced AI to screen your oral health in seconds. Capture 3 dental images and 1 face image, get instant YOLO detection and AI analysis in 9 languages.">
+<meta property="og:title" content="OralAI – AI Oral Health Screening">
+<meta property="og:description" content="Free AI-powered dental screening in 60 seconds. No appointment needed.">
+<meta property="og:url" content="https://www.oralai.site">
+<meta property="og:type" content="website">
 <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800;900&family=Lora:ital,wght@0,400;1,400&display=swap" rel="stylesheet">
 <style>
 *{box-sizing:border-box;margin:0;padding:0;scroll-behavior:smooth;}
@@ -51,7 +56,7 @@ nav{position:fixed;top:0;left:0;right:0;z-index:100;display:flex;align-items:cen
 .mobile-menu a:hover{color:var(--white);}
 
 /* HERO */
-.hero{min-height:100vh;display:flex;align-items:center;padding:100px 60px 80px;overflow:hidden;}
+.hero{min-height:100vh;display:flex;align-items:center;padding:60px 60px 80px;overflow:hidden;}
 .orb{position:absolute;border-radius:50%;filter:blur(80px);pointer-events:none;}
 .orb-1{width:500px;height:500px;background:rgba(26,111,255,0.12);top:-100px;right:-100px;animation:float 8s ease-in-out infinite;}
 .orb-2{width:300px;height:300px;background:rgba(0,200,224,0.08);bottom:50px;left:-50px;animation:float 10s ease-in-out infinite reverse;}
@@ -91,6 +96,10 @@ nav{position:fixed;top:0;left:0;right:0;z-index:100;display:flex;align-items:cen
 .float-card-2{bottom:-10px;left:-30px;animation:float 9s ease-in-out infinite 1s;}
 .float-icon{font-size:20px;}
 .float-text small{display:block;font-size:11px;color:var(--muted);font-weight:400;}
+
+/* DISCLAIMER BANNER */
+.disclaimer-bar{background:rgba(245,200,66,0.13);border-top:1px solid rgba(245,200,66,0.35);border-bottom:1px solid rgba(245,200,66,0.35);padding:11px 60px;text-align:center;font-size:12px;color:rgba(245,200,66,0.95);font-weight:600;position:relative;z-index:1;letter-spacing:0.01em;margin-top:72px;}
+.disclaimer-bar strong{color:#f5c842;}
 
 /* SECTIONS */
 .section{padding:90px 60px;}
@@ -229,7 +238,7 @@ footer{background:rgba(0,0,0,0.4);border-top:1px solid var(--border);padding:56p
 .footer-brand .logo-text span{color:var(--blue);}
 .footer-brand p{font-size:13px;color:var(--muted);line-height:1.7;margin-bottom:20px;max-width:260px;}
 .footer-socials{display:flex;gap:8px;}
-.footer-social{width:34px;height:34px;border-radius:8px;background:rgba(255,255,255,0.06);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;font-size:13px;cursor:pointer;}
+.footer-social{width:34px;height:34px;border-radius:8px;background:rgba(255,255,255,0.06);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;font-size:13px;cursor:pointer;transition:all .2s;}
 .footer-social:hover{background:rgba(26,111,255,0.2);border-color:var(--blue);}
 .footer-col h4{font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:var(--muted);margin-bottom:14px;}
 .footer-col ul{list-style:none;display:flex;flex-direction:column;gap:9px;}
@@ -241,6 +250,8 @@ footer{background:rgba(0,0,0,0.4);border-top:1px solid var(--border);padding:56p
 /* SCROLL TOP */
 .scroll-top{position:fixed;bottom:28px;right:28px;z-index:99;width:42px;height:42px;border-radius:12px;background:var(--blue);color:var(--white);border:none;display:flex;align-items:center;justify-content:center;font-size:17px;cursor:pointer;box-shadow:0 8px 24px rgba(26,111,255,0.4);opacity:0;transform:translateY(10px);transition:all .3s;}
 .scroll-top.show{opacity:1;transform:translateY(0);}
+
+/* FIX: fade-up starts hidden, becomes visible on scroll */
 .fade-up{opacity:0;transform:translateY(28px);transition:opacity .6s ease,transform .6s ease;}
 .fade-up.visible{opacity:1;transform:translateY(0);}
 
@@ -248,6 +259,7 @@ footer{background:rgba(0,0,0,0.4);border-top:1px solid var(--border);padding:56p
 @media(max-width:1199px){
   nav{padding:0 32px;}.hero{padding:100px 32px 80px;}.section{padding:80px 32px;}
   .cta-section{padding:36px 32px;}.footer-inner{padding:0;}
+  .disclaimer-bar{padding:10px 32px;}
 }
 @media(max-width:899px){
   .hero-inner{grid-template-columns:1fr;text-align:center;}.hero-btns{justify-content:center;}
@@ -261,9 +273,9 @@ footer{background:rgba(0,0,0,0.4);border-top:1px solid var(--border);padding:56p
 }
 @media(max-width:767px){
   nav{padding:0 20px;height:60px;}.mobile-menu{top:60px;}
+  .disclaimer-bar{margin-top:60px;padding:10px 20px;}
   .nav-links,.nav-cta{display:none;}.hamburger{display:flex;}
-  .nav-logo img{height:38px;}
-  .hero{padding:88px 20px 60px;}.hero-title{font-size:34px;letter-spacing:-1px;}
+  .hero{padding:30px 20px 60px;}.hero-title{font-size:34px;letter-spacing:-1px;}
   .section{padding:60px 20px;}.cta-section{padding:60px 20px;}
   .features-grid{grid-template-columns:1fr;}.steps-grid{grid-template-columns:1fr;}
   .capture-grid{grid-template-columns:repeat(2,1fr);}
@@ -271,6 +283,7 @@ footer{background:rgba(0,0,0,0.4);border-top:1px solid var(--border);padding:56p
   .cta-box{padding:44px 24px;}.cta-box h2{font-size:28px;}
   footer{padding:44px 20px 20px;}.section-title{font-size:30px;}.form-row{grid-template-columns:1fr;}
   .review-wrap{grid-template-columns:1fr;}.rf-row{grid-template-columns:1fr;}
+  .disclaimer-bar{padding:10px 20px;}
 }
 @media(max-width:480px){
   .hero-title{font-size:28px;letter-spacing:-0.5px;}
@@ -302,9 +315,7 @@ footer{background:rgba(0,0,0,0.4);border-top:1px solid var(--border);padding:56p
 
 <nav id="navbar">
   <div class="nav-logo">
-    <a href="/">
-      <span class="nav-logo-text">Oral<span>AI</span></span>
-    </a>
+    <a href="/"><span class="nav-logo-text">Oral<span>AI</span></span></a>
   </div>
   <div class="nav-links">
     <a href="#features">Features</a><a href="#how">How it Works</a>
@@ -328,6 +339,11 @@ footer{background:rgba(0,0,0,0.4);border-top:1px solid var(--border);padding:56p
   <a href="/details" class="btn-nav btn-nav-fill" style="padding:11px;text-align:center;border-radius:12px;">Start Screening</a>
 </div>
 
+<!-- DISCLAIMER BAR -->
+<div class="disclaimer-bar">
+  ⚠️ <strong>Medical Disclaimer:</strong> OralAI is a screening tool for awareness only. It is <strong>not a substitute for professional dental advice, diagnosis, or treatment.</strong> Please consult a qualified dentist for any oral health concerns.
+</div>
+
 <!-- HERO -->
 <section class="hero" id="home">
   <div class="orb orb-1"></div><div class="orb orb-2"></div>
@@ -344,13 +360,13 @@ footer{background:rgba(0,0,0,0.4);border-top:1px solid var(--border);padding:56p
         <div><div class="stat-num">4</div><div class="stat-label">Photo Captures</div></div>
         <div><div class="stat-num">9+</div><div class="stat-label">Languages</div></div>
         <div><div class="stat-num">60s</div><div class="stat-label">Report Ready</div></div>
-        <div><div class="stat-num" id="screeningCount">50</div><div class="stat-label">Screenings Done</div></div>
+        <div><div class="stat-num" id="screeningCount">500+</div><div class="stat-label">Screenings Done</div></div>
       </div>
     </div>
     <div class="hero-visual fade-up">
       <div class="hero-img-wrap">
         <div class="hero-img-bg"></div>
-        <img src="{{ url_for('static', filename='oral_ai.png') }}" alt="OralAI">
+        <img src="{{ url_for('static', filename='oral_ai.png') }}" alt="OralAI Dental Screening">
         <div class="float-card float-card-1"><span class="float-icon">🤖</span><div class="float-text"><strong>Analysing...</strong><small>AI Vision Active</small></div></div>
         <div class="float-card float-card-2"><span class="float-icon">✅</span><div class="float-text"><strong>Report Ready!</strong><small>PDF Generated</small></div></div>
       </div>
@@ -403,30 +419,10 @@ footer{background:rgba(0,0,0,0.4);border-top:1px solid var(--border);padding:56p
       <p class="section-desc" style="margin:0 auto">Each capture serves a specific purpose in the AI diagnosis. Our guided interface makes it easy.</p>
     </div>
     <div class="capture-grid fade-up">
-      <div class="capture-card">
-        <div class="capture-icon">🧑‍⚕️</div>
-        <h4>Face Image</h4>
-        <p>Look straight at the camera in good lighting. Taken first for patient identification and facial symmetry context in the report.</p>
-        <span class="capture-badge">Capture 1 of 4</span>
-      </div>
-      <div class="capture-card">
-        <div class="capture-icon">🦷</div>
-        <h4>Upper Teeth</h4>
-        <p>Tilt head back slightly and open wide. Captures the upper dental arch for caries and stain detection.</p>
-        <span class="capture-badge">Capture 2 of 4</span>
-      </div>
-      <div class="capture-card">
-        <div class="capture-icon">😬</div>
-        <h4>Front Teeth</h4>
-        <p>Smile wide and face the camera straight. Captures the frontal bite, alignment and visible surface conditions.</p>
-        <span class="capture-badge">Capture 3 of 4</span>
-      </div>
-      <div class="capture-card">
-        <div class="capture-icon">👇</div>
-        <h4>Lower Teeth</h4>
-        <p>Tilt head forward and open wide. Captures the lower dental arch for pit fissure caries and malalignment.</p>
-        <span class="capture-badge">Capture 4 of 4</span>
-      </div>
+      <div class="capture-card"><div class="capture-icon">🧑‍⚕️</div><h4>Face Image</h4><p>Look straight at the camera in good lighting. Taken first for patient identification and facial symmetry context in the report.</p><span class="capture-badge">Capture 1 of 4</span></div>
+      <div class="capture-card"><div class="capture-icon">🦷</div><h4>Upper Teeth</h4><p>Tilt head back slightly and open wide. Captures the upper dental arch for caries and stain detection.</p><span class="capture-badge">Capture 2 of 4</span></div>
+      <div class="capture-card"><div class="capture-icon">😬</div><h4>Front Teeth</h4><p>Smile wide and face the camera straight. Captures the frontal bite, alignment and visible surface conditions.</p><span class="capture-badge">Capture 3 of 4</span></div>
+      <div class="capture-card"><div class="capture-icon">👇</div><h4>Lower Teeth</h4><p>Tilt head forward and open wide. Captures the lower dental arch for pit fissure caries and malalignment.</p><span class="capture-badge">Capture 4 of 4</span></div>
     </div>
   </div>
 </section>
@@ -477,18 +473,9 @@ footer{background:rgba(0,0,0,0.4);border-top:1px solid var(--border);padding:56p
         <h3>Your feedback helps us improve 🦷</h3>
         <p>Every review is read by our team. Tell us what worked, what didn't, and how we can make OralAI better for patients across India and beyond.</p>
         <div class="review-highlights">
-          <div class="review-highlight">
-            <span class="rh-icon">⚡</span>
-            <div class="rh-text"><strong>Takes 30 seconds</strong>Just rate, write a line and submit.</div>
-          </div>
-          <div class="review-highlight">
-            <span class="rh-icon">🔒</span>
-            <div class="rh-text"><strong>Private & safe</strong>Your review goes directly to our team — not published publicly.</div>
-          </div>
-          <div class="review-highlight">
-            <span class="rh-icon">💡</span>
-            <div class="rh-text"><strong>We actually read it</strong>Reviews directly shape our next update.</div>
-          </div>
+          <div class="review-highlight"><span class="rh-icon">⚡</span><div class="rh-text"><strong>Takes 30 seconds</strong>Just rate, write a line and submit.</div></div>
+          <div class="review-highlight"><span class="rh-icon">🔒</span><div class="rh-text"><strong>Private &amp; safe</strong>Your review goes directly to our team — not published publicly.</div></div>
+          <div class="review-highlight"><span class="rh-icon">💡</span><div class="rh-text"><strong>We actually read it</strong>Reviews directly shape our next update.</div></div>
         </div>
       </div>
       <div class="review-form-box fade-up">
@@ -542,17 +529,29 @@ footer{background:rgba(0,0,0,0.4);border-top:1px solid var(--border);padding:56p
       </div>
       <div class="dev-card fade-up">
         <div style="font-size:12px;font-weight:700;color:var(--muted);letter-spacing:0.08em;text-transform:uppercase;margin-bottom:14px;">Our Team</div>
-        <div style="display:flex;align-items:center;gap:14px;padding:14px 0;border-bottom:1px solid var(--border);">
-          <div style="width:48px;height:48px;border-radius:50%;background:linear-gradient(135deg,#1a6fff,#00c8e0);display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0;">👨‍💻</div>
-          <div style="font-size:16px;font-weight:800;">Allu Satyanarayana Murthy</div>
+        <div style="display:flex;align-items:center;gap:16px;padding:16px 0;border-bottom:1px solid var(--border);">
+          <div style="width:80px;height:80px;border-radius:50%;border:3px solid rgba(26,111,255,0.6);overflow:hidden;flex-shrink:0;background:linear-gradient(135deg,#1a6fff,#00c8e0);box-shadow:0 4px 20px rgba(26,111,255,0.3);">
+            <img src="{{ url_for('static', filename='team/bannu.jpg') }}" alt="Allu Satyanarayana Murthy" style="width:100%;height:100%;object-fit:cover;object-position:center 20%;display:block;">
+          </div>
+          <div>
+            <div style="font-size:16px;font-weight:800;">Allu Satyanarayana Murthy</div>
+          </div>
         </div>
-        <div style="display:flex;align-items:center;gap:14px;padding:14px 0;border-bottom:1px solid var(--border);">
-          <div style="width:48px;height:48px;border-radius:50%;background:linear-gradient(135deg,#7c3aed,#1a6fff);display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0;">👩‍💻</div>
-          <div style="font-size:16px;font-weight:800;">Akula Lekhana Sai</div>
+        <div style="display:flex;align-items:center;gap:16px;padding:16px 0;border-bottom:1px solid var(--border);">
+          <div style="width:80px;height:80px;border-radius:50%;border:3px solid rgba(124,58,237,0.6);overflow:hidden;flex-shrink:0;background:linear-gradient(135deg,#7c3aed,#1a6fff);box-shadow:0 4px 20px rgba(124,58,237,0.3);">
+            <img src="{{ url_for('static', filename='team/lekhana.jpg') }}" alt="Akula Lekhana Sai" style="width:100%;height:100%;object-fit:cover;object-position:center 15%;display:block;">
+          </div>
+          <div>
+            <div style="font-size:16px;font-weight:800;">Akula Lekhana Sai</div>
+          </div>
         </div>
-        <div style="display:flex;align-items:center;gap:14px;padding:14px 0;border-bottom:1px solid var(--border);">
-          <div style="width:48px;height:48px;border-radius:50%;background:linear-gradient(135deg,#00c8e0,#22e88e);display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0;">👩‍💻</div>
-          <div style="font-size:16px;font-weight:800;">Chalamalasetti Kundhana</div>
+        <div style="display:flex;align-items:center;gap:16px;padding:16px 0;border-bottom:1px solid var(--border);">
+          <div style="width:80px;height:80px;border-radius:50%;border:3px solid rgba(0,200,224,0.6);overflow:hidden;flex-shrink:0;background:linear-gradient(135deg,#00c8e0,#22e88e);box-shadow:0 4px 20px rgba(0,200,224,0.3);">
+            <img src="{{ url_for('static', filename='team/kundhana.jpg') }}" alt="Chalamalasetti Kundhana" style="width:100%;height:100%;object-fit:cover;object-position:center 15%;display:block;">
+          </div>
+          <div>
+            <div style="font-size:16px;font-weight:800;">Chalamalasetti Kundhana</div>
+          </div>
         </div>
         <div style="margin-top:20px;padding-top:20px;border-top:1px solid var(--border);">
           <div style="font-size:12px;font-weight:700;color:var(--muted);letter-spacing:0.08em;text-transform:uppercase;margin-bottom:14px;">Project Guide &amp; HOD</div>
@@ -571,7 +570,7 @@ footer{background:rgba(0,0,0,0.4);border-top:1px solid var(--border);padding:56p
         </div>
         <div class="dev-skills">
           <span class="dev-skill">Python</span><span class="dev-skill">Flask</span>
-          <span class="dev-skill">YOLOv8</span><span class="dev-skill">AI</span>
+          <span class="dev-skill">YOLOv8</span><span class="dev-skill">Claude AI</span>
           <span class="dev-skill">Computer Vision</span><span class="dev-skill">AWS EC2</span>
         </div>
       </div>
@@ -597,17 +596,17 @@ footer{background:rgba(0,0,0,0.4);border-top:1px solid var(--border);padding:56p
       </div>
       <div class="contact-form fade-up">
         <h3>Send a Message</h3>
-        <form onsubmit="submitForm(event)">
+        <form onsubmit="submitForm(event)" id="contactForm">
           <div class="form-row">
-            <div class="form-group"><label>Your Name</label><input type="text" placeholder="John Doe" required></div>
-            <div class="form-group"><label>Phone</label><input type="tel" placeholder="91XXXXXXXXXX"></div>
+            <div class="form-group"><label>Your Name</label><input type="text" id="cf-name" placeholder="John Doe" required></div>
+            <div class="form-group"><label>Phone</label><input type="tel" id="cf-phone" placeholder="91XXXXXXXXXX"></div>
           </div>
-          <div class="form-group"><label>Email</label><input type="email" placeholder="you@example.com" required></div>
+          <div class="form-group"><label>Email</label><input type="email" id="cf-email" placeholder="you@example.com" required></div>
           <div class="form-group"><label>Subject</label>
-            <select><option>General Inquiry</option><option>Technical Support</option><option>Report Issue</option><option>Partnership</option></select>
+            <select id="cf-subject"><option>General Inquiry</option><option>Technical Support</option><option>Report Issue</option><option>Partnership</option></select>
           </div>
-          <div class="form-group"><label>Message</label><textarea placeholder="Type your message here..."></textarea></div>
-          <button type="submit" class="btn-submit" id="submitBtn">Send Message</button>
+          <div class="form-group"><label>Message</label><textarea id="cf-message" placeholder="Type your message here..."></textarea></div>
+          <button type="submit" class="btn-submit" id="submitBtn">Send Message ✉️</button>
           <div id="formMsg" style="margin-top:10px;font-size:13px;text-align:center;display:none;"></div>
         </form>
       </div>
@@ -634,28 +633,30 @@ footer{background:rgba(0,0,0,0.4);border-top:1px solid var(--border);padding:56p
       <div class="footer-brand">
         <span class="logo-text">Oral<span>AI</span></span>
         <p>AI-powered oral health screening using Computer Vision and Large Language Models. Available in 9 Indian and global languages.</p>
-        <div class="footer-socials">
-          <div class="footer-social">💼</div><div class="footer-social">🐙</div><div class="footer-social">📸</div>
-        </div>
+
       </div>
       <div class="footer-col"><h4>Product</h4><ul>
-        <li><a href="#features">Features</a></li><li><a href="#how">How it Works</a></li>
-        <li><a href="#capture">Image Guide</a></li><li><a href="#languages">Languages</a></li>
+        <li><a href="#features">Features</a></li>
+        <li><a href="#how">How it Works</a></li>
+        <li><a href="#capture">Image Guide</a></li>
+        <li><a href="#languages">Languages</a></li>
         <li><a href="/details">Start Screening</a></li>
       </ul></div>
       <div class="footer-col"><h4>Company</h4><ul>
-        <li><a href="#developer">About Team</a></li><li><a href="#contact">Contact</a></li>
-        <li><a href="#">Privacy Policy</a></li><li><a href="#">Terms of Use</a></li>
+        <li><a href="#developer">About Team</a></li>
+        <li><a href="#contact">Contact</a></li>
+        <li><a href="/privacy">Privacy Policy</a></li>
+        <li><a href="/terms">Terms of Use</a></li>
       </ul></div>
       <div class="footer-col"><h4>Contact</h4><ul>
         <li><a href="mailto:oralai.site@gmail.com">oralai.site@gmail.com</a></li>
         <li><a href="tel:+918330985581">+91 83309 85581</a></li>
-        <li><a href="https://www.oralai.site">www.oralai.site</a></li>
+        <li><a href="https://www.oralai.site" target="_blank">www.oralai.site</a></li>
         <li><a>Andhra Pradesh, India</a></li>
       </ul></div>
     </div>
     <div class="footer-bottom">
-      <span>© 2026 OralAI. All rights reserved. Built with love by Allu Satyanarayana Murthy</span>
+      <span>© 2026 OralAI. Built by Allu Satyanarayana Murthy</span>
       <span>Powered by <a href="https://www.oralai.site" target="_blank">oralai.site</a></span>
     </div>
   </div>
@@ -664,96 +665,127 @@ footer{background:rgba(0,0,0,0.4);border-top:1px solid var(--border);padding:56p
 <button class="scroll-top" id="scrollTop" onclick="window.scrollTo({top:0,behavior:'smooth'})">↑</button>
 
 <script>
-document.querySelectorAll('.fade-up').forEach(function(el){el.classList.add('visible');});
-var observer=new IntersectionObserver(function(entries){entries.forEach(function(e){if(e.isIntersecting)e.target.classList.add('visible');});},{threshold:0.05});
-document.querySelectorAll('.fade-up').forEach(function(el){observer.observe(el);});
-window.addEventListener('scroll',function(){
-  document.getElementById('scrollTop').classList.toggle('show',window.scrollY>400);
-  var nav=document.getElementById('navbar');
-  nav.style.background=window.scrollY>50?'rgba(10,22,40,0.98)':'rgba(10,22,40,0.9)';
-  nav.style.boxShadow=window.scrollY>50?'0 4px 30px rgba(0,0,0,0.3)':'none';
-});
-function toggleMenu(){document.getElementById('mobileMenu').classList.toggle('open');}
-function closeMenu(){document.getElementById('mobileMenu').classList.remove('open');}
+/* ── SCROLL ANIMATIONS ── */
+/* NOTE: removed the line that added .visible to all elements on load.
+   Now fade-up only triggers when the element enters the viewport. */
+var observer = new IntersectionObserver(function(entries) {
+  entries.forEach(function(e) { if (e.isIntersecting) e.target.classList.add('visible'); });
+}, { threshold: 0.05 });
+document.querySelectorAll('.fade-up').forEach(function(el) { observer.observe(el); });
 
-// Dynamic screening counter
+/* ── SCROLL TOP + NAV SHADOW ── */
+window.addEventListener('scroll', function() {
+  document.getElementById('scrollTop').classList.toggle('show', window.scrollY > 400);
+  var nav = document.getElementById('navbar');
+  nav.style.background = window.scrollY > 50 ? 'rgba(10,22,40,0.98)' : 'rgba(10,22,40,0.9)';
+  nav.style.boxShadow = window.scrollY > 50 ? '0 4px 30px rgba(0,0,0,0.3)' : 'none';
+});
+
+/* ── MOBILE MENU ── */
+function toggleMenu() { document.getElementById('mobileMenu').classList.toggle('open'); }
+function closeMenu() { document.getElementById('mobileMenu').classList.remove('open'); }
+
+/* ── SCREENING COUNT COUNTER ── */
 fetch('/screening_count')
-  .then(r => r.json())
-  .then(data => {
+  .then(function(r) { return r.json(); })
+  .then(function(data) {
     var el = document.getElementById('screeningCount');
-    if(el && data.count) {
+    if (el && data.count !== undefined) {
       var target = data.count;
-      var start = Math.max(50, target - 10);
-      var current = start;
-      var interval = setInterval(function(){
+      var current = Math.max(0, target - 10);
+      el.innerText = current;
+      var interval = setInterval(function() {
         current++;
-        el.innerText = current + '+';
-        if(current >= target) { el.innerText = target + '+'; clearInterval(interval); }
+        el.innerText = current;
+        if (current >= target) { el.innerText = target; clearInterval(interval); }
       }, 80);
     }
-  }).catch(function(){
-    document.getElementById('screeningCount').innerText = '50+';
-  });
-
-/* Contact form */
-function submitForm(e){
-  e.preventDefault();
-  var btn=document.getElementById('submitBtn'),msg=document.getElementById('formMsg'),form=e.target;
-  var data={name:form.querySelector('input[type=text]').value,phone:form.querySelector('input[type=tel]').value,email:form.querySelector('input[type=email]').value,subject:form.querySelector('select').value,message:form.querySelector('textarea').value};
-  btn.disabled=true;btn.innerText='Sending...';msg.style.display='block';msg.style.color='#8a9bb5';msg.innerText='Sending your message...';
-  fetch('/contact',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(data)})
-  .then(function(r){return r.json();})
-  .then(function(res){
-    btn.disabled=false;
-    if(res.success){btn.innerText='Message Sent!';msg.style.color='#22e88e';msg.innerText='Message received! We will get back to you within 24 hours.';form.reset();setTimeout(function(){btn.innerText='Send Message';msg.style.display='none';},5000);}
-    else{btn.innerText='Send Message';msg.style.color='#ef4444';msg.innerText='Failed to send: '+(res.error||'Unknown error');}
   })
-  .catch(function(){btn.disabled=false;btn.innerText='Send Message';msg.style.color='#ef4444';msg.innerText='Network error. Please try again.';});
+  .catch(function() { document.getElementById('screeningCount').innerText = '0'; });
+
+/* ── CONTACT FORM (uses IDs now, not fragile querySelector order) ── */
+function submitForm(e) {
+  e.preventDefault();
+  var btn = document.getElementById('submitBtn');
+  var msg = document.getElementById('formMsg');
+  var data = {
+    name: document.getElementById('cf-name').value,
+    phone: document.getElementById('cf-phone').value,
+    email: document.getElementById('cf-email').value,
+    subject: document.getElementById('cf-subject').value,
+    message: document.getElementById('cf-message').value
+  };
+  btn.disabled = true;
+  btn.innerText = 'Sending...';
+  msg.style.display = 'block';
+  msg.style.color = '#8a9bb5';
+  msg.innerText = 'Sending your message...';
+  fetch('/contact', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) })
+    .then(function(r) { return r.json(); })
+    .then(function(res) {
+      btn.disabled = false;
+      if (res.success) {
+        btn.innerText = 'Message Sent! ✅';
+        msg.style.color = '#22e88e';
+        msg.innerText = 'Message received! We will get back to you within 24 hours.';
+        document.getElementById('contactForm').reset();
+        setTimeout(function() { btn.innerText = 'Send Message ✉️'; msg.style.display = 'none'; }, 5000);
+      } else {
+        btn.innerText = 'Send Message ✉️';
+        msg.style.color = '#ef4444';
+        msg.innerText = 'Failed to send: ' + (res.error || 'Unknown error');
+      }
+    })
+    .catch(function() {
+      btn.disabled = false;
+      btn.innerText = 'Send Message ✉️';
+      msg.style.color = '#ef4444';
+      msg.innerText = 'Network error. Please try again.';
+    });
 }
 
-/* Review form */
-function submitReview(e){
+/* ── REVIEW FORM ── */
+function submitReview(e) {
   e.preventDefault();
-  var btn=document.getElementById('reviewBtn');
-  var msg=document.getElementById('reviewMsg');
-  var name=document.getElementById('rv-name').value.trim();
-  var contact=document.getElementById('rv-contact').value.trim();
-  var review=document.getElementById('rv-review').value.trim();
-  var type=document.getElementById('rv-type').value;
-  var ratingEl=document.querySelector('input[name="rating"]:checked');
-  var rating=ratingEl?ratingEl.value:'Not rated';
-  var stars=ratingEl?'★'.repeat(parseInt(rating))+'☆'.repeat(5-parseInt(rating)):'Not rated';
-  if(!name||!review){return;}
-  btn.disabled=true;btn.innerText='Submitting...';
-  msg.className='review-msg';msg.style.display='none';
-  fetch('/review',{
-    method:'POST',
-    headers:{'Content-Type':'application/json'},
-    body:JSON.stringify({name:name,contact:contact,review:review,type:type,rating:rating,stars:stars})
-  })
-  .then(function(r){return r.json();})
-  .then(function(res){
-    btn.disabled=false;
-    if(res.success){
-      btn.innerText='⭐ Submit Review';
-      msg.className='review-msg ok';
-      msg.innerText='✅ Thank you '+name+'! Your review has been submitted.';
-      msg.style.display='block';
-      document.getElementById('reviewForm').reset();
-      setTimeout(function(){msg.style.display='none';},6000);
-    }else{
-      btn.innerText='⭐ Submit Review';
-      msg.className='review-msg fail';
-      msg.innerText='❌ Failed to submit: '+(res.error||'Unknown error');
-      msg.style.display='block';
-    }
-  })
-  .catch(function(){
-    btn.disabled=false;btn.innerText='⭐ Submit Review';
-    msg.className='review-msg fail';
-    msg.innerText='❌ Network error. Please try again.';
-    msg.style.display='block';
-  });
+  var btn = document.getElementById('reviewBtn');
+  var msg = document.getElementById('reviewMsg');
+  var name = document.getElementById('rv-name').value.trim();
+  var contact = document.getElementById('rv-contact').value.trim();
+  var review = document.getElementById('rv-review').value.trim();
+  var type = document.getElementById('rv-type').value;
+  var ratingEl = document.querySelector('input[name="rating"]:checked');
+  var rating = ratingEl ? ratingEl.value : 'Not rated';
+  var stars = ratingEl ? '★'.repeat(parseInt(rating)) + '☆'.repeat(5 - parseInt(rating)) : 'Not rated';
+  if (!name || !review) return;
+  btn.disabled = true;
+  btn.innerText = 'Submitting...';
+  msg.className = 'review-msg';
+  msg.style.display = 'none';
+  fetch('/review', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ name: name, contact: contact, review: review, type: type, rating: rating, stars: stars }) })
+    .then(function(r) { return r.json(); })
+    .then(function(res) {
+      btn.disabled = false;
+      if (res.success) {
+        btn.innerText = '⭐ Submit Review';
+        msg.className = 'review-msg ok';
+        msg.innerText = '✅ Thank you ' + name + '! Your review has been submitted.';
+        msg.style.display = 'block';
+        document.getElementById('reviewForm').reset();
+        setTimeout(function() { msg.style.display = 'none'; }, 6000);
+      } else {
+        btn.innerText = '⭐ Submit Review';
+        msg.className = 'review-msg fail';
+        msg.innerText = '❌ Failed to submit: ' + (res.error || 'Unknown error');
+        msg.style.display = 'block';
+      }
+    })
+    .catch(function() {
+      btn.disabled = false;
+      btn.innerText = '⭐ Submit Review';
+      msg.className = 'review-msg fail';
+      msg.innerText = '❌ Network error. Please try again.';
+      msg.style.display = 'block';
+    });
 }
 </script>
 </body>

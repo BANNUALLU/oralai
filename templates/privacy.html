@@ -3,205 +3,177 @@
 <head>
   <meta charset="UTF-8"/>
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <meta name="description" content="OralAI Privacy Policy — how we collect, use, and protect your personal and dental health information. DPDP Act 2023 compliant."/>
+  <meta property="og:title" content="Privacy Policy – OralAI"/>
+  <meta property="og:description" content="How OralAI collects, uses, and protects your personal and health information."/>
+  <meta property="og:type" content="website"/>
   <title>Privacy Policy – OralAI</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com"/>
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
   <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800;900&family=Lora:ital,wght@0,400;1,400&display=swap" rel="stylesheet"/>
   <style>
-    *{box-sizing:border-box;margin:0;padding:0;scroll-behavior:smooth;}
+    *{box-sizing:border-box;margin:0;padding:0;}
+    html{scroll-behavior:smooth;font-family:'Outfit',system-ui,sans-serif;}
+    @media(prefers-reduced-motion:reduce){html{scroll-behavior:auto;}*{animation-duration:.01ms!important;transition-duration:.01ms!important;}}
     :root{
-      --navy:#0a1628;--navy2:#0f2040;--blue:#1a6fff;--blue2:#4d9fff;--cyan:#00c8e0;
+      --navy:#0a1628;--blue:#1a6fff;--blue2:#4d9fff;--cyan:#00c8e0;
       --white:#ffffff;--muted:#8a9bb5;--border:rgba(255,255,255,0.08);
-      --card:rgba(255,255,255,0.04);--gold:#f5c842;--green:#22e88e;--red:#ef4444;
-      --font:'Outfit',sans-serif;--serif:'Lora',serif;
+      --card:rgba(255,255,255,0.04);--gold:#f5c842;--green:#22e88e;
+      --font:'Outfit',system-ui,sans-serif;
     }
-    html{font-family:var(--font);}
     body{background:var(--navy);color:var(--white);overflow-x:hidden;line-height:1.75;}
     a{text-decoration:none;color:inherit;}
-    body::before{content:'';position:fixed;inset:0;z-index:0;
+    .skip-link{position:absolute;top:-100%;left:0;background:var(--blue);color:#fff;padding:10px 18px;font-size:14px;font-weight:700;z-index:999;border-radius:0 0 8px 0;}
+    .skip-link:focus{top:0;}
+    body::before{content:'';position:fixed;inset:0;z-index:0;pointer-events:none;
       background:radial-gradient(ellipse 80% 50% at 20% -10%,rgba(26,111,255,0.12) 0%,transparent 60%),
-      radial-gradient(ellipse 60% 40% at 80% 100%,rgba(0,200,224,0.08) 0%,transparent 60%);pointer-events:none;}
-    body::after{content:'';position:fixed;inset:0;z-index:0;
-      background-image:linear-gradient(rgba(26,111,255,0.03) 1px,transparent 1px),
-      linear-gradient(90deg,rgba(26,111,255,0.03) 1px,transparent 1px);
-      background-size:60px 60px;pointer-events:none;}
-
+      radial-gradient(ellipse 60% 40% at 80% 100%,rgba(0,200,224,0.08) 0%,transparent 60%);}
+    body::after{content:'';position:fixed;inset:0;z-index:0;pointer-events:none;
+      background-image:linear-gradient(rgba(26,111,255,0.03) 1px,transparent 1px),linear-gradient(90deg,rgba(26,111,255,0.03) 1px,transparent 1px);
+      background-size:60px 60px;}
     /* NAV */
     nav{position:fixed;top:0;left:0;right:0;z-index:100;display:flex;align-items:center;
-      justify-content:space-between;padding:0 60px;height:72px;
-      background:rgba(10,22,40,0.95);backdrop-filter:blur(20px);
-      border-bottom:1px solid var(--border);}
+      justify-content:space-between;padding:0 clamp(20px,5vw,60px);height:72px;
+      background:rgba(10,22,40,0.97);backdrop-filter:blur(20px);border-bottom:1px solid var(--border);}
     .nav-logo-text{font-size:22px;font-weight:800;color:var(--white);letter-spacing:-0.5px;}
     .nav-logo-text span{color:var(--blue);}
-    .nav-back{padding:9px 22px;border-radius:10px;font-family:var(--font);font-size:14px;
-      font-weight:600;background:var(--blue);color:var(--white);border:none;cursor:pointer;
-      box-shadow:0 4px 20px rgba(26,111,255,0.4);transition:all .2s;}
+    .nav-links{display:flex;align-items:center;gap:12px;}
+    .nav-pill{padding:7px 16px;border-radius:8px;font-size:13px;font-weight:600;color:var(--muted);border:1px solid var(--border);transition:all .2s;white-space:nowrap;}
+    .nav-pill:hover{color:var(--white);border-color:rgba(255,255,255,0.2);}
+    .nav-pill.active{color:var(--cyan);border-color:rgba(0,200,224,0.35);background:rgba(0,200,224,0.06);}
+    .nav-back{padding:9px 22px;border-radius:10px;font-size:14px;font-weight:600;background:var(--blue);color:var(--white);border:none;cursor:pointer;box-shadow:0 4px 20px rgba(26,111,255,0.4);transition:all .2s;white-space:nowrap;}
     .nav-back:hover{background:var(--blue2);}
-
     /* HERO */
-    .hero{position:relative;z-index:1;padding:130px 60px 70px;text-align:center;
-      background:linear-gradient(180deg,rgba(0,200,224,0.06) 0%,transparent 100%);}
-    .hero-badge{display:inline-flex;align-items:center;gap:8px;background:rgba(34,232,142,0.1);
-      border:1px solid rgba(34,232,142,0.3);color:var(--green);font-size:12px;font-weight:700;
-      padding:5px 16px;border-radius:999px;margin-bottom:20px;letter-spacing:0.08em;text-transform:uppercase;}
-    .hero h1{font-size:clamp(2rem,5vw,3.2rem);font-weight:900;letter-spacing:-1.5px;margin-bottom:14px;}
-    .hero p{font-size:15px;color:var(--muted);max-width:480px;margin:0 auto 28px;}
-    .hero-meta{display:flex;justify-content:center;gap:14px;flex-wrap:wrap;}
-    .hero-meta-item{background:rgba(255,255,255,0.05);border:1px solid var(--border);
-      border-radius:10px;padding:8px 18px;font-size:13px;font-weight:500;color:var(--muted);}
-
+    .hero{padding:clamp(100px,14vw,140px) clamp(20px,5vw,60px) clamp(60px,8vw,90px);text-align:center;background:linear-gradient(180deg,rgba(0,200,224,0.06) 0%,transparent 100%);}
+    .hero-badge{display:inline-flex;align-items:center;gap:8px;background:rgba(34,232,142,0.1);border:1px solid rgba(34,232,142,0.3);color:var(--green);font-size:12px;font-weight:700;padding:5px 16px;border-radius:999px;margin-bottom:20px;letter-spacing:0.08em;text-transform:uppercase;}
+    .hero h1{font-size:clamp(1.9rem,5vw,3.2rem);font-weight:900;letter-spacing:-1.5px;margin-bottom:14px;}
+    .hero p{font-size:15px;color:var(--muted);max-width:480px;margin:0 auto 28px;line-height:1.7;}
+    .hero-meta{display:flex;justify-content:center;gap:10px;flex-wrap:wrap;}
+    .hero-meta-item{background:rgba(255,255,255,0.05);border:1px solid var(--border);border-radius:10px;padding:7px 15px;font-size:13px;font-weight:500;color:var(--muted);}
     /* CONTAINER */
-    .container{position:relative;z-index:1;max-width:820px;margin:0 auto;padding:48px 24px 80px;}
-
-    /* TOC */
-    .toc{background:var(--card);border:1px solid var(--border);border-left:3px solid var(--cyan);
-      border-radius:16px;padding:24px 28px;margin-bottom:36px;}
-    .toc h3{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;
-      color:var(--cyan);margin-bottom:16px;}
-    .toc ol{padding-left:20px;display:grid;grid-template-columns:1fr 1fr;gap:6px 32px;}
-    .toc a{color:var(--muted);font-size:13px;font-weight:500;transition:color .2s;}
-    .toc a:hover{color:var(--cyan);}
-
-    /* WARNING BANNER */
-    .warning-banner{background:rgba(245,200,66,0.07);border:1px solid rgba(245,200,66,0.25);
-      border-radius:14px;padding:16px 20px;margin-bottom:28px;font-size:13px;
-      color:rgba(245,200,66,0.9);font-weight:500;line-height:1.6;}
-    .warning-banner::before{content:'⚠️  ';}
-
-    /* SECTION CARD */
-    .section{background:var(--card);border:1px solid var(--border);border-radius:20px;
-      padding:28px 32px;margin-bottom:16px;transition:all .3s;}
+    .container{max-width:900px;width:100%;margin:0 auto;padding:48px clamp(16px,4vw,32px) 80px;}
+    /* WARNING */
+    .warning-banner{background:rgba(245,200,66,0.07);border:1px solid rgba(245,200,66,0.25);border-radius:14px;padding:14px 18px;margin-bottom:28px;font-size:13px;color:rgba(245,200,66,0.9);font-weight:500;line-height:1.6;}
+    /* SECTION */
+    .section{background:var(--card);border:1px solid var(--border);border-radius:20px;padding:28px 32px;margin-bottom:16px;transition:border-color .3s;}
     .section:hover{border-color:rgba(0,200,224,0.25);}
-    .section-header{display:flex;align-items:center;gap:14px;margin-bottom:20px;
-      padding-bottom:16px;border-bottom:1px solid var(--border);}
-    .section-icon{width:46px;height:46px;background:rgba(0,200,224,0.1);border-radius:12px;
-      display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0;}
+    .section-header{display:flex;align-items:center;gap:14px;margin-bottom:20px;padding-bottom:16px;border-bottom:1px solid var(--border);}
+    .section-icon{width:46px;height:46px;background:rgba(0,200,224,0.1);border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0;}
     .section h2{font-size:16px;font-weight:700;color:var(--white);}
-    .section-num{font-size:11px;color:var(--cyan);font-weight:700;text-transform:uppercase;
-      letter-spacing:0.08em;display:block;margin-bottom:3px;}
+    .section-num{font-size:11px;color:var(--cyan);font-weight:700;text-transform:uppercase;letter-spacing:0.08em;display:block;margin-bottom:3px;}
     .section p{color:var(--muted);font-size:14px;margin-bottom:10px;line-height:1.8;}
     .section p:last-child{margin-bottom:0;}
-    .section ul,.section ol{padding-left:20px;color:var(--muted);font-size:14px;}
+    .section ul{padding-left:20px;color:var(--muted);font-size:14px;}
     .section li{margin-bottom:8px;line-height:1.7;}
     .section strong{color:rgba(255,255,255,0.9);}
-
-    /* DATA TABLE */
-    .data-table{width:100%;border-collapse:collapse;font-size:13px;margin:14px 0;border-radius:12px;overflow:hidden;}
-    .data-table th{background:rgba(0,200,224,0.1);color:var(--cyan);font-weight:700;
-      padding:11px 16px;text-align:left;font-size:11px;text-transform:uppercase;letter-spacing:0.06em;}
+    /* TABLE */
+    .table-wrap{width:100%;overflow-x:auto;-webkit-overflow-scrolling:touch;margin:14px 0;border-radius:12px;}
+    .data-table{width:100%;min-width:480px;border-collapse:collapse;font-size:13px;}
+    .data-table th{background:rgba(0,200,224,0.1);color:var(--cyan);font-weight:700;padding:11px 16px;text-align:left;font-size:11px;text-transform:uppercase;letter-spacing:0.06em;}
     .data-table td{padding:11px 16px;border-bottom:1px solid var(--border);color:var(--muted);font-size:13px;}
     .data-table tr:last-child td{border-bottom:none;}
     .data-table tr:hover td{background:rgba(255,255,255,0.02);}
-
-    /* HIGHLIGHT / WARNING */
-    .highlight{background:rgba(34,232,142,0.07);border:1px solid rgba(34,232,142,0.2);
-      border-radius:12px;padding:14px 18px;margin:14px 0;font-size:13px;
-      color:var(--green);font-weight:500;line-height:1.6;}
-    .highlight::before{content:'✅  ';}
-    .warning{background:rgba(245,200,66,0.07);border:1px solid rgba(245,200,66,0.2);
-      border-radius:12px;padding:14px 18px;margin:14px 0;font-size:13px;
-      color:rgba(245,200,66,0.9);font-weight:500;line-height:1.6;}
-    .warning::before{content:'⚠️  ';}
-
-    /* CONTACT CARD */
-    .contact-card{background:linear-gradient(135deg,rgba(26,111,255,0.15),rgba(0,200,224,0.08));
-      border:1px solid rgba(26,111,255,0.3);border-radius:20px;padding:32px 36px;
-      margin-top:40px;display:flex;align-items:center;justify-content:space-between;
-      flex-wrap:wrap;gap:16px;}
+    /* CALLOUTS */
+    .callout{border-radius:12px;padding:13px 16px 13px 44px;margin:14px 0;font-size:13px;font-weight:500;line-height:1.6;position:relative;}
+    .callout::before{position:absolute;left:14px;top:14px;width:16px;height:16px;background-size:contain;background-repeat:no-repeat;content:'';}
+    .callout-green{background:rgba(34,232,142,0.07);border:1px solid rgba(34,232,142,0.2);color:var(--green);}
+    .callout-green::before{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%2322e88e'%3E%3Cpath d='M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z'/%3E%3C/svg%3E");}
+    .callout-yellow{background:rgba(245,200,66,0.07);border:1px solid rgba(245,200,66,0.2);color:rgba(245,200,66,0.9);}
+    .callout-yellow::before{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%23f5c842'%3E%3Cpath d='M12 2L1 21h22L12 2zm0 3.5L20.5 19h-17L12 5.5zM11 10v4h2v-4h-2zm0 6v2h2v-2h-2z'/%3E%3C/svg%3E");}
+    /* CONTACT */
+    .contact-card{background:linear-gradient(135deg,rgba(26,111,255,0.15),rgba(0,200,224,0.08));border:1px solid rgba(26,111,255,0.3);border-radius:20px;padding:32px 36px;margin-top:40px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:16px;}
     .contact-card h3{font-size:17px;font-weight:800;margin-bottom:5px;}
     .contact-card p{font-size:13px;color:var(--muted);}
-    .contact-card a{background:var(--blue);color:var(--white);padding:11px 26px;
-      border-radius:12px;font-weight:700;font-size:14px;white-space:nowrap;
-      box-shadow:0 6px 20px rgba(26,111,255,0.4);transition:all .2s;}
+    .contact-card a{background:var(--blue);color:var(--white);padding:11px 26px;border-radius:12px;font-weight:700;font-size:14px;box-shadow:0 6px 20px rgba(26,111,255,0.4);transition:all .2s;display:inline-block;}
     .contact-card a:hover{background:var(--blue2);}
-
     /* FOOTER */
-    footer{position:relative;z-index:1;text-align:center;padding:28px 20px;
-      font-size:12px;color:var(--muted);border-top:1px solid var(--border);}
-    footer a{color:var(--blue2);}
-
-    @media(max-width:767px){
-      nav{padding:0 20px;height:60px;}
-      .hero{padding:90px 20px 50px;}
-      .container{padding:36px 16px 60px;}
-      .toc ol{grid-template-columns:1fr;}
-      .section{padding:20px;}
-      .contact-card{flex-direction:column;text-align:center;}
-      .data-table{font-size:12px;}
+    footer{text-align:center;padding:28px 20px;font-size:12px;color:var(--muted);border-top:1px solid var(--border);}
+    footer a{color:var(--blue2);transition:color .2s;}
+    footer a:hover{color:var(--white);}
+    /* MOBILE */
+    @media(max-width:600px){
+      nav{height:60px;}
+      .nav-pill{display:none;}
+      .section{padding:20px 18px;}
+      .contact-card{flex-direction:column;text-align:center;padding:24px 20px;}
+      .contact-card a{width:100%;text-align:center;padding:13px 20px;}
+    }
+    @media(max-width:400px){
+      .hero h1{font-size:1.7rem;}
+      .hero-meta-item{font-size:12px;padding:6px 12px;}
     }
   </style>
 </head>
 <body>
 
-<nav>
-  <a href="/" style="text-decoration:none;">
+<a class="skip-link" href="#main-content">Skip to main content</a>
+
+<nav aria-label="Site navigation">
+  <a href="/" style="text-decoration:none;" aria-label="OralAI Home">
     <span class="nav-logo-text">Oral<span>AI</span></span>
   </a>
-  <a href="/" class="nav-back">← Back to Home</a>
+  <div class="nav-links">
+    <a href="/privacy" class="nav-pill active" aria-current="page">Privacy</a>
+    <a href="/terms" class="nav-pill">Terms</a>
+    <a href="/" class="nav-back">&#8592; Home</a>
+  </div>
 </nav>
 
-<div class="hero">
-  <div class="hero-badge">🔒 Privacy</div>
+<div class="hero" role="banner">
+  <div class="hero-badge">&#x1F512; Privacy</div>
   <h1>Privacy Policy</h1>
   <p>How OralAI collects, uses, and protects your personal and health information.</p>
   <div class="hero-meta">
-    <div class="hero-meta-item">📅 Effective: March 2026</div>
-    <div class="hero-meta-item">📍 Andhra Pradesh, India</div>
-    <div class="hero-meta-item">🔒 DPDP Act Compliant</div>
+    <div class="hero-meta-item">&#x1F4C5; Effective: March 2026</div>
+    <div class="hero-meta-item">&#x1F4CD; Andhra Pradesh, India</div>
+    <div class="hero-meta-item">&#x1F512; DPDP Act Compliant</div>
   </div>
 </div>
 
-<div class="container">
 
-  <!-- WARNING -->
-  <div class="warning-banner">OralAI is a screening aid only and is NOT a substitute for professional dental diagnosis or treatment. Always consult a licensed dentist for medical advice.</div>
+<div class="container" id="main-content">
 
-  <!-- TOC -->
-  <div class="toc">
-    <h3>Table of Contents</h3>
-    <ol>
-      <li><a href="#s1">Information We Collect</a></li>
-      <li><a href="#s2">How We Use Your Data</a></li>
-      <li><a href="#s3">Data Storage &amp; Security</a></li>
-      <li><a href="#s4">Image &amp; Health Data</a></li>
-      <li><a href="#s5">WhatsApp &amp; Email Delivery</a></li>
-      <li><a href="#s6">Data Sharing</a></li>
-      <li><a href="#s7">Your Rights</a></li>
-      <li><a href="#s8">Policy Updates</a></li>
-    </ol>
+  <div class="warning-banner" role="alert">
+    OralAI is a screening aid only and is NOT a substitute for professional dental diagnosis or treatment. Always consult a licensed dentist for medical advice.
   </div>
 
+  
+
   <!-- S1 -->
-  <div class="section" id="s1">
+  <section class="section" id="s1" aria-labelledby="s1-title">
     <div class="section-header">
-      <div class="section-icon">📋</div>
+      <div class="section-icon" aria-hidden="true">&#x1F4CB;</div>
       <div>
         <span class="section-num">Section 01</span>
-        <h2>Information We Collect</h2>
+        <h2 id="s1-title">Info We Collect</h2>
       </div>
     </div>
     <p>When you use OralAI, we collect the following information to provide the screening service:</p>
-    <table class="data-table">
-      <thead>
-        <tr><th>Data Type</th><th>What We Collect</th><th>Required?</th></tr>
-      </thead>
-      <tbody>
-        <tr><td>Personal Info</td><td>Full name, age, gender</td><td>✅ Yes</td></tr>
-        <tr><td>Contact Info</td><td>Phone number, email address</td><td>✅ Yes</td></tr>
-        <tr><td>Face Image</td><td>1 front-facing photo of the patient</td><td>✅ Yes</td></tr>
-        <tr><td>Dental Images</td><td>3 dental photos (upper, front, lower teeth)</td><td>✅ Yes</td></tr>
-        <tr><td>Language Preference</td><td>Chosen report language</td><td>✅ Yes</td></tr>
-        <tr><td>Usage Data</td><td>Pages visited, screening timestamps</td><td>🔄 Automatic</td></tr>
-      </tbody>
-    </table>
-    <p>We do <strong>not</strong> collect passwords, payment information, or government ID numbers.</p>
-  </div>
+    <div class="table-wrap">
+      <table class="data-table">
+        <thead>
+          <tr><th scope="col">Data Type</th><th scope="col">What We Collect</th><th scope="col">Required?</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>Personal Info</td><td>Full name, age, gender</td><td>Yes — required</td></tr>
+          <tr><td>Contact Info</td><td>Phone number, email address</td><td>Yes — required</td></tr>
+          <tr><td>Face Image</td><td>1 front-facing photo of the patient</td><td>Yes — required</td></tr>
+          <tr><td>Dental Images</td><td>3 dental photos (upper, front, lower teeth)</td><td>Yes — required</td></tr>
+          <tr><td>Language Preference</td><td>Chosen report language</td><td>Yes — required</td></tr>
+          <tr><td>Usage Data</td><td>Pages visited, screening timestamps</td><td>Automatic</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p>We do <strong>not</strong> collect passwords, payment information, government ID numbers, or biometric identifiers beyond dental and face images used solely for screening.</p>
+  </section>
 
   <!-- S2 -->
-  <div class="section" id="s2">
+  <section class="section" id="s2" aria-labelledby="s2-title">
     <div class="section-header">
-      <div class="section-icon">⚙️</div>
+      <div class="section-icon" aria-hidden="true">&#x2699;&#xFE0F;</div>
       <div>
         <span class="section-num">Section 02</span>
-        <h2>How We Use Your Data</h2>
+        <h2 id="s2-title">How We Use Your Data</h2>
       </div>
     </div>
     <p>Your data is used exclusively to provide OralAI's screening service:</p>
@@ -210,119 +182,191 @@
       <li>To run YOLOv8 object detection on your dental images</li>
       <li>To generate a personalised AI analysis report in your chosen language</li>
       <li>To create and deliver your PDF screening report via download, email, or WhatsApp</li>
-      <li>To improve the accuracy and performance of our AI models (anonymised only)</li>
+      <li>To improve the accuracy and performance of our AI models (anonymised and aggregated only)</li>
       <li>To respond to support requests or contact inquiries</li>
     </ul>
-    <div class="highlight">We do not use your data for advertising, marketing to third parties, or selling to any external organisation.</div>
-  </div>
+    <div class="callout callout-green">We do not use your data for advertising, marketing to third parties, or selling to any external organisation.</div>
+  </section>
 
   <!-- S3 -->
-  <div class="section" id="s3">
+  <section class="section" id="s3" aria-labelledby="s3-title">
     <div class="section-header">
-      <div class="section-icon">🔒</div>
+      <div class="section-icon" aria-hidden="true">&#x1F512;</div>
       <div>
         <span class="section-num">Section 03</span>
-        <h2>Data Storage &amp; Security</h2>
+        <h2 id="s3-title">Storage &amp; Security</h2>
       </div>
     </div>
     <p>OralAI is hosted on <strong>AWS EC2 (Amazon Web Services)</strong> infrastructure with the following protections:</p>
     <ul>
       <li>All data transmitted over <strong>HTTPS/TLS encryption</strong></li>
-      <li>Server access restricted to the development team only</li>
-      <li>Face and dental images are processed in real-time and <strong>not permanently stored</strong> on our servers after the report is generated</li>
-      <li>Patient details are stored securely and not exposed publicly</li>
+      <li>Server access restricted to the development team only via key-based authentication</li>
+      <li>Face and dental images are processed in real-time and <strong>not permanently stored</strong> after the report is generated</li>
+      <li>Patient personal details are stored in access-controlled databases not exposed publicly</li>
+      <li>Regular security reviews conducted by the development team</li>
     </ul>
-    <div class="highlight">All 4 images (face + 3 dental) are used only during the active screening session and are not retained after your report is generated.</div>
-  </div>
+    <div class="callout callout-green">All 4 images (face + 3 dental) are used only during the active screening session and are deleted from our servers after your report is generated.</div>
+  </section>
 
   <!-- S4 -->
-  <div class="section" id="s4">
+  <section class="section" id="s4" aria-labelledby="s4-title">
     <div class="section-header">
-      <div class="section-icon">🦷</div>
+      <div class="section-icon" aria-hidden="true">&#x1F9B7;</div>
       <div>
         <span class="section-num">Section 04</span>
-        <h2>Image &amp; Health Data</h2>
+        <h2 id="s4-title">Image &amp; Health Data</h2>
       </div>
     </div>
-    <p>Because OralAI processes dental and face images (a category of health-related data), we take extra precautions:</p>
+    <p>Because OralAI processes dental and face images — a category of sensitive health-related data under the DPDP Act, 2023 — we take extra precautions:</p>
     <ul>
-      <li>All 4 images are processed only by our AI pipeline (YOLOv8 + AI language model)</li>
-      <li>Your face image is used for patient identification context in the PDF report only — it is not used for facial recognition</li>
-      <li>No human team member manually reviews your images unless you contact us for support</li>
-      <li>Images are <strong>not shared</strong> with dentists, clinics, or any third party without your consent</li>
+      <li>All 4 images are processed only by our automated AI pipeline (YOLOv8 + language model)</li>
+      <li>Your face image is used for patient identification in the PDF report only — it is <strong>not</strong> used for facial recognition or biometric profiling</li>
+      <li>No human team member manually reviews your images unless you contact us for support and explicitly consent</li>
+      <li>Images are <strong>not shared</strong> with dentists, clinics, or any third party without your explicit consent</li>
       <li>AI-generated reports are for <strong>informational purposes only</strong> and do not constitute a medical diagnosis</li>
     </ul>
-    <div class="warning">The OralAI report does not replace a professional dental examination. Please consult a licensed dentist for clinical decisions.</div>
-  </div>
+    <div class="callout callout-yellow">The OralAI report does not replace a professional dental examination. Please consult a licensed dentist for clinical decisions.</div>
+  </section>
 
   <!-- S5 -->
-  <div class="section" id="s5">
+  <section class="section" id="s5" aria-labelledby="s5-title">
     <div class="section-header">
-      <div class="section-icon">📱</div>
+      <div class="section-icon" aria-hidden="true">&#x1F4F1;</div>
       <div>
         <span class="section-num">Section 05</span>
-        <h2>WhatsApp &amp; Email Delivery</h2>
+        <h2 id="s5-title">WhatsApp &amp; Email</h2>
       </div>
     </div>
     <p>When you choose to receive your report via WhatsApp or Email:</p>
     <ul>
-      <li>Your phone number is used only to send the PDF report via the WhatsApp Business API</li>
-      <li>Your email address is used only to deliver the screening report</li>
+      <li>Your phone number is used <strong>only</strong> to send the PDF report via the WhatsApp Business API</li>
+      <li>Your email address is used <strong>only</strong> to deliver the screening report</li>
       <li>We do not send promotional messages, newsletters, or unsolicited communications</li>
-      <li>Your contact details are not shared with WhatsApp/Meta beyond what is required for message delivery</li>
+      <li>Your contact details are not shared with WhatsApp/Meta beyond what is technically required for message delivery</li>
+      <li>If delivery fails, we do not retry more than twice and do not store contact info beyond 30 days</li>
     </ul>
-  </div>
+  </section>
 
   <!-- S6 -->
-  <div class="section" id="s6">
+  <section class="section" id="s6" aria-labelledby="s6-title">
     <div class="section-header">
-      <div class="section-icon">🤝</div>
+      <div class="section-icon" aria-hidden="true">&#x1F91D;</div>
       <div>
         <span class="section-num">Section 06</span>
-        <h2>Data Sharing</h2>
+        <h2 id="s6-title">Data Sharing</h2>
       </div>
     </div>
-    <p>We do <strong>not sell, rent, or trade</strong> your personal information. We may share data only in limited situations:</p>
+    <p>We do <strong>not sell, rent, or trade</strong> your personal information. We may share data only in these limited situations:</p>
     <ul>
-      <li><strong>Service providers:</strong> AWS (hosting), WhatsApp Business API, email service — solely to operate OralAI</li>
-      <li><strong>Legal obligation:</strong> If required by Indian law, court order, or government authority</li>
-      <li><strong>Academic research:</strong> Only fully anonymised, aggregated data — never individual records</li>
+      <li><strong>Service providers:</strong> AWS (hosting), WhatsApp Business API, email delivery service — solely to operate OralAI, bound by confidentiality obligations</li>
+      <li><strong>Legal obligation:</strong> If required by Indian law, a valid court order, or a competent government authority</li>
+      <li><strong>Academic research:</strong> Only fully anonymised, aggregated data — never individual records or identifiable information</li>
     </ul>
-    <div class="highlight">No third-party advertiser, insurance company, employer, or organisation ever receives your personal data or images.</div>
-  </div>
+    <div class="callout callout-green">No third-party advertiser, insurance company, employer, or organisation ever receives your personal data or images.</div>
+  </section>
 
-  <!-- S7 -->
-  <div class="section" id="s7">
+  <!-- S7 — NEW: Consent & Data Breach -->
+  <section class="section" id="s7" aria-labelledby="s7-title">
     <div class="section-header">
-      <div class="section-icon">⚖️</div>
+      <div class="section-icon" aria-hidden="true">&#x1F6E1;&#xFE0F;</div>
       <div>
         <span class="section-num">Section 07</span>
-        <h2>Your Rights</h2>
+        <h2 id="s7-title">Consent &amp; Data Breach Policy</h2>
+      </div>
+    </div>
+    <p><strong>How We Obtain Consent</strong></p>
+    <p>By clicking "Start Screening" and submitting your images and personal details, you expressly consent to the collection and processing of your data as described in this policy. You may withdraw consent at any time by contacting us at <strong><a href="/cdn-cgi/l/email-protection#2d425f4c414c44035e4459486d4a404c4441034e4240"><span class="__cf_email__" data-cfemail="cea1bcafa2afa7e0bda7baab8ea9a3afa7a2e0ada1a3">[email&#160;protected]</span></a></strong>.</p>
+    <p><strong>Data Breach Notification</strong></p>
+    <p>In the unlikely event of a data breach that may affect your personal information, we will:</p>
+    <ul>
+      <li>Notify affected users by email within <strong>72 hours</strong> of becoming aware of the breach</li>
+      <li>Inform the relevant authority as required under the DPDP Act, 2023</li>
+      <li>Describe the nature of the breach, data affected, and steps we are taking to contain it</li>
+      <li>Provide guidance on steps you can take to protect yourself</li>
+    </ul>
+    <div class="callout callout-green">We maintain an incident response plan and test it periodically to ensure we can act quickly if a security event occurs.</div>
+  </section>
+
+  <!-- S8 — NEW: Children's Data -->
+  <section class="section" id="s8" aria-labelledby="s8-title">
+    <div class="section-header">
+      <div class="section-icon" aria-hidden="true">&#x1F9D2;</div>
+      <div>
+        <span class="section-num">Section 08</span>
+        <h2 id="s8-title">Children's Data</h2>
+      </div>
+    </div>
+    <p>OralAI may be used for screening individuals under 18 years of age only under the following conditions, in compliance with the <strong>DPDP Act, 2023</strong>:</p>
+    <ul>
+      <li>A parent or legal guardian must provide explicit consent before submitting any data or images of a minor</li>
+      <li>The consent must be verifiable — by providing the guardian's contact details during the screening</li>
+      <li>We do <strong>not</strong> knowingly collect data from children without parental consent</li>
+      <li>If we discover that a child's data was submitted without parental consent, we will delete it within 48 hours</li>
+      <li>Parents or guardians may request access, correction, or deletion of a child's data at any time</li>
+    </ul>
+    <div class="callout callout-yellow">If you believe a minor's data was submitted without proper consent, please contact us immediately at <a href="/cdn-cgi/l/email-protection#650a170409040c4b160c1100250208040c094b060a08"><span class="__cf_email__" data-cfemail="157a677479747c3b667c6170557278747c793b767a78">[email&#160;protected]</span></a>.</div>
+  </section>
+
+  <!-- S9 — NEW: Cookies & Tracking -->
+  <section class="section" id="s9" aria-labelledby="s9-title">
+    <div class="section-header">
+      <div class="section-icon" aria-hidden="true">&#x1F36A;</div>
+      <div>
+        <span class="section-num">Section 09</span>
+        <h2 id="s9-title">Cookies &amp; Tracking</h2>
+      </div>
+    </div>
+    <p>OralAI uses minimal, essential cookies and browser storage only:</p>
+    <div class="table-wrap">
+      <table class="data-table">
+        <thead>
+          <tr><th scope="col">Cookie / Storage</th><th scope="col">Purpose</th><th scope="col">Duration</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>Session cookie</td><td>Maintains your active screening session</td><td>Session only</td></tr>
+          <tr><td>Language preference</td><td>Remembers your chosen report language</td><td>30 days</td></tr>
+          <tr><td>Server logs</td><td>Error tracking and performance monitoring</td><td>14 days</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p>We do <strong>not</strong> use advertising cookies, third-party trackers, analytics platforms (e.g. Google Analytics), or any cross-site tracking technology. No cookie consent banner is currently shown because we use only strictly necessary cookies.</p>
+    <div class="callout callout-green">OralAI does not track you across other websites or share any browsing data with third parties.</div>
+  </section>
+
+  <!-- S10 — Your Rights -->
+  <section class="section" id="s10" aria-labelledby="s10-title">
+    <div class="section-header">
+      <div class="section-icon" aria-hidden="true">&#x2696;&#xFE0F;</div>
+      <div>
+        <span class="section-num">Section 10</span>
+        <h2 id="s10-title">Your Rights</h2>
       </div>
     </div>
     <p>Under the <strong>Digital Personal Data Protection (DPDP) Act, 2023</strong> (India), you have the right to:</p>
     <ul>
-      <li>📄 <strong>Access</strong> — Request a copy of the personal data we hold about you</li>
-      <li>✏️ <strong>Correct</strong> — Request correction of inaccurate personal information</li>
-      <li>🗑️ <strong>Delete</strong> — Request deletion of your personal data from our systems</li>
-      <li>❌ <strong>Withdraw Consent</strong> — Withdraw consent to data processing at any time</li>
-      <li>📩 <strong>Grievance</strong> — Lodge a complaint with our Data Protection Officer</li>
+      <li><strong>Access</strong> — Request a copy of the personal data we hold about you</li>
+      <li><strong>Correct</strong> — Request correction of inaccurate or incomplete personal information</li>
+      <li><strong>Delete (Erasure)</strong> — Request deletion of your personal data from our systems</li>
+      <li><strong>Withdraw Consent</strong> — Withdraw consent to data processing at any time without affecting prior lawful processing</li>
+      <li><strong>Nominate</strong> — Nominate another person to exercise your data rights in the event of your death or incapacity</li>
+      <li><strong>Grievance</strong> — Lodge a complaint with our Data Protection Officer or with the Data Protection Board of India</li>
     </ul>
-    <p>To exercise any right, contact us at <strong>oralai.site@gmail.com</strong> with subject: <em>"Data Request – [Your Name]"</em>. We will respond within <strong>72 hours</strong>.</p>
-  </div>
+    <p>To exercise any right, email us at <strong><a href="/cdn-cgi/l/email-protection#4b24392a272a226538223f2e0b2c262a222765282426"><span class="__cf_email__" data-cfemail="3f504d5e535e56114c564b5a7f58525e5653115c5052">[email&#160;protected]</span></a></strong> with subject line: <em>"Data Request – [Your Name]"</em>. We will respond within <strong>72 hours</strong>.</p>
+  </section>
 
-  <!-- S8 -->
-  <div class="section" id="s8">
+  <!-- S11 — Policy Updates -->
+  <section class="section" id="s11" aria-labelledby="s11-title">
     <div class="section-header">
-      <div class="section-icon">📅</div>
+      <div class="section-icon" aria-hidden="true">&#x1F4C5;</div>
       <div>
-        <span class="section-num">Section 08</span>
-        <h2>Policy Updates</h2>
+        <span class="section-num">Section 11</span>
+        <h2 id="s11-title">Policy Updates</h2>
       </div>
     </div>
-    <p>We may update this Privacy Policy as OralAI evolves. Changes will be posted on this page with an updated effective date. Continued use of OralAI after changes constitutes acceptance of the revised policy.</p>
+    <p>We may update this Privacy Policy as OralAI evolves. When we make material changes, we will update the effective date at the top of this page and, where possible, notify registered users by email at least 7 days before changes take effect.</p>
+    <p>Continued use of OralAI after the effective date of any change constitutes your acceptance of the revised policy. If you disagree with changes, you may request deletion of your data before the effective date.</p>
     <p>This policy was last updated: <strong>March 2026</strong>.</p>
-  </div>
+  </section>
 
   <!-- CONTACT CARD -->
   <div class="contact-card">
@@ -330,15 +374,14 @@
       <h3>Questions about your privacy?</h3>
       <p>Our team responds within 72 hours — we actually read every message.</p>
     </div>
-    <a href="mailto:oralai.site@gmail.com">Email Us →</a>
+    <a href="/cdn-cgi/l/email-protection#ed829f8c818c84c39e849988ad8a808c8481c38e8280">Email Us &#8594;</a>
   </div>
 
-</div>
+</div><!-- end .container -->
 
 <footer>
-  © 2026 OralAI &nbsp;·&nbsp; Swarnandhra College of Engineering and Technology (Autonomous) &nbsp;·&nbsp; Andhra Pradesh, India<br/>
-  <a href="/terms">Terms of Use</a> &nbsp;·&nbsp;
-  <a href="/">Back to Home</a>
+  <p>&#169; 2026 OralAI &mdash; <a href="/privacy">Privacy Policy</a> &middot; <a href="/terms">Terms of Service</a></p>
+  <p style="margin-top:6px;">Questions? <a href="mailto:privacy@oralai.in">privacy@oralai.in</a></p>
 </footer>
 
 </body>
