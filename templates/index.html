@@ -98,7 +98,7 @@ nav{position:fixed;top:0;left:0;right:0;z-index:100;display:flex;align-items:cen
 .float-text small{display:block;font-size:11px;color:var(--muted);font-weight:400;}
 
 /* DISCLAIMER BANNER */
-.disclaimer-bar{background:rgba(245,200,66,0.13);border-top:1px solid rgba(245,200,66,0.35);border-bottom:1px solid rgba(245,200,66,0.35);padding:11px 60px;text-align:center;font-size:12px;color:rgba(245,200,66,0.95);font-weight:600;position:relative;z-index:1;letter-spacing:0.01em;margin-top:72px;}
+.disclaimer-bar{background:rgba(245,200,66,0.13);border-top:1px solid rgba(245,200,66,0.35);border-bottom:1px solid rgba(245,200,66,0.35);padding:11px 60px;text-align:center;font-size:12px;color:rgba(245,200,66,0.95);font-weight:600;position:relative;z-index:1;letter-spacing:0.01em;}
 .disclaimer-bar strong{color:#f5c842;}
 
 /* SECTIONS */
@@ -237,9 +237,6 @@ footer{background:rgba(0,0,0,0.4);border-top:1px solid var(--border);padding:56p
 .footer-brand .logo-text{font-size:22px;font-weight:800;margin-bottom:14px;display:block;}
 .footer-brand .logo-text span{color:var(--blue);}
 .footer-brand p{font-size:13px;color:var(--muted);line-height:1.7;margin-bottom:20px;max-width:260px;}
-.footer-socials{display:flex;gap:8px;}
-.footer-social{width:34px;height:34px;border-radius:8px;background:rgba(255,255,255,0.06);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;font-size:13px;cursor:pointer;transition:all .2s;}
-.footer-social:hover{background:rgba(26,111,255,0.2);border-color:var(--blue);}
 .footer-col h4{font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:var(--muted);margin-bottom:14px;}
 .footer-col ul{list-style:none;display:flex;flex-direction:column;gap:9px;}
 .footer-col ul li a{font-size:13px;color:rgba(255,255,255,0.55);}
@@ -251,7 +248,6 @@ footer{background:rgba(0,0,0,0.4);border-top:1px solid var(--border);padding:56p
 .scroll-top{position:fixed;bottom:28px;right:28px;z-index:99;width:42px;height:42px;border-radius:12px;background:var(--blue);color:var(--white);border:none;display:flex;align-items:center;justify-content:center;font-size:17px;cursor:pointer;box-shadow:0 8px 24px rgba(26,111,255,0.4);opacity:0;transform:translateY(10px);transition:all .3s;}
 .scroll-top.show{opacity:1;transform:translateY(0);}
 
-/* FIX: fade-up starts hidden, becomes visible on scroll */
 .fade-up{opacity:0;transform:translateY(28px);transition:opacity .6s ease,transform .6s ease;}
 .fade-up.visible{opacity:1;transform:translateY(0);}
 
@@ -273,9 +269,8 @@ footer{background:rgba(0,0,0,0.4);border-top:1px solid var(--border);padding:56p
 }
 @media(max-width:767px){
   nav{padding:0 20px;height:60px;}.mobile-menu{top:60px;}
-  .disclaimer-bar{margin-top:60px;padding:10px 20px;}
   .nav-links,.nav-cta{display:none;}.hamburger{display:flex;}
-  .hero{padding:30px 20px 60px;}.hero-title{font-size:34px;letter-spacing:-1px;}
+  .hero{padding:100px 20px 60px;}.hero-title{font-size:34px;letter-spacing:-1px;}
   .section{padding:60px 20px;}.cta-section{padding:60px 20px;}
   .features-grid{grid-template-columns:1fr;}.steps-grid{grid-template-columns:1fr;}
   .capture-grid{grid-template-columns:repeat(2,1fr);}
@@ -337,11 +332,6 @@ footer{background:rgba(0,0,0,0.4);border-top:1px solid var(--border);padding:56p
   <a href="#developer" onclick="closeMenu()">Developer</a>
   <a href="#contact" onclick="closeMenu()">Contact</a>
   <a href="/details" class="btn-nav btn-nav-fill" style="padding:11px;text-align:center;border-radius:12px;">Start Screening</a>
-</div>
-
-<!-- DISCLAIMER BAR -->
-<div class="disclaimer-bar">
-  ⚠️ <strong>Medical Disclaimer:</strong> OralAI is a screening tool for awareness only. It is <strong>not a substitute for professional dental advice, diagnosis, or treatment.</strong> Please consult a qualified dentist for any oral health concerns.
 </div>
 
 <!-- HERO -->
@@ -533,41 +523,34 @@ footer{background:rgba(0,0,0,0.4);border-top:1px solid var(--border);padding:56p
           <div style="width:80px;height:80px;border-radius:50%;border:3px solid rgba(26,111,255,0.6);overflow:hidden;flex-shrink:0;background:linear-gradient(135deg,#1a6fff,#00c8e0);box-shadow:0 4px 20px rgba(26,111,255,0.3);">
             <img src="{{ url_for('static', filename='team/bannu.jpg') }}" alt="Allu Satyanarayana Murthy" style="width:100%;height:100%;object-fit:cover;object-position:center 20%;display:block;">
           </div>
-          <div>
-            <div style="font-size:16px;font-weight:800;">Allu Satyanarayana Murthy</div>
-          </div>
+          <div><div style="font-size:16px;font-weight:800;">Allu Satyanarayana Murthy</div></div>
         </div>
         <div style="display:flex;align-items:center;gap:16px;padding:16px 0;border-bottom:1px solid var(--border);">
           <div style="width:80px;height:80px;border-radius:50%;border:3px solid rgba(124,58,237,0.6);overflow:hidden;flex-shrink:0;background:linear-gradient(135deg,#7c3aed,#1a6fff);box-shadow:0 4px 20px rgba(124,58,237,0.3);">
             <img src="{{ url_for('static', filename='team/lekhana.jpg') }}" alt="Akula Lekhana Sai" style="width:100%;height:100%;object-fit:cover;object-position:center 15%;display:block;">
           </div>
-          <div>
-            <div style="font-size:16px;font-weight:800;">Akula Lekhana Sai</div>
-          </div>
+          <div><div style="font-size:16px;font-weight:800;">Akula Lekhana Sai</div></div>
         </div>
         <div style="display:flex;align-items:center;gap:16px;padding:16px 0;border-bottom:1px solid var(--border);">
           <div style="width:80px;height:80px;border-radius:50%;border:3px solid rgba(0,200,224,0.6);overflow:hidden;flex-shrink:0;background:linear-gradient(135deg,#00c8e0,#22e88e);box-shadow:0 4px 20px rgba(0,200,224,0.3);">
             <img src="{{ url_for('static', filename='team/kundhana.jpg') }}" alt="Chalamalasetti Kundhana" style="width:100%;height:100%;object-fit:cover;object-position:center 15%;display:block;">
           </div>
-          <div>
-            <div style="font-size:16px;font-weight:800;">Chalamalasetti Kundhana</div>
-          </div>
+          <div><div style="font-size:16px;font-weight:800;">Chalamalasetti Kundhana</div></div>
         </div>
+
+        <!-- PROJECT GUIDE — HOD badges removed -->
         <div style="margin-top:20px;padding-top:20px;border-top:1px solid var(--border);">
-          <div style="font-size:12px;font-weight:700;color:var(--muted);letter-spacing:0.08em;text-transform:uppercase;margin-bottom:14px;">Project Guide &amp; HOD</div>
+          <div style="font-size:12px;font-weight:700;color:var(--muted);letter-spacing:0.08em;text-transform:uppercase;margin-bottom:14px;">Project Guide</div>
           <div style="display:flex;align-items:center;gap:14px;padding:16px;background:rgba(245,200,66,0.06);border:1px solid rgba(245,200,66,0.22);border-radius:16px;">
             <div style="width:52px;height:52px;border-radius:50%;background:linear-gradient(135deg,#f5c842,#f97316);display:flex;align-items:center;justify-content:center;font-size:24px;flex-shrink:0;">👨‍🏫</div>
             <div>
               <div style="font-size:16px;font-weight:800;color:var(--white);">Dr. Bomma Rama Krishna</div>
               <div style="font-size:12px;color:var(--muted);margin-top:3px;">M.Tech, Ph.D &nbsp;·&nbsp; Project Guide</div>
-              <div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:8px;">
-                <span style="background:rgba(245,200,66,0.12);border:1px solid rgba(245,200,66,0.3);color:#f5c842;font-size:11px;font-weight:700;padding:3px 10px;border-radius:999px;">HOD – AIDS</span>
-                <span style="background:rgba(245,200,66,0.12);border:1px solid rgba(245,200,66,0.3);color:#f5c842;font-size:11px;font-weight:700;padding:3px 10px;border-radius:999px;">HOD – AIML</span>
-              </div>
               <div style="font-size:11px;color:var(--muted);margin-top:7px;">Swarnandhra College of Engineering and Technology (Autonomous)</div>
             </div>
           </div>
         </div>
+
         <div class="dev-skills">
           <span class="dev-skill">Python</span><span class="dev-skill">Flask</span>
           <span class="dev-skill">YOLOv8</span><span class="dev-skill">Claude AI</span>
@@ -626,6 +609,11 @@ footer{background:rgba(0,0,0,0.4);border-top:1px solid var(--border);padding:56p
   </div>
 </section>
 
+<!-- DISCLAIMER BAR — just before footer -->
+<div class="disclaimer-bar">
+  ⚠️ <strong>Medical Disclaimer:</strong> OralAI is a screening tool for awareness only. It is <strong>not a substitute for professional dental advice, diagnosis, or treatment.</strong> Please consult a qualified dentist for any oral health concerns.
+</div>
+
 <!-- FOOTER -->
 <footer>
   <div class="footer-inner">
@@ -633,7 +621,6 @@ footer{background:rgba(0,0,0,0.4);border-top:1px solid var(--border);padding:56p
       <div class="footer-brand">
         <span class="logo-text">Oral<span>AI</span></span>
         <p>AI-powered oral health screening using Computer Vision and Large Language Models. Available in 9 Indian and global languages.</p>
-
       </div>
       <div class="footer-col"><h4>Product</h4><ul>
         <li><a href="#features">Features</a></li>
@@ -666,8 +653,6 @@ footer{background:rgba(0,0,0,0.4);border-top:1px solid var(--border);padding:56p
 
 <script>
 /* ── SCROLL ANIMATIONS ── */
-/* NOTE: removed the line that added .visible to all elements on load.
-   Now fade-up only triggers when the element enters the viewport. */
 var observer = new IntersectionObserver(function(entries) {
   entries.forEach(function(e) { if (e.isIntersecting) e.target.classList.add('visible'); });
 }, { threshold: 0.05 });
@@ -703,7 +688,7 @@ fetch('/screening_count')
   })
   .catch(function() { document.getElementById('screeningCount').innerText = '0'; });
 
-/* ── CONTACT FORM (uses IDs now, not fragile querySelector order) ── */
+/* ── CONTACT FORM ── */
 function submitForm(e) {
   e.preventDefault();
   var btn = document.getElementById('submitBtn');
