@@ -66,6 +66,9 @@ EMAIL_USER      = os.getenv("EMAIL_USER", "oralai.site@gmail.com")
 EMAIL_PASS      = os.getenv("EMAIL_PASS", "")
 DEVELOPER_EMAIL = os.getenv("DEVELOPER_EMAIL", "bannuallu123@gmail.com")
 
+# ── Doctor email — set this in your .env file ─────────────────
+DOCTOR_EMAIL = os.getenv("DOCTOR_EMAIL", "doctor@hospital.com")
+
 PHONE_SESSIONS_DIR = "static/phone_sessions"
 os.makedirs(PHONE_SESSIONS_DIR, exist_ok=True)
 phone_sessions_lock = threading.Lock()
@@ -106,6 +109,154 @@ def report_error_path(report_id):
 
 def report_is_done(report_id):
     return os.path.exists(report_pdf_path(report_id))
+
+
+# ════════════════════════════════════════════════════════════
+#  AUTO EMAIL TO DOCTOR  (called automatically after report)
+#  Sends full patient info + PDF to doctor without any button
+# ════════════════════════════════════════════════════════════
+def send_report_to_doctor(patient_info, report_path, report_id):
+    """
+    Automatically sends the report to the doctor as soon as it's ready.
+    No button needed — fires from background thread.
+    """
+    try:
+        doctor_email = DOCTOR_EMAIL
+        if not doctor_email or doctor_email == "doctor@hospital.com":
+            print("[Doctor Email] DOCTOR_EMAIL not set in .env — skipping")
+            return
+
+        if not os.path.exists(report_path):
+            print(f"[Doctor Email] Report file not found: {report_path}")
+            return
+
+        name   = patient_info.get("name", "Patient")
+        age    = patient_info.get("age", "N/A")
+        gender = patient_info.get("gender", "N/A")
+        phone  = patient_info.get("phone", "N/A")
+        email  = patient_info.get("email", "N/A")
+        lang   = patient_info.get("language", "English")
+
+        from email.mime.base import MIMEBase
+        from email import encoders
+        from datetime import datetime
+
+        msg = MIMEMultipart()
+        msg["From"]    = f"OralAI <{EMAIL_USER}>"
+        msg["To"]      = doctor_email
+        msg["Subject"] = f"🦷 New Patient Report — {name} | OralAI Screening"
+
+        html_body = f"""
+        <html>
+        <body style="font-family:Arial,sans-serif;background:#f4f7ff;padding:20px;">
+          <div style="max-width:600px;margin:0 auto;background:#ffffff;border-radius:12px;overflow:hidden;box-shadow:0 4px 20px rgba(0,0,0,0.08);">
+
+            <!-- Header -->
+            <div style="background:#0a1628;padding:24px 28px;">
+              <h2 style="color:#ffffff;margin:0;font-size:20px;">🦷 New Patient Report Ready</h2>
+              <p style="color:#8a9bb5;margin:6px 0 0;font-size:13px;">OralAI — AI Oral Health Screening System</p>
+            </div>
+
+            <!-- Alert Banner -->
+            <div style="background:#1a6fff;padding:12px 28px;">
+              <p style="color:#ffffff;margin:0;font-size:13px;font-weight:600;">
+                📋 A new patient screening has been completed. Report is attached below.
+              </p>
+            </div>
+
+            <!-- Patient Details -->
+            <div style="padding:28px;">
+              <h3 style="font-size:16px;color:#0f172a;margin:0 0 16px;">Patient Information</h3>
+
+              <table style="width:100%;border-collapse:collapse;background:#f8fafc;border-radius:10px;overflow:hidden;">
+                <tr style="border-bottom:1px solid #e2e8f0;">
+                  <td style="padding:12px 16px;font-size:13px;color:#64748b;width:140px;font-weight:600;">Patient Name</td>
+                  <td style="padding:12px 16px;font-size:14px;color:#0f172a;font-weight:700;">{name}</td>
+                </tr>
+                <tr style="border-bottom:1px solid #e2e8f0;background:#ffffff;">
+                  <td style="padding:12px 16px;font-size:13px;color:#64748b;font-weight:600;">Age</td>
+                  <td style="padding:12px 16px;font-size:14px;color:#0f172a;">{age} years</td>
+                </tr>
+                <tr style="border-bottom:1px solid #e2e8f0;">
+                  <td style="padding:12px 16px;font-size:13px;color:#64748b;font-weight:600;">Gender</td>
+                  <td style="padding:12px 16px;font-size:14px;color:#0f172a;">{gender}</td>
+                </tr>
+                <tr style="border-bottom:1px solid #e2e8f0;background:#ffffff;">
+                  <td style="padding:12px 16px;font-size:13px;color:#64748b;font-weight:600;">Phone</td>
+                  <td style="padding:12px 16px;font-size:14px;color:#0f172a;">{phone}</td>
+                </tr>
+                <tr style="border-bottom:1px solid #e2e8f0;">
+                  <td style="padding:12px 16px;font-size:13px;color:#64748b;font-weight:600;">Email</td>
+                  <td style="padding:12px 16px;font-size:14px;color:#0f172a;">{email}</td>
+                </tr>
+                <tr style="border-bottom:1px solid #e2e8f0;background:#ffffff;">
+                  <td style="padding:12px 16px;font-size:13px;color:#64748b;font-weight:600;">Report Language</td>
+                  <td style="padding:12px 16px;font-size:14px;color:#1a6fff;font-weight:600;">{lang}</td>
+                </tr>
+                <tr>
+                  <td style="padding:12px 16px;font-size:13px;color:#64748b;font-weight:600;">Report ID</td>
+                  <td style="padding:12px 16px;font-size:12px;color:#94a3b8;font-family:monospace;">{report_id}</td>
+                </tr>
+              </table>
+
+              <!-- Report attached notice -->
+              <div style="margin-top:20px;background:#f0fdf4;border:1px solid #bbf7d0;border-radius:10px;padding:16px;">
+                <p style="font-size:14px;color:#16a34a;margin:0;font-weight:600;">
+                  ✅ Full AI screening report (PDF) is attached to this email.
+                </p>
+                <p style="font-size:13px;color:#64748b;margin:6px 0 0;">
+                  The report includes YOLO detection results, AI analysis in {lang}, 
+                  treatment recommendations, cost estimates, and recovery plan.
+                </p>
+              </div>
+
+              <!-- Disclaimer -->
+              <div style="margin-top:16px;background:#fffbeb;border:1px solid #fde68a;border-radius:10px;padding:14px 16px;">
+                <p style="font-size:12px;color:#78350f;margin:0;">
+                  ⚠️ This is an AI-based screening tool. Please review findings and apply
+                  your professional clinical judgment before diagnosis or treatment.
+                </p>
+              </div>
+            </div>
+
+            <!-- Footer -->
+            <div style="background:#f8fafc;padding:14px 28px;border-top:1px solid #e2e8f0;">
+              <p style="font-size:11px;color:#94a3b8;margin:0;">
+                OralAI — AI Oral Health Screening | Swarnandhra College of Engineering and Technology<br>
+                Sent automatically on {__import__('datetime').datetime.now().strftime('%d %b %Y at %I:%M %p')}
+              </p>
+            </div>
+
+          </div>
+        </body>
+        </html>
+        """
+
+        msg.attach(MIMEText(html_body, "html"))
+
+        # ── Attach PDF report ─────────────────────────────────
+        with open(report_path, "rb") as f:
+            part = MIMEBase("application", "octet-stream")
+            part.set_payload(f.read())
+        encoders.encode_base64(part)
+        part.add_header(
+            "Content-Disposition",
+            f'attachment; filename="OralAI_Report_{name.replace(" ", "_")}.pdf"'
+        )
+        msg.attach(part)
+
+        # ── Send via Gmail SMTP ───────────────────────────────
+        with smtplib.SMTP("smtp.gmail.com", 587) as server:
+            server.starttls()
+            server.login(EMAIL_USER, EMAIL_PASS)
+            server.sendmail(EMAIL_USER, doctor_email, msg.as_string())
+
+        print(f"[Doctor Email] ✅ Auto-sent to {doctor_email} for patient: {name}")
+
+    except Exception as e:
+        # Never crash the main report flow if email fails
+        print(f"[Doctor Email] ❌ Failed: {e}")
+        traceback.print_exc()
 
 
 def html_error(title, message, status=400):
@@ -257,6 +408,14 @@ def debug_route():
         errors.append(f"✅ ANTHROPIC_API_KEY set (starts: {api_key[:8]}...)")
     else:
         errors.append("❌ ANTHROPIC_API_KEY missing or empty!")
+
+    # ── Doctor email check ────────────────────────────────────
+    doc_email = os.getenv("DOCTOR_EMAIL", "")
+    if doc_email and doc_email != "doctor@hospital.com":
+        errors.append(f"✅ DOCTOR_EMAIL set: {doc_email}")
+    else:
+        errors.append("⚠️ DOCTOR_EMAIL not set in .env — auto email to doctor disabled")
+
     return "<br><br>".join(errors)
 
 
@@ -458,7 +617,6 @@ def validate():
 
 # ════════════════════════════════════════════════════════════
 #  CLAUDE ANALYSIS
-#  — No word limits, max_tokens=8000, all 6 sections guaranteed
 # ════════════════════════════════════════════════════════════
 NON_LATIN_LANGUAGES = {
     "Hindi", "Marathi", "Telugu", "Tamil",
@@ -529,7 +687,6 @@ RULES: English only. No markdown. ALL 6 sections are REQUIRED — do not stop un
         analysis = message.content[0].text.strip()
         print(f"[Claude] Done — {len(analysis)} chars, {len(analysis.split())} words")
 
-        # ── Verify all 6 sections are present ─────────────────
         missing = []
         for i in range(1, 7):
             if not any(f"{i}." in line for line in analysis.split("\n")):
@@ -561,7 +718,6 @@ RULES: English only. No markdown. ALL 6 sections are REQUIRED — do not stop un
 
 # ════════════════════════════════════════════════════════════
 #  TRANSLATE
-#  — max_tokens=8000, full translation guaranteed
 # ════════════════════════════════════════════════════════════
 def translate_analysis(english_text, target_language):
     if target_language == "English":
@@ -590,7 +746,6 @@ def translate_analysis(english_text, target_language):
         translated = message.content[0].text.strip()
         print(f"[Translate] Done — {len(translated)} chars")
 
-        # ── Verify translation is not truncated ───────────────
         if len(translated) < len(english_text) * 0.5:
             print(f"[Translate] WARNING: Translation seems truncated, retrying...")
             retry = client.messages.create(
@@ -617,7 +772,6 @@ def translate_analysis(english_text, target_language):
 
 # ════════════════════════════════════════════════════════════
 #  GENERATE — returns immediately, processes in background
-#  Uses DISK FILES for status — works across all gunicorn workers
 # ════════════════════════════════════════════════════════════
 @app.route("/generate", methods=["POST"])
 def generate():
@@ -651,7 +805,6 @@ def generate():
             "phone": phone, "email": email, "language": language,
         }
 
-        # Write processing marker to disk so ALL workers can see it
         try:
             with open(report_marker_path(report_id), "w") as f:
                 f.write("processing")
@@ -714,7 +867,6 @@ def generate():
                         delete_phone_session(session_token)
                     increment_screening_count()
 
-                    # Remove processing marker
                     try:
                         os.remove(report_marker_path(report_id))
                     except:
@@ -722,6 +874,13 @@ def generate():
 
                     report_status[report_id] = {"status": "done", "path": report_path}
                     print(f"[BG] ✅ Done: {report_id[:8]}")
+
+                    # ════════════════════════════════════════════
+                    #  AUTO EMAIL TO DOCTOR — fires here automatically
+                    #  No button needed. Runs after report is saved.
+                    # ════════════════════════════════════════════
+                    print(f"[BG] Sending auto email to doctor...")
+                    send_report_to_doctor(patient_info, report_path, report_id)
 
             except Exception as e:
                 err_msg = str(e)
@@ -744,7 +903,7 @@ def generate():
 
 
 # ════════════════════════════════════════════════════════════
-#  REPORT STATUS — checks DISK first (works across workers)
+#  REPORT STATUS
 # ════════════════════════════════════════════════════════════
 @app.route("/report_status/<report_id>")
 def check_report_status(report_id):
@@ -813,7 +972,7 @@ def result_page():
 
 
 # ════════════════════════════════════════════════════════════
-#  DOWNLOAD — FIXED for mobile (Android + iOS)
+#  DOWNLOAD
 # ════════════════════════════════════════════════════════════
 @app.route("/report/<report_id>")
 def view_report(report_id):
@@ -821,7 +980,6 @@ def view_report(report_id):
     if not os.path.exists(path):
         return "Report not found", 404
 
-    # Read bytes so we can set Content-Length (required by Android Chrome)
     with open(path, "rb") as f:
         pdf_bytes = f.read()
 
@@ -835,7 +993,7 @@ def view_report(report_id):
 
 
 # ════════════════════════════════════════════════════════════
-#  SEND EMAIL
+#  SEND EMAIL  (manual — patient only, operator clicks button)
 # ════════════════════════════════════════════════════════════
 @app.route("/send_email", methods=["POST"])
 def send_email_route():
