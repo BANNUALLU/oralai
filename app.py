@@ -7,6 +7,7 @@ import glob
 import smtplib
 import threading
 import traceback
+import urllib.parse
 from datetime import timedelta
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
@@ -69,6 +70,9 @@ DEVELOPER_EMAIL = os.getenv("DEVELOPER_EMAIL", "bannuallu123@gmail.com")
 # ── Doctor email — set this in your .env file ─────────────────
 DOCTOR_EMAIL = os.getenv("DOCTOR_EMAIL", "doctor@hospital.com")
 
+# ── WhatsApp helper friend email — set in .env ────────────────
+WHATSAPP_HELPER_EMAIL = os.getenv("WHATSAPP_HELPER_EMAIL", "")
+
 PHONE_SESSIONS_DIR = "static/phone_sessions"
 os.makedirs(PHONE_SESSIONS_DIR, exist_ok=True)
 phone_sessions_lock = threading.Lock()
@@ -112,8 +116,7 @@ def report_is_done(report_id):
 
 
 # ════════════════════════════════════════════════════════════
-#  AUTO EMAIL TO DOCTOR  (called automatically after report)
-#  Sends full patient info + PDF to doctor without any button
+#  AUTO EMAIL TO DOCTOR — fires automatically after report ready
 # ════════════════════════════════════════════════════════════
 def send_report_to_doctor(patient_info, report_path, report_id):
     """
@@ -205,7 +208,7 @@ def send_report_to_doctor(patient_info, report_path, report_id):
                   ✅ Full AI screening report (PDF) is attached to this email.
                 </p>
                 <p style="font-size:13px;color:#64748b;margin:6px 0 0;">
-                  The report includes YOLO detection results, AI analysis in {lang}, 
+                  The report includes YOLO detection results, AI analysis in {lang},
                   treatment recommendations, cost estimates, and recovery plan.
                 </p>
               </div>
@@ -254,8 +257,160 @@ def send_report_to_doctor(patient_info, report_path, report_id):
         print(f"[Doctor Email] ✅ Auto-sent to {doctor_email} for patient: {name}")
 
     except Exception as e:
-        # Never crash the main report flow if email fails
         print(f"[Doctor Email] ❌ Failed: {e}")
+        traceback.print_exc()
+
+
+# ════════════════════════════════════════════════════════════
+#  WHATSAPP HELPER EMAIL — fires ONLY when operator clicks
+#  the WhatsApp button on result page
+# ════════════════════════════════════════════════════════════
+def send_whatsapp_helper_email(patient_info, report_id):
+    """
+    Fires ONLY when operator clicks the WhatsApp button.
+    Sends friend a ready-to-click WhatsApp link + copy-paste message.
+    """
+    try:
+        helper_email = WHATSAPP_HELPER_EMAIL
+        if not helper_email:
+            print("[Helper Email] WHATSAPP_HELPER_EMAIL not set — skipping")
+            return
+
+        name   = patient_info.get("name", "Patient")
+        age    = patient_info.get("age", "N/A")
+        gender = patient_info.get("gender", "N/A")
+        phone  = patient_info.get("phone", "N/A")
+        email  = patient_info.get("email", "N/A")
+        lang   = patient_info.get("language", "English")
+
+        clean_phone = str(phone).strip().replace(" ", "").replace("-", "")
+        if not clean_phone.startswith("+"):
+            clean_phone = f"+91{clean_phone.lstrip('0')}"
+        wa_phone = clean_phone.replace("+", "")
+
+        report_url = f"https://oralai.site/report/{report_id}"
+        now_str    = __import__('datetime').datetime.now().strftime('%d %b %Y at %I:%M %p')
+
+        wa_message = (
+            f"Hello {name}! 🦷\n\n"
+            f"Your OralAI dental screening report is ready.\n\n"
+            f"📄 *Download your report here:*\n"
+            f"{report_url}\n\n"
+            f"If you have any questions, please visit your nearest dentist.\n\n"
+            f"— OralAI Team 😊"
+        )
+        wa_link = f"https://wa.me/{wa_phone}?text={urllib.parse.quote(wa_message)}"
+
+        from email.mime.base import MIMEBase
+        from email import encoders
+
+        msg = MIMEMultipart()
+        msg["From"]    = f"OralAI <{EMAIL_USER}>"
+        msg["To"]      = helper_email
+        msg["Subject"] = f"📱 WhatsApp SEND NOW — {name} | {phone}"
+
+        html_body = f"""
+        <html>
+        <body style="font-family:Arial,sans-serif;background:#f4f7ff;padding:20px;">
+          <div style="max-width:600px;margin:0 auto;background:#ffffff;border-radius:12px;overflow:hidden;box-shadow:0 4px 20px rgba(0,0,0,0.08);">
+
+            <!-- Header -->
+            <div style="background:#25D366;padding:20px 28px;">
+              <h2 style="color:#ffffff;margin:0;font-size:20px;">📱 WhatsApp — Send Report NOW</h2>
+              <p style="color:#d4f5e2;margin:6px 0 0;font-size:13px;">OralAI — Action Required Immediately</p>
+            </div>
+
+            <!-- Patient Summary -->
+            <div style="background:#f0fdf4;padding:16px 28px;border-bottom:2px dashed #25D366;">
+              <table style="width:100%;border-collapse:collapse;">
+                <tr>
+                  <td style="font-size:13px;color:#64748b;font-weight:600;width:120px;padding:6px 0;">Patient</td>
+                  <td style="font-size:16px;font-weight:800;color:#0f172a;">{name}</td>
+                </tr>
+                <tr>
+                  <td style="font-size:13px;color:#64748b;font-weight:600;padding:6px 0;">WhatsApp No.</td>
+                  <td style="font-size:18px;font-weight:800;color:#25D366;letter-spacing:1px;">{phone}</td>
+                </tr>
+                <tr>
+                  <td style="font-size:13px;color:#64748b;font-weight:600;padding:6px 0;">Age / Gender</td>
+                  <td style="font-size:14px;color:#0f172a;">{age} yrs / {gender}</td>
+                </tr>
+                <tr>
+                  <td style="font-size:13px;color:#64748b;font-weight:600;padding:6px 0;">Language</td>
+                  <td style="font-size:14px;color:#1a6fff;">{lang}</td>
+                </tr>
+              </table>
+            </div>
+
+            <div style="padding:24px 28px;">
+
+              <!-- Step 1: WhatsApp Button -->
+              <div style="background:#f0fdf4;border:2px solid #25D366;border-radius:12px;padding:18px;margin-bottom:20px;">
+                <p style="font-size:14px;font-weight:700;color:#16a34a;margin:0 0 10px;">
+                  ✅ STEP 1 — Click to open WhatsApp directly (message pre-filled!):
+                </p>
+                <a href="{wa_link}"
+                   style="display:inline-block;background:#25D366;color:#ffffff;font-size:15px;font-weight:700;
+                          padding:12px 24px;border-radius:8px;text-decoration:none;">
+                  📲 Open WhatsApp &amp; Send Report
+                </a>
+                <p style="font-size:12px;color:#64748b;margin:10px 0 0;">
+                  Opens WhatsApp with the message ready — just press Send!
+                </p>
+              </div>
+
+              <!-- Step 2: Copy-paste -->
+              <div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:12px;padding:18px;margin-bottom:20px;">
+                <p style="font-size:14px;font-weight:700;color:#0f172a;margin:0 0 10px;">
+                  📋 STEP 2 — Or copy-paste this message manually:
+                </p>
+                <div style="background:#ffffff;border:2px dashed #cbd5e1;border-radius:8px;padding:16px;
+                            font-size:13px;color:#1e293b;line-height:1.9;white-space:pre-line;font-family:monospace;">Hello {name}! 🦷
+
+Your OralAI dental screening report is ready.
+
+📄 *Download your report here:*
+{report_url}
+
+If you have any questions, please visit your nearest dentist.
+
+— OralAI Team 😊</div>
+              </div>
+
+              <!-- Report Link -->
+              <div style="background:#eff6ff;border:1px solid #bfdbfe;border-radius:12px;padding:16px;">
+                <p style="font-size:13px;font-weight:700;color:#1d4ed8;margin:0 0 8px;">
+                  🔗 Report Link (share if needed):
+                </p>
+                <a href="{report_url}" style="font-size:13px;color:#1a6fff;word-break:break-all;">{report_url}</a>
+              </div>
+
+            </div>
+
+            <!-- Footer -->
+            <div style="background:#f8fafc;padding:14px 28px;border-top:1px solid #e2e8f0;">
+              <p style="font-size:11px;color:#94a3b8;margin:0;">
+                OralAI — Triggered by operator | {now_str}<br>
+                Send WhatsApp ASAP — patient is waiting at the clinic!
+              </p>
+            </div>
+
+          </div>
+        </body>
+        </html>
+        """
+
+        msg.attach(MIMEText(html_body, "html"))
+
+        with smtplib.SMTP("smtp.gmail.com", 587) as server:
+            server.starttls()
+            server.login(EMAIL_USER, EMAIL_PASS)
+            server.sendmail(EMAIL_USER, helper_email, msg.as_string())
+
+        print(f"[Helper Email] ✅ Sent to {helper_email} for: {name}")
+
+    except Exception as e:
+        print(f"[Helper Email] ❌ Failed: {e}")
         traceback.print_exc()
 
 
@@ -409,12 +564,17 @@ def debug_route():
     else:
         errors.append("❌ ANTHROPIC_API_KEY missing or empty!")
 
-    # ── Doctor email check ────────────────────────────────────
     doc_email = os.getenv("DOCTOR_EMAIL", "")
     if doc_email and doc_email != "doctor@hospital.com":
         errors.append(f"✅ DOCTOR_EMAIL set: {doc_email}")
     else:
         errors.append("⚠️ DOCTOR_EMAIL not set in .env — auto email to doctor disabled")
+
+    helper_email = os.getenv("WHATSAPP_HELPER_EMAIL", "")
+    if helper_email:
+        errors.append(f"✅ WHATSAPP_HELPER_EMAIL set: {helper_email}")
+    else:
+        errors.append("⚠️ WHATSAPP_HELPER_EMAIL not set in .env — WhatsApp helper email disabled")
 
     return "<br><br>".join(errors)
 
@@ -875,10 +1035,7 @@ def generate():
                     report_status[report_id] = {"status": "done", "path": report_path}
                     print(f"[BG] ✅ Done: {report_id[:8]}")
 
-                    # ════════════════════════════════════════════
-                    #  AUTO EMAIL TO DOCTOR — fires here automatically
-                    #  No button needed. Runs after report is saved.
-                    # ════════════════════════════════════════════
+                    # ── AUTO EMAIL TO DOCTOR — fires automatically ────
                     print(f"[BG] Sending auto email to doctor...")
                     send_report_to_doctor(patient_info, report_path, report_id)
 
@@ -1012,27 +1169,51 @@ def send_email_route():
 
 
 # ════════════════════════════════════════════════════════════
-#  SEND WHATSAPP
+#  SEND WHATSAPP — also triggers friend helper email
 # ════════════════════════════════════════════════════════════
 @app.route("/send_whatsapp", methods=["POST"])
 def send_whatsapp_route():
     phone       = session.get("patient_phone", "").strip()
     name        = session.get("patient_name", "Patient")
+    age         = session.get("patient_age", "N/A")
+    gender      = session.get("patient_gender", "N/A")
+    email       = session.get("patient_email", "N/A")
+    lang        = session.get("language", "English")
     report_id   = session.get("report_id", "")
     report_path = session.get("report_path", "") or report_pdf_path(report_id)
+
     if not phone:
         return "❌ No phone number found."
     if not report_id:
         return "❌ Report not found."
     if not os.path.exists(report_path):
         return "❌ Report file missing on server."
+
+    patient_info = {
+        "name": name, "age": age, "gender": gender,
+        "phone": phone, "email": email, "language": lang,
+    }
+
+    # ── Fire friend WhatsApp helper email ─────────────────────
+    # Runs in background so button response is instant
+    threading.Thread(
+        target=send_whatsapp_helper_email,
+        args=(patient_info, report_id),
+        daemon=True
+    ).start()
+
+    # ── Also try AiSensy WhatsApp API ─────────────────────────
     try:
         success, message = send_whatsapp_report(
             phone_number=phone, patient_name=name,
             report_id=report_id, report_path=report_path)
-        return message
+        if success:
+            return f"✅ WhatsApp sent! Your friend has also been notified to send the report."
+        else:
+            # AiSensy failed but friend email still fired
+            return f"📧 Friend notified via email to send WhatsApp! (AiSensy: {message})"
     except Exception as e:
-        return f"❌ WhatsApp failed: {str(e)}"
+        return f"📧 Friend notified via email to send WhatsApp! ({str(e)})"
 
 
 # ════════════════════════════════════════════════════════════
