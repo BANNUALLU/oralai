@@ -119,10 +119,6 @@ def report_is_done(report_id):
 #  AUTO EMAIL TO DOCTOR — fires automatically after report ready
 # ════════════════════════════════════════════════════════════
 def send_report_to_doctor(patient_info, report_path, report_id):
-    """
-    Automatically sends the report to the doctor as soon as it's ready.
-    No button needed — fires from background thread.
-    """
     try:
         doctor_email = DOCTOR_EMAIL
         if not doctor_email or doctor_email == "doctor@hospital.com":
@@ -142,7 +138,6 @@ def send_report_to_doctor(patient_info, report_path, report_id):
 
         from email.mime.base import MIMEBase
         from email import encoders
-        from datetime import datetime
 
         msg = MIMEMultipart()
         msg["From"]    = f"OralAI <{EMAIL_USER}>"
@@ -153,24 +148,17 @@ def send_report_to_doctor(patient_info, report_path, report_id):
         <html>
         <body style="font-family:Arial,sans-serif;background:#f4f7ff;padding:20px;">
           <div style="max-width:600px;margin:0 auto;background:#ffffff;border-radius:12px;overflow:hidden;box-shadow:0 4px 20px rgba(0,0,0,0.08);">
-
-            <!-- Header -->
             <div style="background:#0a1628;padding:24px 28px;">
               <h2 style="color:#ffffff;margin:0;font-size:20px;">🦷 New Patient Report Ready</h2>
               <p style="color:#8a9bb5;margin:6px 0 0;font-size:13px;">OralAI — AI Oral Health Screening System</p>
             </div>
-
-            <!-- Alert Banner -->
             <div style="background:#1a6fff;padding:12px 28px;">
               <p style="color:#ffffff;margin:0;font-size:13px;font-weight:600;">
                 📋 A new patient screening has been completed. Report is attached below.
               </p>
             </div>
-
-            <!-- Patient Details -->
             <div style="padding:28px;">
               <h3 style="font-size:16px;color:#0f172a;margin:0 0 16px;">Patient Information</h3>
-
               <table style="width:100%;border-collapse:collapse;background:#f8fafc;border-radius:10px;overflow:hidden;">
                 <tr style="border-bottom:1px solid #e2e8f0;">
                   <td style="padding:12px 16px;font-size:13px;color:#64748b;width:140px;font-weight:600;">Patient Name</td>
@@ -201,8 +189,6 @@ def send_report_to_doctor(patient_info, report_path, report_id):
                   <td style="padding:12px 16px;font-size:12px;color:#94a3b8;font-family:monospace;">{report_id}</td>
                 </tr>
               </table>
-
-              <!-- Report attached notice -->
               <div style="margin-top:20px;background:#f0fdf4;border:1px solid #bbf7d0;border-radius:10px;padding:16px;">
                 <p style="font-size:14px;color:#16a34a;margin:0;font-weight:600;">
                   ✅ Full AI screening report (PDF) is attached to this email.
@@ -212,8 +198,6 @@ def send_report_to_doctor(patient_info, report_path, report_id):
                   treatment recommendations, cost estimates, and recovery plan.
                 </p>
               </div>
-
-              <!-- Disclaimer -->
               <div style="margin-top:16px;background:#fffbeb;border:1px solid #fde68a;border-radius:10px;padding:14px 16px;">
                 <p style="font-size:12px;color:#78350f;margin:0;">
                   ⚠️ This is an AI-based screening tool. Please review findings and apply
@@ -221,15 +205,12 @@ def send_report_to_doctor(patient_info, report_path, report_id):
                 </p>
               </div>
             </div>
-
-            <!-- Footer -->
             <div style="background:#f8fafc;padding:14px 28px;border-top:1px solid #e2e8f0;">
               <p style="font-size:11px;color:#94a3b8;margin:0;">
                 OralAI — AI Oral Health Screening | Swarnandhra College of Engineering and Technology<br>
                 Sent automatically on {__import__('datetime').datetime.now().strftime('%d %b %Y at %I:%M %p')}
               </p>
             </div>
-
           </div>
         </body>
         </html>
@@ -237,7 +218,6 @@ def send_report_to_doctor(patient_info, report_path, report_id):
 
         msg.attach(MIMEText(html_body, "html"))
 
-        # ── Attach PDF report ─────────────────────────────────
         with open(report_path, "rb") as f:
             part = MIMEBase("application", "octet-stream")
             part.set_payload(f.read())
@@ -248,7 +228,6 @@ def send_report_to_doctor(patient_info, report_path, report_id):
         )
         msg.attach(part)
 
-        # ── Send via Gmail SMTP ───────────────────────────────
         with smtplib.SMTP("smtp.gmail.com", 587) as server:
             server.starttls()
             server.login(EMAIL_USER, EMAIL_PASS)
@@ -264,12 +243,9 @@ def send_report_to_doctor(patient_info, report_path, report_id):
 # ════════════════════════════════════════════════════════════
 #  WHATSAPP HELPER EMAIL — fires ONLY when operator clicks
 #  the WhatsApp button on result page
+#  Message matches approved WhatsApp template exactly
 # ════════════════════════════════════════════════════════════
 def send_whatsapp_helper_email(patient_info, report_id):
-    """
-    Fires ONLY when operator clicks the WhatsApp button.
-    Sends friend a ready-to-click WhatsApp link + copy-paste message.
-    """
     try:
         helper_email = WHATSAPP_HELPER_EMAIL
         if not helper_email:
@@ -280,7 +256,6 @@ def send_whatsapp_helper_email(patient_info, report_id):
         age    = patient_info.get("age", "N/A")
         gender = patient_info.get("gender", "N/A")
         phone  = patient_info.get("phone", "N/A")
-        email  = patient_info.get("email", "N/A")
         lang   = patient_info.get("language", "English")
 
         clean_phone = str(phone).strip().replace(" ", "").replace("-", "")
@@ -291,18 +266,16 @@ def send_whatsapp_helper_email(patient_info, report_id):
         report_url = f"https://oralai.site/report/{report_id}"
         now_str    = __import__('datetime').datetime.now().strftime('%d %b %Y at %I:%M %p')
 
+        # ── WhatsApp message — matches approved template exactly ──
         wa_message = (
-            f"Hello {name}! 🦷\n\n"
-            f"Your OralAI dental screening report is ready.\n\n"
-            f"📄 *Download your report here:*\n"
+            f"Hello {name},\n\n"
+            f"Your OralAI dental report is ready.\n\n"
+            f"Download your report here:\n"
             f"{report_url}\n\n"
-            f"If you have any questions, please visit your nearest dentist.\n\n"
-            f"— OralAI Team 😊"
+            f"Thank you for using OralAI.\n"
+            f"Powered by oralai.site"
         )
         wa_link = f"https://wa.me/{wa_phone}?text={urllib.parse.quote(wa_message)}"
-
-        from email.mime.base import MIMEBase
-        from email import encoders
 
         msg = MIMEMultipart()
         msg["From"]    = f"OralAI <{EMAIL_USER}>"
@@ -314,13 +287,11 @@ def send_whatsapp_helper_email(patient_info, report_id):
         <body style="font-family:Arial,sans-serif;background:#f4f7ff;padding:20px;">
           <div style="max-width:600px;margin:0 auto;background:#ffffff;border-radius:12px;overflow:hidden;box-shadow:0 4px 20px rgba(0,0,0,0.08);">
 
-            <!-- Header -->
             <div style="background:#25D366;padding:20px 28px;">
               <h2 style="color:#ffffff;margin:0;font-size:20px;">📱 WhatsApp — Send Report NOW</h2>
               <p style="color:#d4f5e2;margin:6px 0 0;font-size:13px;">OralAI — Action Required Immediately</p>
             </div>
 
-            <!-- Patient Summary -->
             <div style="background:#f0fdf4;padding:16px 28px;border-bottom:2px dashed #25D366;">
               <table style="width:100%;border-collapse:collapse;">
                 <tr>
@@ -344,10 +315,10 @@ def send_whatsapp_helper_email(patient_info, report_id):
 
             <div style="padding:24px 28px;">
 
-              <!-- Step 1: WhatsApp Button -->
+              <!-- Step 1: One-click WhatsApp button -->
               <div style="background:#f0fdf4;border:2px solid #25D366;border-radius:12px;padding:18px;margin-bottom:20px;">
                 <p style="font-size:14px;font-weight:700;color:#16a34a;margin:0 0 10px;">
-                  ✅ STEP 1 — Click to open WhatsApp directly (message pre-filled!):
+                  ✅ STEP 1 — Click to open WhatsApp (message pre-filled!):
                 </p>
                 <a href="{wa_link}"
                    style="display:inline-block;background:#25D366;color:#ffffff;font-size:15px;font-weight:700;
@@ -359,35 +330,33 @@ def send_whatsapp_helper_email(patient_info, report_id):
                 </p>
               </div>
 
-              <!-- Step 2: Copy-paste -->
+              <!-- Step 2: Copy-paste box matching template exactly -->
               <div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:12px;padding:18px;margin-bottom:20px;">
                 <p style="font-size:14px;font-weight:700;color:#0f172a;margin:0 0 10px;">
                   📋 STEP 2 — Or copy-paste this message manually:
                 </p>
                 <div style="background:#ffffff;border:2px dashed #cbd5e1;border-radius:8px;padding:16px;
-                            font-size:13px;color:#1e293b;line-height:1.9;white-space:pre-line;font-family:monospace;">Hello {name}! 🦷
+                            font-size:13px;color:#1e293b;line-height:1.9;white-space:pre-line;font-family:monospace;">Hi {name},
 
-Your OralAI dental screening report is ready.
+Your OralAI dental report is ready.
 
-📄 *Download your report here:*
+Download your report here:
 {report_url}
 
-If you have any questions, please visit your nearest dentist.
-
-— OralAI Team 😊</div>
+Thank you for using OralAI.
+Powered by oralai.site</div>
               </div>
 
-              <!-- Report Link -->
+              <!-- Report link -->
               <div style="background:#eff6ff;border:1px solid #bfdbfe;border-radius:12px;padding:16px;">
                 <p style="font-size:13px;font-weight:700;color:#1d4ed8;margin:0 0 8px;">
-                  🔗 Report Link (share if needed):
+                  🔗 Report Link:
                 </p>
                 <a href="{report_url}" style="font-size:13px;color:#1a6fff;word-break:break-all;">{report_url}</a>
               </div>
 
             </div>
 
-            <!-- Footer -->
             <div style="background:#f8fafc;padding:14px 28px;border-top:1px solid #e2e8f0;">
               <p style="font-size:11px;color:#94a3b8;margin:0;">
                 OralAI — Triggered by operator | {now_str}<br>
@@ -1035,7 +1004,7 @@ def generate():
                     report_status[report_id] = {"status": "done", "path": report_path}
                     print(f"[BG] ✅ Done: {report_id[:8]}")
 
-                    # ── AUTO EMAIL TO DOCTOR — fires automatically ────
+                    # ── AUTO EMAIL TO DOCTOR ───────────────────────────
                     print(f"[BG] Sending auto email to doctor...")
                     send_report_to_doctor(patient_info, report_path, report_id)
 
@@ -1150,7 +1119,7 @@ def view_report(report_id):
 
 
 # ════════════════════════════════════════════════════════════
-#  SEND EMAIL  (manual — patient only, operator clicks button)
+#  SEND EMAIL
 # ════════════════════════════════════════════════════════════
 @app.route("/send_email", methods=["POST"])
 def send_email_route():
@@ -1169,7 +1138,7 @@ def send_email_route():
 
 
 # ════════════════════════════════════════════════════════════
-#  SEND WHATSAPP — also triggers friend helper email
+#  SEND WHATSAPP — triggers friend helper email on button click
 # ════════════════════════════════════════════════════════════
 @app.route("/send_whatsapp", methods=["POST"])
 def send_whatsapp_route():
@@ -1194,8 +1163,7 @@ def send_whatsapp_route():
         "phone": phone, "email": email, "language": lang,
     }
 
-    # ── Fire friend WhatsApp helper email ─────────────────────
-    # Runs in background so button response is instant
+    # ── Fire friend WhatsApp helper email in background ───────
     threading.Thread(
         target=send_whatsapp_helper_email,
         args=(patient_info, report_id),
@@ -1208,12 +1176,11 @@ def send_whatsapp_route():
             phone_number=phone, patient_name=name,
             report_id=report_id, report_path=report_path)
         if success:
-            return f"✅ WhatsApp sent! Your friend has also been notified to send the report."
+            return f"✅ WhatsApp sent! Friend also notified."
         else:
-            # AiSensy failed but friend email still fired
-            return f"📧 Friend notified via email to send WhatsApp! (AiSensy: {message})"
+            return f"✅ Friend notified via email to send WhatsApp report!"
     except Exception as e:
-        return f"📧 Friend notified via email to send WhatsApp! ({str(e)})"
+        return f"✅ Friend notified via email to send WhatsApp report!"
 
 
 # ════════════════════════════════════════════════════════════

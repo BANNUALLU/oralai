@@ -163,15 +163,9 @@ h2{font-size:22px;font-weight:800;letter-spacing:-0.5px;margin-bottom:8px;}
     <p class="subtitle" id="doneSubtitle">Your AI oral health screening is complete.<br>Download or share your report below.</p>
     <div class="divider"></div>
     <div class="actions">
-      <!--
-        FIX: Server MUST send: Content-Disposition: attachment; filename="OralAI_Report.pdf"
-        on the /report/<id> route for iOS Safari to download instead of opening inline.
-        The download attribute alone is ignored by iOS Safari.
-      -->
       <a class="btn btn-primary" href="/report/{{ report_id }}" download="OralAI_Report.pdf" id="downloadBtn">
         ⬇️ <span id="downloadLabel">Download Report</span>
       </a>
-
       <div class="btn-row">
         <button class="btn btn-email" id="emailBtn">📧 <span id="emailLabel">Send Email</span></button>
         <button class="btn btn-wa" id="waBtn">
@@ -201,15 +195,15 @@ const LANG = "{{ session.get('language', 'English') }}";
 
 /* ── Result page translations ── */
 const RT = {
-  "English":  { done:"Screening Completed!", sub:"Your AI oral health screening is complete.\nDownload or share your report below.", download:"Download Report", email:"Send Email", wa:"WhatsApp", newScreen:"Start New Screening", sending_email:"Sending report to email...", sending_wa:"Sending PDF to WhatsApp...", email_sent:"✅ Email Sent!", wa_coming:"⚙️ WhatsApp coming soon! Use Email for now.", err_title:"Something Went Wrong", try_again:"↩ Try Capture Again", home:"← Back to Home", or:"or" },
-  "Telugu":   { done:"స్క్రీనింగ్ పూర్తైంది!", sub:"మీ AI నోటి ఆరోగ్య స్క్రీనింగ్ పూర్తైంది.\nనివేదికను డౌన్‌లోడ్ చేయండి లేదా షేర్ చేయండి.", download:"నివేదిక డౌన్‌లోడ్", email:"ఇమెయిల్ పంపు", wa:"వాట్సాప్", newScreen:"కొత్త స్క్రీనింగ్ ప్రారంభించు", sending_email:"ఇమెయిల్‌కు పంపుతున్నాం...", sending_wa:"వాట్సాప్‌కు పంపుతున్నాం...", email_sent:"✅ ఇమెయిల్ పంపబడింది!", wa_coming:"⚙️ వాట్సాప్ త్వరలో వస్తుంది! ప్రస్తుతానికి ఇమెయిల్ వాడండి.", err_title:"ఏదో తప్పు జరిగింది", try_again:"↩ మళ్ళీ ప్రయత్నించు", home:"← హోమ్‌కు తిరిగి వెళ్ళు", or:"లేదా" },
-  "Hindi":    { done:"स्क्रीनिंग पूरी हुई!", sub:"आपकी AI मौखिक स्वास्थ्य स्क्रीनिंग पूरी हो गई है।\nअपनी रिपोर्ट डाउनलोड करें या शेयर करें।", download:"रिपोर्ट डाउनलोड करें", email:"ईमेल भेजें", wa:"व्हाट्सऐप", newScreen:"नई स्क्रीनिंग शुरू करें", sending_email:"ईमेल पर रिपोर्ट भेज रहे हैं...", sending_wa:"व्हाट्सऐप पर PDF भेज रहे हैं...", email_sent:"✅ ईमेल भेज दिया!", wa_coming:"⚙️ व्हाट्सऐप जल्द आएगा! अभी ईमेल का उपयोग करें।", err_title:"कुछ गलत हो गया", try_again:"↩ फिर से कोशिश करें", home:"← होम पर वापस", or:"या" },
-  "Tamil":    { done:"ஸ்கிரீனிங் முடிந்தது!", sub:"உங்கள் AI வாய் நல ஸ்கிரீனிங் முடிந்தது.\nகீழே உங்கள் அறிக்கையை பதிவிறக்கவும் அல்லது பகிரவும்.", download:"அறிக்கை பதிவிறக்கம்", email:"மின்னஞ்சல் அனுப்பு", wa:"வாட்ஸ்அப்", newScreen:"புதிய ஸ்கிரீனிங் தொடங்கு", sending_email:"மின்னஞ்சலுக்கு அனுப்புகிறோம்...", sending_wa:"வாட்ஸ்அப்பிற்கு அனுப்புகிறோம்...", email_sent:"✅ மின்னஞ்சல் அனுப்பப்பட்டது!", wa_coming:"⚙️ வாட்ஸ்அப் விரைவில் வரும்! இப்போதைக்கு மின்னஞ்சல் பயன்படுத்துங்கள்.", err_title:"ஏதோ தவறு நடந்தது", try_again:"↩ மீண்டும் முயற்சி", home:"← முகப்பிற்கு திரும்பு", or:"அல்லது" },
-  "Kannada":  { done:"ಸ್ಕ್ರೀನಿಂಗ್ ಪೂರ್ಣವಾಯಿತು!", sub:"ನಿಮ್ಮ AI ಬಾಯಿ ಆರೋಗ್ಯ ಸ್ಕ್ರೀನಿಂಗ್ ಪೂರ್ಣವಾಗಿದೆ.\nವರದಿಯನ್ನು ಡೌನ್‌ಲೋಡ್ ಮಾಡಿ ಅಥವಾ ಹಂಚಿಕೊಳ್ಳಿ.", download:"ವರದಿ ಡೌನ್‌ಲೋಡ್", email:"ಇಮೇಲ್ ಕಳುಹಿಸು", wa:"ವಾಟ್ಸ್‌ಆಪ್", newScreen:"ಹೊಸ ಸ್ಕ್ರೀನಿಂಗ್ ಪ್ರಾರಂಭಿಸಿ", sending_email:"ಇಮೇಲ್‌ಗೆ ಕಳುಹಿಸುತ್ತಿದ್ದೇವೆ...", sending_wa:"ವಾಟ್ಸ್‌ಆಪ್‌ಗೆ ಕಳುಹಿಸುತ್ತಿದ್ದೇವೆ...", email_sent:"✅ ಇಮೇಲ್ ಕಳುಹಿಸಲಾಗಿದೆ!", wa_coming:"⚙️ ವಾಟ್ಸ್‌ಆಪ್ ಶೀಘ್ರದಲ್ಲಿ ಬರಲಿದೆ! ಇಮೇಲ್ ಬಳಸಿ.", err_title:"ಏನೋ ತಪ್ಪಾಯಿತು", try_again:"↩ ಮತ್ತೆ ಪ್ರಯತ್ನಿಸಿ", home:"← ಹೋಮ್‌ಗೆ ಹಿಂತಿರುಗಿ", or:"ಅಥವಾ" },
-  "Malayalam":{ done:"സ്ക്രീനിംഗ് പൂർത്തിയായി!", sub:"നിങ്ങളുടെ AI വാ ആരോഗ്യ സ്ക്രീനിംഗ് പൂർത്തിയായി.\nറിപ്പോർട്ട് ഡൗൺലോഡ് ചെയ്യുക അല്ലെങ്കിൽ പങ്കിടുക.", download:"റിപ്പോർട്ട് ഡൗൺലോഡ്", email:"ഇമെയിൽ അയക്കുക", wa:"വാട്ട്സ്ആപ്പ്", newScreen:"പുതിയ സ്ക്രീനിംഗ് ആരംഭിക്കുക", sending_email:"ഇമെയിലിലേക്ക് അയക്കുന്നു...", sending_wa:"വാട്ട്സ്ആപ്പിലേക്ക് അയക്കുന്നു...", email_sent:"✅ ഇമെയിൽ അയച്ചു!", wa_coming:"⚙️ വാട്ട്സ്ആപ്പ് ഉടൻ വരും! ഇമെയിൽ ഉപയോഗിക്കുക.", err_title:"എന്തോ തകരാർ സംഭവിച്ചു", try_again:"↩ വീണ്ടും ശ്രമിക്കുക", home:"← ഹോമിലേക്ക് മടങ്ങുക", or:"അല്ലെങ്കിൽ" },
-  "Marathi":  { done:"स्क्रीनिंग पूर्ण झाली!", sub:"तुमची AI तोंडाची आरोग्य स्क्रीनिंग पूर्ण झाली.\nखाली तुमचा अहवाल डाउनलोड करा किंवा शेअर करा.", download:"अहवाल डाउनलोड करा", email:"ईमेल पाठवा", wa:"व्हाट्सअॅप", newScreen:"नवीन स्क्रीनिंग सुरू करा", sending_email:"ईमेलवर अहवाल पाठवत आहोत...", sending_wa:"व्हाट्सअॅपवर PDF पाठवत आहोत...", email_sent:"✅ ईमेल पाठवला!", wa_coming:"⚙️ व्हाट्सअॅप लवकरच येईल! आत्तासाठी ईमेल वापरा.", err_title:"काहीतरी चुकले", try_again:"↩ पुन्हा प्रयत्न करा", home:"← मुख्यपृष्ठावर परत", or:"किंवा" },
-  "Bengali":  { done:"স্ক্রিনিং সম্পন্ন হয়েছে!", sub:"আপনার AI মৌখিক স্বাস্থ্য স্ক্রিনিং সম্পন্ন হয়েছে।\nনিচে আপনার রিপোর্ট ডাউনলোড করুন বা শেয়ার করুন।", download:"রিপোর্ট ডাউনলোড করুন", email:"ইমেইল পাঠান", wa:"হোয়াটসঅ্যাপ", newScreen:"নতুন স্ক্রিনিং শুরু করুন", sending_email:"ইমেইলে রিপোর্ট পাঠাচ্ছি...", sending_wa:"হোয়াটসঅ্যাপে PDF পাঠাচ্ছি...", email_sent:"✅ ইমেইল পাঠানো হয়েছে!", wa_coming:"⚙️ হোয়াটসঅ্যাপ শীঘ্রই আসছে! এখন ইমেইল ব্যবহার করুন।", err_title:"কিছু ভুল হয়েছে", try_again:"↩ আবার চেষ্টা করুন", home:"← হোমে ফিরে যান", or:"অথবা" },
-  "Arabic":   { done:"اكتمل الفحص!", sub:"اكتمل فحص صحة الفم بالذكاء الاصطناعي.\nقم بتنزيل تقريرك أو مشاركته أدناه.", download:"تنزيل التقرير", email:"إرسال بريد إلكتروني", wa:"واتساب", newScreen:"بدء فحص جديد", sending_email:"جارٍ إرسال التقرير عبر البريد الإلكتروني...", sending_wa:"جارٍ إرسال PDF عبر واتساب...", email_sent:"✅ تم إرسال البريد الإلكتروني!", wa_coming:"⚙️ واتساب قريباً! استخدم البريد الإلكتروني الآن.", err_title:"حدث خطأ ما", try_again:"↩ حاول الالتقاط مجدداً", home:"← العودة للرئيسية", or:"أو" }
+  "English":  { done:"Screening Completed!", sub:"Your AI oral health screening is complete.\nDownload or share your report below.", download:"Download Report", email:"Send Email", wa:"WhatsApp", newScreen:"Start New Screening", sending_email:"Sending report to email...", sending_wa:"Notifying team to send WhatsApp...", email_sent:"✅ Email Sent!", wa_sent:"✅ Team notified! Report will be sent on WhatsApp shortly.", wa_coming:"⚙️ WhatsApp not configured. Use Email for now.", err_title:"Something Went Wrong", try_again:"↩ Try Capture Again", home:"← Back to Home", or:"or" },
+  "Telugu":   { done:"స్క్రీనింగ్ పూర్తైంది!", sub:"మీ AI నోటి ఆరోగ్య స్క్రీనింగ్ పూర్తైంది.\nనివేదికను డౌన్‌లోడ్ చేయండి లేదా షేర్ చేయండి.", download:"నివేదిక డౌన్‌లోడ్", email:"ఇమెయిల్ పంపు", wa:"వాట్సాప్", newScreen:"కొత్త స్క్రీనింగ్ ప్రారంభించు", sending_email:"ఇమెయిల్‌కు పంపుతున్నాం...", sending_wa:"వాట్సాప్ పంపడానికి నోటిఫై చేస్తున్నాం...", email_sent:"✅ ఇమెయిల్ పంపబడింది!", wa_sent:"✅ టీమ్‌కు నోటిఫై చేయబడింది! వాట్సాప్‌లో రిపోర్ట్ వస్తుంది.", wa_coming:"⚙️ వాట్సాప్ కాన్ఫిగర్ చేయబడలేదు. ఇమెయిల్ వాడండి.", err_title:"ఏదో తప్పు జరిగింది", try_again:"↩ మళ్ళీ ప్రయత్నించు", home:"← హోమ్‌కు తిరిగి వెళ్ళు", or:"లేదా" },
+  "Hindi":    { done:"स्क्रीनिंग पूरी हुई!", sub:"आपकी AI मौखिक स्वास्थ्य स्क्रीनिंग पूरी हो गई है।\nअपनी रिपोर्ट डाउनलोड करें या शेयर करें।", download:"रिपोर्ट डाउनलोड करें", email:"ईमेल भेजें", wa:"व्हाट्सऐप", newScreen:"नई स्क्रीनिंग शुरू करें", sending_email:"ईमेल पर रिपोर्ट भेज रहे हैं...", sending_wa:"व्हाट्सऐप के लिए नोटिफाई कर रहे हैं...", email_sent:"✅ ईमेल भेज दिया!", wa_sent:"✅ टीम को नोटिफाई किया! व्हाट्सऐप पर रिपोर्ट आएगी।", wa_coming:"⚙️ व्हाट्सऐप कॉन्फ़िगर नहीं है। ईमेल का उपयोग करें।", err_title:"कुछ गलत हो गया", try_again:"↩ फिर से कोशिश करें", home:"← होम पर वापस", or:"या" },
+  "Tamil":    { done:"ஸ்கிரீனிங் முடிந்தது!", sub:"உங்கள் AI வாய் நல ஸ்கிரீனிங் முடிந்தது.\nகீழே உங்கள் அறிக்கையை பதிவிறக்கவும் அல்லது பகிரவும்.", download:"அறிக்கை பதிவிறக்கம்", email:"மின்னஞ்சல் அனுப்பு", wa:"வாட்ஸ்அப்", newScreen:"புதிய ஸ்கிரீனிங் தொடங்கு", sending_email:"மின்னஞ்சலுக்கு அனுப்புகிறோம்...", sending_wa:"வாட்ஸ்அப்பிற்கு நோட்டிஃபை செய்கிறோம்...", email_sent:"✅ மின்னஞ்சல் அனுப்பப்பட்டது!", wa_sent:"✅ குழுவிற்கு தெரிவிக்கப்பட்டது! வாட்ஸ்அப்பில் அறிக்கை வரும்.", wa_coming:"⚙️ வாட்ஸ்அப் உள்ளமைக்கப்படவில்லை. மின்னஞ்சல் பயன்படுத்துங்கள்.", err_title:"ஏதோ தவறு நடந்தது", try_again:"↩ மீண்டும் முயற்சி", home:"← முகப்பிற்கு திரும்பு", or:"அல்லது" },
+  "Kannada":  { done:"ಸ್ಕ್ರೀನಿಂಗ್ ಪೂರ್ಣವಾಯಿತು!", sub:"ನಿಮ್ಮ AI ಬಾಯಿ ಆರೋಗ್ಯ ಸ್ಕ್ರೀನಿಂಗ್ ಪೂರ್ಣವಾಗಿದೆ.\nವರದಿಯನ್ನು ಡೌನ್‌ಲೋಡ್ ಮಾಡಿ ಅಥವಾ ಹಂಚಿಕೊಳ್ಳಿ.", download:"ವರದಿ ಡೌನ್‌ಲೋಡ್", email:"ಇಮೇಲ್ ಕಳುಹಿಸು", wa:"ವಾಟ್ಸ್‌ಆಪ್", newScreen:"ಹೊಸ ಸ್ಕ್ರೀನಿಂಗ್ ಪ್ರಾರಂಭಿಸಿ", sending_email:"ಇಮೇಲ್‌ಗೆ ಕಳುಹಿಸುತ್ತಿದ್ದೇವೆ...", sending_wa:"ವಾಟ್ಸ್‌ಆಪ್‌ಗೆ ನೋಟಿಫೈ ಮಾಡುತ್ತಿದ್ದೇವೆ...", email_sent:"✅ ಇಮೇಲ್ ಕಳುಹಿಸಲಾಗಿದೆ!", wa_sent:"✅ ತಂಡಕ್ಕೆ ತಿಳಿಸಲಾಗಿದೆ! ವಾಟ್ಸ್‌ಆಪ್‌ನಲ್ಲಿ ರಿಪೋರ್ಟ್ ಬರುತ್ತದೆ.", wa_coming:"⚙️ ವಾಟ್ಸ್‌ಆಪ್ ಕಾನ್ಫಿಗರ್ ಆಗಿಲ್ಲ. ಇಮೇಲ್ ಬಳಸಿ.", err_title:"ಏನೋ ತಪ್ಪಾಯಿತು", try_again:"↩ ಮತ್ತೆ ಪ್ರಯತ್ನಿಸಿ", home:"← ಹೋಮ್‌ಗೆ ಹಿಂತಿರುಗಿ", or:"ಅಥವಾ" },
+  "Malayalam":{ done:"സ്ക്രീനിംഗ് പൂർത്തിയായി!", sub:"നിങ്ങളുടെ AI വാ ആരോഗ്യ സ്ക്രീനിംഗ് പൂർത്തിയായി.\nറിപ്പോർട്ട് ഡൗൺലോഡ് ചെയ്യുക അല്ലെങ്കിൽ പങ്കിടുക.", download:"റിപ്പോർട്ട് ഡൗൺലോഡ്", email:"ഇമെയിൽ അയക്കുക", wa:"വാട്ട്സ്ആപ്പ്", newScreen:"പുതിയ സ്ക്രീനിംഗ് ആരംഭിക്കുക", sending_email:"ഇമെയിലിലേക്ക് അയക്കുന്നു...", sending_wa:"വാട്ട്സ്ആപ്പിലേക്ക് നോട്ടിഫൈ ചെയ്യുന്നു...", email_sent:"✅ ഇമെയിൽ അയച്ചു!", wa_sent:"✅ ടീമിനെ അറിയിച്ചു! വാട്ട്സ്ആപ്പിൽ റിപ്പോർട്ട് വരും.", wa_coming:"⚙️ വാട്ട്സ്ആപ്പ് കോൺഫിഗർ ചെയ്തിട്ടില്ല. ഇമെയിൽ ഉപയോഗിക്കുക.", err_title:"എന്തോ തകരാർ സംഭവിച്ചു", try_again:"↩ വീണ്ടും ശ്രമിക്കുക", home:"← ഹോമിലേക്ക് മടങ്ങുക", or:"അല്ലെങ്കിൽ" },
+  "Marathi":  { done:"स्क्रीनिंग पूर्ण झाली!", sub:"तुमची AI तोंडाची आरोग्य स्क्रीनिंग पूर्ण झाली.\nखाली तुमचा अहवाल डाउनलोड करा किंवा शेअर करा.", download:"अहवाल डाउनलोड करा", email:"ईमेल पाठवा", wa:"व्हाट्सअॅप", newScreen:"नवीन स्क्रीनिंग सुरू करा", sending_email:"ईमेलवर अहवाल पाठवत आहोत...", sending_wa:"व्हाट्सअॅपसाठी नोटिफाय करत आहोत...", email_sent:"✅ ईमेल पाठवला!", wa_sent:"✅ टीमला सूचित केले! व्हाट्सअॅपवर रिपोर्ट येईल.", wa_coming:"⚙️ व्हाट्सअॅप कॉन्फिगर नाही. ईमेल वापरा.", err_title:"काहीतरी चुकले", try_again:"↩ पुन्हा प्रयत्न करा", home:"← मुख्यपृष्ठावर परत", or:"किंवा" },
+  "Bengali":  { done:"স্ক্রিনিং সম্পন্ন হয়েছে!", sub:"আপনার AI মৌখিক স্বাস্থ্য স্ক্রিনিং সম্পন্ন হয়েছে।\nনিচে আপনার রিপোর্ট ডাউনলোড করুন বা শেয়ার করুন।", download:"রিপোর্ট ডাউনলোড করুন", email:"ইমেইল পাঠান", wa:"হোয়াটসঅ্যাপ", newScreen:"নতুন স্ক্রিনিং শুরু করুন", sending_email:"ইমেইলে রিপোর্ট পাঠাচ্ছি...", sending_wa:"হোয়াটসঅ্যাপের জন্য নোটিফাই করছি...", email_sent:"✅ ইমেইল পাঠানো হয়েছে!", wa_sent:"✅ টিমকে জানানো হয়েছে! হোয়াটসঅ্যাপে রিপোর্ট আসবে।", wa_coming:"⚙️ হোয়াটসঅ্যাপ কনফিগার নেই। ইমেইল ব্যবহার করুন।", err_title:"কিছু ভুল হয়েছে", try_again:"↩ আবার চেষ্টা করুন", home:"← হোমে ফিরে যান", or:"অথবা" },
+  "Arabic":   { done:"اكتمل الفحص!", sub:"اكتمل فحص صحة الفم بالذكاء الاصطناعي.\nقم بتنزيل تقريرك أو مشاركته أدناه.", download:"تنزيل التقرير", email:"إرسال بريد إلكتروني", wa:"واتساب", newScreen:"بدء فحص جديد", sending_email:"جارٍ إرسال التقرير عبر البريد الإلكتروني...", sending_wa:"جارٍ إخطار الفريق للإرسال عبر واتساب...", email_sent:"✅ تم إرسال البريد الإلكتروني!", wa_sent:"✅ تم إخطار الفريق! ستصل التقرير عبر واتساب قريباً.", wa_coming:"⚙️ واتساب غير مُهيأ. استخدم البريد الإلكتروني.", err_title:"حدث خطأ ما", try_again:"↩ حاول الالتقاط مجدداً", home:"← العودة للرئيسية", or:"أو" }
 };
 
 const RL = RT[LANG] || RT["English"];
@@ -251,10 +245,10 @@ function sendEmail(btn){
   document.getElementById('emailLabel').innerText="⏳ ...";
   s.className="status show sending";s.innerText=RL.sending_email;
   fetch("/send_email",{method:"POST"}).then(function(r){return r.text();}).then(function(t){
-    var ok=t.includes("successfully")||t.includes("sent");
+    var ok=t.includes("successfully")||t.includes("sent")||t.includes("✅");
     s.className="status show "+(ok?"ok":"fail");s.innerText=t;
     btn.disabled=false;
-    document.getElementById('emailLabel').innerText = ok ? RL.email_sent : RL.email;
+    document.getElementById('emailLabel').innerText = ok ? "✅" : RL.email;
   }).catch(function(){
     s.className="status show fail";s.innerText="❌ Network error.";
     btn.disabled=false;document.getElementById('emailLabel').innerText=RL.email;
@@ -268,12 +262,33 @@ function sendWhatsApp(btn){
   s.className="status show sending";s.innerText=RL.sending_wa;
   fetch("/send_whatsapp",{method:"POST"}).then(function(r){return r.text();}).then(function(t){
     btn.disabled=false;
-    if(t.includes("✅")){s.className="status show wa-ok";s.innerText=t;document.getElementById('waLabel').innerText="✅";}
-    else if(t.includes("not configured")||t.includes("Token will be added")||t.includes("coming soon")){
-      s.className="status show warn";s.innerHTML=RL.wa_coming;document.getElementById('waLabel').innerText=RL.wa;
-    }else{s.className="status show fail";s.innerText=t;document.getElementById('waLabel').innerText=RL.wa;}
+    /* ✅ Success — AiSensy sent OR friend notified */
+    if(t.includes("✅")){
+      s.className="status show wa-ok";
+      s.innerText=t;
+      document.getElementById('waLabel').innerText="✅";
+    }
+    /* ❌ Only show warning if API key truly not configured */
+    else if(t.includes("not configured")||t.includes("API key")){
+      s.className="status show warn";
+      s.innerText=RL.wa_coming;
+      document.getElementById('waLabel').innerText=RL.wa;
+    }
+    /* 📧 Friend notified via email (AiSensy failed but helper email fired) */
+    else if(t.includes("notified")||t.includes("Friend")||t.includes("email")){
+      s.className="status show wa-ok";
+      s.innerText=RL.wa_sent;
+      document.getElementById('waLabel').innerText="✅";
+    }
+    /* ❌ Any other error */
+    else{
+      s.className="status show fail";
+      s.innerText=t;
+      document.getElementById('waLabel').innerText=RL.wa;
+    }
   }).catch(function(){
-    s.className="status show fail";s.innerText="❌ Failed.";btn.disabled=false;document.getElementById('waLabel').innerText=RL.wa;
+    s.className="status show fail";s.innerText="❌ Failed.";
+    btn.disabled=false;document.getElementById('waLabel').innerText=RL.wa;
   });
 }
 </script>
