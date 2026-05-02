@@ -262,19 +262,19 @@ function sendWhatsApp(btn){
   s.className="status show sending";s.innerText=RL.sending_wa;
   fetch("/send_whatsapp",{method:"POST"}).then(function(r){return r.text();}).then(function(t){
     btn.disabled=false;
-    /* ✅ Success — AiSensy sent OR friend notified */
+    /* ✅ Any success — always show our own translated message, never raw server text */
     if(t.includes("✅")){
       s.className="status show wa-ok";
-      s.innerText=t;
+      s.innerText=RL.wa_sent;
       document.getElementById('waLabel').innerText="✅";
     }
-    /* ❌ Only show warning if API key truly not configured */
+    /* ⚙️ API key not configured */
     else if(t.includes("not configured")||t.includes("API key")){
       s.className="status show warn";
       s.innerText=RL.wa_coming;
       document.getElementById('waLabel').innerText=RL.wa;
     }
-    /* 📧 Friend notified via email (AiSensy failed but helper email fired) */
+    /* 📧 Fallback: friend/team notified via email */
     else if(t.includes("notified")||t.includes("Friend")||t.includes("email")){
       s.className="status show wa-ok";
       s.innerText=RL.wa_sent;
